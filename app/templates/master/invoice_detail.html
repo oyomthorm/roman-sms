@@ -9,8 +9,12 @@
         issued {{ invoice.issued_at.strftime('%Y-%m-%d %H:%M') }}
       </p>
     </div>
-    <a href="{{ url_for('master.invoices') }}"
-       class="text-sm text-slate-600">← Invoices</a>
+    <div class="flex items-center gap-4">
+      <a href="{{ url_for('master.invoice_pdf_download', invoice_id=invoice.id) }}"
+         class="text-sm text-slate-600 hover:text-slate-900">Download PDF</a>
+      <a href="{{ url_for('master.invoices') }}"
+         class="text-sm text-slate-600 hover:text-slate-900">← Invoices</a>
+    </div>
   </div>
 
   <div class="bg-white rounded-lg shadow p-6 mb-6">
