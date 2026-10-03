@@ -7,9 +7,13 @@ moves from `sent` to `delivered` or `delivery_failed`.
 POST /api/webhooks/transaction-status/<WEBHOOK_TOKEN>
 Content-Type: application/json
 
+
 The token in the URL is compared to `WEBHOOK_TOKEN` in config. A
 mismatch returns `404 {"ok": false}` so we do not reveal the endpoint
 exists.
+
+This route is CSRF-exempt (`@csrf.exempt`) — Pahappa does not send
+our CSRF token.
 
 ## Payload
 

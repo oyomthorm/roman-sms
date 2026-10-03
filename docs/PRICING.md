@@ -18,18 +18,26 @@ see on the plans page.
   Lost revenue but not lost wholesale — Pahappa does not bill failed
   sends.
 
-## Retail tiers (current)
+## Retail tiers (current — after the 0.7.1 increase)
 
 | Plan | Credits | Price (UGX) | Rate/SMS | Wholesale | Margin |
 |---|---|---|---|---|---|
-| Starter | 1,000 | 45,000 | 45 | 35 | 10 |
-| Growth | 10,000 | 400,000 | 40 | 35 | 5 |
-| Business | 50,000 | 1,750,000 | 35 | 30 | 5 |
-| Scale | 200,000 | 6,000,000 | 30 | 25 | 5 |
+| Starter | 1,000 | 50,000 | 50 | 35 | 15 |
+| Growth | 10,000 | 450,000 | 45 | 35 | 10 |
+| Business | 50,000 | 2,000,000 | 40 | 30 | 10 |
+| Scale | 200,000 | 7,000,000 | 35 | 25 | 10 |
 
 Every tier's rate sits above the wholesale rate for that volume band.
 The Starter tier carries the largest absolute margin and serves as an
 entry point.
+
+> **History.** The 0.7.1 release raised every tier by UGX 5 per SMS
+> (Starter 45→50, Growth 40→45, Business 35→40, Scale 30→35) after two
+> consecutive test sends came back at UGX 35 and UGX 20 wholesale. The
+> 5 UGX buffer covers the worst-case wholesale rate on every tier.
+> Applied via `scripts/update_prices_2026_10.py`. Invoices created
+> before the change are unaffected — prices are snapshotted at invoice
+> creation.
 
 ## Free credit grants
 

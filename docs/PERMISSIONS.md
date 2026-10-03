@@ -24,8 +24,9 @@ Three roles. No permission tables.
 | **Associate settings** | | | |
 | Edit org settings | ✅ | ✅ | ❌ |
 | Grant/revoke pool permission | ❌ | ✅ | ❌ |
-| Invite / deactivate users | ✅ | ✅ | ❌ |
-| Change user roles (within org) | ✅ | ✅ | ❌ |
+| Reset user passwords (within org) | ✅ | ✅ | ❌ |
+| Invite / deactivate users | ✅ | ❌ | ❌ |
+| Change user roles (within org) | ✅ | ❌ | ❌ |
 | **Associate messaging** | | | |
 | View contacts | ✅ | ✅ | ✅ |
 | Add / import contacts | ✅ | ✅ | ✅ |
@@ -40,6 +41,13 @@ Three roles. No permission tables.
 | **Public (unauthenticated)** | | | |
 | Submit signup request | ✅ | ✅ | ✅ |
 | Opt out (via link or landing) | ✅ | ✅ | ✅ |
+
+> **Not yet available.** Inviting / deactivating users and changing
+> user roles within an associate org are parked (see `SCOPE.md` and
+> `BACKLOG.md`: "Per-associate sub-users UI — est. 3d"). Until that
+> ships, `associate_admin` can reset passwords for existing users but
+> cannot create or remove them. Master retains full user management
+> for any org.
 
 ## Enforcement layers
 

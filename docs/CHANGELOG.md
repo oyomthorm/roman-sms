@@ -1,5 +1,55 @@
 # Changelog
+# Changelog
 
+## [0.9.0] — PDF invoices, completion emails, dashboard charts
+
+### Added
+- **Invoice PDF export** for associates and master. Download from the
+  invoice detail page. Renders company details, line item, total, and
+  payment instructions from config. Company details are configurable
+  via `COMPANY_NAME`, `COMPANY_ADDRESS`, `COMPANY_PHONE`,
+  `COMPANY_EMAIL`, `COMPANY_TIN`.
+- **Campaign completion emails.** When a campaign finishes sending,
+  the creator and all associate admins get a summary email. Gated by
+  `EMAIL_ON_CAMPAIGN_COMPLETE=1`.
+- **Dashboard usage charts.** Replaced the placeholder stats with a
+  wallet hero card, delivery donut, 30-day send trend, and credit
+  burn rate indicator. All rendered server-side — no JS dependencies.
+
+### Changed
+- `sent_30d` on the dashboard now counts messages that reached the
+  network (`sent` + `delivered` + `delivery_failed`), not just those
+  still awaiting webhook confirmation. The delivery rate is now
+  computed against a coherent population.
+- Context processors (`_inject_notifications`, `_inject_wallet`) guard
+  against background jobs. Services can now render templates from the
+  worker or cron context without crashing.
+
+### Fixed
+- Delivery rate was previously `delivered / (still-pending)`, which
+  produced nonsense ratios once the webhook ran.
+- `services/pool.unique_recipients` was defined twice; the second
+  definition silently dropped the `group_name` parameter, breaking
+  pool sends filtered by group.
+- `routes/signup.py` redirected to a nonexistent `auth.root` endpoint
+  for authenticated users.
+- `routes/webhooks.py` `_parse_iso8601` stored server-local time in
+  `MessageLog.delivered_at` instead of UTC.
+- Welcome email said "expires in 24 hours" but the token expired in 1.
+  Reset and welcome tokens now carry separate lifetimes.
+- `Campaign.sender_id` and `CampaignSchedule.sender_id` were
+  `String(11)`; populated from `brand_name` which is `String(60)`.
+  Postgres rejected any brand name longer than 11 characters.
+- `routes/campaigns.py` never read `recipient_source` /
+  `pasted_numbers` from the form, so the paste feature shipped in
+  0.8.1 was unreachable from the UI.
+- `routes/campaigns.py` `detail()` never passed `breakdown` to the
+  template.
+- `routes/master.py` `org_detail()` never passed `balance_ugx` /
+  `rate_ugx` after the 0.7.2 shilling-display change.
+- `create_associate` didn't cap `brand_name` at 20 characters, unlike
+  `update_associate`.
+  
 ## [0.8.1] — Campaign form polish
 ### Added
 - **Character / segment / cost counter** on the new campaign form.

@@ -48,12 +48,12 @@ Three lists. Every feature request goes into exactly one.
 - Sub-users per associate (associate_admin can reset passwords but
   cannot create additional users yet)
 - Dashboard export as PDF
-- Email notifications on campaign complete
 - Public API for associates
 - Two-factor auth
 - Document repository (EgoSMS has one; we do not need it)
 - Inline CSV import on the campaign form (associates import first,
   then send)
+- Top-up reminder emails (deferred; see `BACKLOG.md`)
 
 ## Never
 

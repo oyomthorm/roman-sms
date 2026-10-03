@@ -22,6 +22,8 @@ and the constraints we discovered the hard way.
   separately. Sandbox credentials do not work on live; live credentials
   do not work on sandbox.
 - Store both in `.env`. Toggle with `EGOSMS_SANDBOX=1` for sandbox.
+  **The comparison is `== '1'` — any other value (including `true`)
+  evaluates to False.** Use `0` for live.
 - Rotate the password immediately if it ever appears in a log file or
   a chat message.
 

@@ -109,6 +109,10 @@ including the prefix, because that is what Pahappa bills for.
 4. `services.billing.mark_paid` in one transaction expires any existing
    subscription, creates a new one from the snapshot, credits the
    wallet, and marks the invoice paid.
+5. Either party can download the invoice as a PDF from the invoice
+   detail page. `services.invoice_pdf` renders it from the Invoice row
+   alone — no live lookups against Plan or Organization — because the
+   invoice is the source of truth once issued.
 
 ### Signup
 
@@ -189,6 +193,38 @@ daily cap requeues the job for one hour later.
 Computed on every render from live conditions. No stored inbox.
 Per-user dismissals (`NotificationDismissal`) hide specific conditions;
 the notification disappears on its own when the condition clears.
+
+## Campaign completion emails
+
+When `dispatch.process_job` flips a Campaign to `complete`, it calls
+`services.campaign_notifications.send_completion_email(campaign_id)`.
+The service emails the campaign creator plus every active
+`associate_admin` in the org, deduplicated. Gated by
+`EMAIL_ON_CAMPAIGN_COMPLETE` config flag.
+
+Renders the body with Jinja2's `Template` directly, not Flask's
+`render_template_string` — the latter runs Flask's context processors,
+which expect a request context that the worker does not have.
+
+The call is wrapped in try/except so a mail failure never breaks the
+dispatch loop.
+
+## Dashboard
+
+`routes/dashboard.py` computes:
+
+- `sent_30d` — messages that reached the network. Population is
+  `status IN ('sent', 'delivered', 'delivery_failed')`.
+- `delivered_30d`, `delivery_failed_30d` — subsets of `sent_30d`
+  confirmed by the webhook.
+- `failed_30d`, `pending_30d` — independent counters, not subsets of
+  `sent_30d`.
+- `trend` — 30-slot list, one entry per day including zero-days.
+- `avg_daily_spend` and `days_remaining` — derived from wallet debits
+  with `reason='sms_send'` over the last 30 days.
+
+All charts are inline SVG rendered in the template. No JS library.
+See ADR-016.
 
 ## Chat
 

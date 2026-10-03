@@ -7,12 +7,8 @@ Format: `Feature — requested by NAME (DATE) — est. Nd — notes`
 
 ## Parking lot
 
-- [ ] Scheduled campaigns — (not yet requested) — est. 2d
 - [ ] Per-associate sub-users UI — (not yet requested) — est. 3d
 - [ ] Automated payment gateway — (not yet requested) — est. 5d
-- [ ] Email notifications on campaign complete — (not yet requested) — est. 2d
-- [ ] Billing PDF export — (not yet requested) — est. 1d
-- [ ] Dashboard usage charts — (not yet requested) — est. 2d
 - [ ] Public API for associates — (not yet requested) — est. 4d
 - [ ] Registered sender IDs per associate — (gated on paying client) — est. 2d + cost of registration
 - [ ] Two-factor authentication — (not yet requested) — est. 2d
@@ -28,6 +24,21 @@ Format: `Feature — requested by NAME (DATE) — est. Nd — notes`
   mockup before sending. Nice-to-have, not blocking.
 - **CAPTCHA on signup.** Only add if spam arrives. Honeypot plus rate
   limit is the current defence.
+- **Top-up reminder emails.** Warn associates before their balance
+  hits the low-balance threshold, based on their 30-day burn rate.
+  Deferred until a real associate asks for it.
+
+## Shipped (no longer parked)
+
+- **Scheduled campaigns.** Shipped in `0.8.0`. See `CHANGELOG.md` and
+  ADR-003 for `CampaignSchedule`, `services/schedules.py`, and the
+  worker scheduler pass.
+- **Character / segment / cost counter.** Shipped in `0.8.1`. See
+  ADR-013.
+- **Paste-numbers recipient source.** Shipped in `0.8.1`. See ADR-014.
+- **Invoice PDF export.** Shipped in `0.9.0`.
+- **Campaign completion emails.** Shipped in `0.9.0`.
+- **Dashboard usage charts.** Shipped in `0.9.0`.
 
 ## Deleted (untouched for 3+ months)
 
