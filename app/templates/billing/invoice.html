@@ -1,144 +1,266 @@
 {% extends "base.html" %}
+
 {% block title %}Invoice {{ invoice.number }} — Roman SMS{% endblock %}
+{% block breadcrumb %}Billing{% endblock %}
 {% block page_header %}Invoice {{ invoice.number }}{% endblock %}
-{% block page_header_mobile %}Invoice{% endblock %}
+
 {% block content %}
 
-<div class="max-w-3xl">
+{# ------------------------------------------------------------------ #}
+{# Header — invoice number, status badge, actions #}
+{# ------------------------------------------------------------------ #}
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div class="min-w-0">
+    <p class="text-sm text-slate-500">
+      <span class="font-mono">{{ invoice.number }}</span> ·
+      issued {{ invoice.issued_at.strftime('%d %b %Y') }}
+    </p>
+    <p class="text-xs text-slate-500 mt-1">
+      {{ invoice.plan_name or 'Plan' }} ·
+      {{ '{:,}'.format(invoice.credits) }} SMS ·
+      valid {{ invoice.validity_days }} days
+    </p>
+  </div>
 
-  <div class="mb-6">
-    <a href="{{ url_for('billing.wallet') }}"
-       class="text-sm text-slate-500 hover:text-slate-900 transition">← Wallet</a>
-      <a href="{{ url_for('billing.invoice_pdf_download', invoice_id=invoice.id) }}"
-        class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50 text-sm px-4 py-2 rounded-lg transition">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Download PDF
-      </a>
-      <div class="flex items-start justify-between mt-2 gap-4">
-      <div>
-        <h2 class="text-2xl font-bold tracking-tight text-slate-900">
-          Invoice {{ invoice.number }}
-        </h2>
-        <p class="text-sm text-slate-500 mt-1">
-          Issued {{ invoice.issued_at.strftime('%d %b %Y at %H:%M') }}
+  <div class="flex gap-2 shrink-0">
+    <a href="{{ url_for('billing.invoice_pdf_download', invoice_id=invoice.id) }}"
+       class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50 text-sm px-4 py-2 rounded-lg transition">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download PDF
+    </a>
+
+    {% if invoice.status == 'unpaid' %}
+    <a href="{{ url_for('billing.plans') }}"
+       class="bg-slate-900 hover:bg-slate-800 text-white text-sm px-4 py-2 rounded-lg transition">
+      Buy more credits
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+
+{# ------------------------------------------------------------------ #}
+{# Status banner #}
+{# ------------------------------------------------------------------ #}
+{% if invoice.status == 'unpaid' %}
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <div class="flex items-start gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           class="text-amber-600 shrink-0 mt-0.5">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-amber-900">
+          This invoice is awaiting payment
+        </p>
+        <p class="text-sm text-amber-800 mt-1">
+          Once payment is received, credits will appear in your wallet
+          automatically. Follow the payment instructions below and use the
+          invoice number as your reference.
         </p>
       </div>
-      <div class="shrink-0">
-        {% if invoice.status == 'paid' %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">paid</span>
-        {% elif invoice.status == 'cancelled' %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700">cancelled</span>
-        {% else %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">awaiting payment</span>
-        {% endif %}
-      </div>
     </div>
   </div>
 
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-      <div>
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Plan</div>
-        <div class="text-base font-semibold text-slate-900 mt-1">
-          {{ invoice.plan_name }}
-        </div>
-      </div>
-      <div>
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-500">SMS</div>
-        <div class="text-base font-semibold text-slate-900 mt-1 tabular-nums">
-          {{ '{:,}'.format(invoice.credits) }}
-        </div>
-      </div>
-      <div>
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Validity</div>
-        <div class="text-base font-semibold text-slate-900 mt-1">
-          {% if invoice.validity_days %}
-          {{ invoice.validity_days }} days
-          {% else %}
-          No expiry
-          {% endif %}
-        </div>
-      </div>
-      <div>
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Total due</div>
-        <div class="text-lg font-bold text-emerald-600 mt-1 tabular-nums whitespace-nowrap">
-          UGX {{ '{:,.0f}'.format(invoice.amount) }}
-        </div>
-        {% if invoice.credits %}
-        <div class="text-xs text-slate-500 mt-0.5">
-          {{ '{:,.0f}'.format(invoice.amount / invoice.credits) }} UGX per SMS
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  {% if invoice.status == 'paid' %}
-  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+{% elif invoice.status == 'paid' %}
+  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6">
     <div class="flex items-start gap-3">
-      <svg class="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" fill="none"
-           stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           class="text-emerald-600 shrink-0 mt-0.5">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
       </svg>
-      <div>
-        <div class="font-semibold text-emerald-900">Payment received</div>
-        <div class="text-sm text-emerald-800 mt-1">
-          Paid on {{ invoice.paid_at.strftime('%d %b %Y at %H:%M') }} ·
-          {{ invoice.payment_method }} ·
-          ref <span class="font-mono">{{ invoice.payment_reference }}</span>
-        </div>
-        <div class="text-sm text-emerald-800 mt-2">
-          {{ '{:,}'.format(invoice.credits) }} SMS added to your wallet.
-        </div>
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-emerald-900">
+          Paid on {{ invoice.paid_at.strftime('%d %b %Y') }}
+        </p>
+        <p class="text-sm text-emerald-800 mt-1">
+          {{ '{:,}'.format(invoice.credits) }} credits were added to your wallet.
+        </p>
       </div>
     </div>
   </div>
 
-  {% elif invoice.status == 'cancelled' %}
-  <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
-    <div class="font-semibold text-slate-700">Invoice cancelled</div>
-    <div class="text-sm text-slate-600 mt-1">
-      {{ invoice.cancellation_reason or 'No reason recorded.' }}
-    </div>
-  </div>
-
-  {% else %}
-  <div class="bg-amber-50 border border-amber-200 rounded-xl p-6">
-    <div class="flex items-start gap-3 mb-4">
-      <svg class="w-6 h-6 text-amber-600 shrink-0 mt-0.5" fill="none"
-           stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+{% elif invoice.status == 'cancelled' %}
+  <div class="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
+    <div class="flex items-start gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           class="text-red-600 shrink-0 mt-0.5">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
       </svg>
-      <div>
-        <div class="font-semibold text-amber-900">How to pay</div>
-        <div class="text-sm text-amber-800 mt-0.5">
-          Once we receive payment, we will mark this invoice paid and
-          the SMS will appear in your wallet immediately.
-        </div>
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-red-900">
+          Cancelled on {{ invoice.cancelled_at.strftime('%d %b %Y') }}
+        </p>
+        {% if invoice.cancellation_reason %}
+        <p class="text-sm text-red-800 mt-1">
+          {{ invoice.cancellation_reason }}
+        </p>
+        {% endif %}
       </div>
     </div>
+  </div>
+{% endif %}
 
-    <div class="bg-white/70 rounded-lg p-4 text-sm text-amber-900 whitespace-pre-wrap
-                font-mono leading-relaxed border border-amber-100">
-      {{ payment_instructions }}
+
+{# ------------------------------------------------------------------ #}
+{# Summary cards #}
+{# ------------------------------------------------------------------ #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+      Amount
     </div>
-
-    <div class="mt-4 text-xs text-amber-800">
-      <strong>Important:</strong> include the invoice number
-      <span class="font-mono font-bold">{{ invoice.number }}</span>
-      as the payment reference so we can match your payment.
+    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums whitespace-nowrap">
+      {{ invoice.currency }} {{ '{:,.0f}'.format(invoice.amount) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-1">
+      {{ invoice.currency }} {{ '{:,.2f}'.format(invoice.amount / invoice.credits)
+         if invoice.credits else '—' }} per SMS
     </div>
   </div>
-  {% endif %}
 
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+      Credits
+    </div>
+    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+      {{ '{:,}'.format(invoice.credits) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-1">
+      SMS
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+      Validity
+    </div>
+    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+      {{ invoice.validity_days }}
+    </div>
+    <div class="text-xs text-slate-500 mt-1">
+      days from activation
+    </div>
+  </div>
+
+</div>
+
+
+{# ------------------------------------------------------------------ #}
+{# Line item table #}
+{# ------------------------------------------------------------------ #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider">
+        <th class="text-left px-5 py-3 font-medium">Description</th>
+        <th class="text-right px-5 py-3 font-medium">Credits</th>
+        <th class="text-right px-5 py-3 font-medium">Validity</th>
+        <th class="text-right px-5 py-3 font-medium">Amount</th>
+      </tr>
+    </thead>
+    <tbody class="text-slate-900">
+      <tr class="border-t border-slate-200">
+        <td class="px-5 py-4">{{ invoice.plan_name or 'Plan' }}</td>
+        <td class="px-5 py-4 text-right tabular-nums">
+          {{ '{:,}'.format(invoice.credits) }}
+        </td>
+        <td class="px-5 py-4 text-right tabular-nums">
+          {{ invoice.validity_days }} days
+        </td>
+        <td class="px-5 py-4 text-right tabular-nums font-medium">
+          {{ invoice.currency }} {{ '{:,.0f}'.format(invoice.amount) }}
+        </td>
+      </tr>
+      <tr class="border-t border-slate-200 bg-slate-50">
+        <td class="px-5 py-3 font-medium" colspan="3">Total</td>
+        <td class="px-5 py-3 text-right tabular-nums font-bold">
+          {{ invoice.currency }} {{ '{:,.0f}'.format(invoice.amount) }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+{# ------------------------------------------------------------------ #}
+{# Payment details (paid invoices) or instructions (unpaid) #}
+{# ------------------------------------------------------------------ #}
+{% if invoice.status == 'paid' %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <h3 class="text-sm font-semibold text-slate-900 mb-3">Payment details</h3>
+  <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+    <div>
+      <dt class="text-slate-500">Method</dt>
+      <dd class="text-slate-900 font-medium">
+        {{ (invoice.payment_method or '—').upper() }}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-slate-500">Reference</dt>
+      <dd class="text-slate-900 font-mono">
+        {{ invoice.payment_reference or '—' }}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-slate-500">Paid at</dt>
+      <dd class="text-slate-900">
+        {{ invoice.paid_at.strftime('%d %b %Y, %H:%M') if invoice.paid_at else '—' }}
+      </dd>
+    </div>
+  </dl>
+</div>
+
+{% elif invoice.status == 'unpaid' and payment_instructions %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <h3 class="text-sm font-semibold text-slate-900 mb-3">Payment instructions</h3>
+  <div class="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{{ payment_instructions }}</div>
+  <div class="mt-4 pt-4 border-t border-slate-200">
+    <p class="text-xs text-slate-500">
+      Reference to use: <span class="font-mono text-slate-900">{{ invoice.number }}</span>
+    </p>
+  </div>
+</div>
+{% endif %}
+
+
+{# ------------------------------------------------------------------ #}
+{# Notes #}
+{# ------------------------------------------------------------------ #}
+{% if invoice.note %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <h3 class="text-sm font-semibold text-slate-900 mb-3">Notes</h3>
+  <div class="text-sm text-slate-700 whitespace-pre-line">{{ invoice.note }}</div>
+</div>
+{% endif %}
+
+
+{# ------------------------------------------------------------------ #}
+{# Back link #}
+{# ------------------------------------------------------------------ #}
+<div class="mt-8">
+  <a href="{{ url_for('billing.wallet') }}"
+     class="text-sm text-slate-600 hover:text-slate-900 transition">
+    ← Back to wallet
+  </a>
 </div>
 
 {% endblock %}
