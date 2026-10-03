@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}{{ schedule.name }} — Roman SMS{% endblock %}
+{% block page_header %}{{ schedule.name }}{% endblock %}
+{% block page_header_mobile %}Schedule{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div class="min-w-0">
+    <a href="{{ url_for('campaigns.schedules') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Schedules</a>
+    <p class="text-sm text-slate-500 mt-2">
+      {{ schedule.days_label }} at {{ schedule.times_label }}
+    </p>
+  </div>
+  <div class="flex gap-2 shrink-0">
+    {% if schedule.status == 'active' %}
+    <form method="post" action="{{ url_for('campaigns.schedule_pause', sid=schedule.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
+                     text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+        Pause
+      </button>
+    </form>
+    {% elif schedule.status == 'paused' %}
+    <form method="post" action="{{ url_for('campaigns.schedule_resume', sid=schedule.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+        Resume
+      </button>
+    </form>
+    {% endif %}
+    {% if schedule.status not in ('cancelled', 'completed') %}
+    <form method="post" action="{{ url_for('campaigns.schedule_cancel', sid=schedule.id) }}"
+          onsubmit="return confirm('Cancel this schedule? Pending runs will stop.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="inline-flex items-center gap-2 border border-red-300 text-red-700
+                     hover:bg-red-50 text-sm font-medium px-4 py-2 rounded-lg transition">
+        Cancel
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{# Pause reason banner #}
+{% if schedule.status == 'paused' and schedule.pause_reason %}
+<div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+  <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none"
+       stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+  </svg>
+  <div class="flex-1">
+    <div class="font-semibold text-amber-900">Paused</div>
+    <div class="text-sm text-amber-800 mt-0.5">{{ schedule.pause_reason }}</div>
+    {% if 'Insufficient' in schedule.pause_reason %}
+    <a href="{{ url_for('billing.plans') }}"
+       class="inline-block mt-2 text-sm font-medium text-amber-900 underline">
+      Top up to resume →
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{# Stats row #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Status</div>
+    <div class="mt-2">
+      {% if schedule.status == 'active' %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+        active
+      </span>
+      {% elif schedule.status == 'paused' %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">paused</span>
+      {% elif schedule.status == 'completed' %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">completed</span>
+      {% else %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ schedule.status }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Next run</div>
+    <div class="text-lg font-semibold text-slate-900 mt-1 tabular-nums">
+      {% if schedule.next_run_at %}
+        {{ schedule.next_run_at.strftime('%d %b %H:%M') }}
+      {% else %}—{% endif %}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">UTC</div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Completed runs</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+      {{ schedule.runs_completed or 0 }}
+    </div>
+    {% if schedule.runs_skipped %}
+    <div class="text-xs text-amber-600 mt-0.5">
+      {{ schedule.runs_skipped }} skipped (empty list)
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Total sent</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+      {{ '{:,}'.format(schedule.total_sent or 0) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">across all runs</div>
+  </div>
+</div>
+
+{# Schedule config #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <div class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
+    Message body
+  </div>
+  <pre class="text-sm whitespace-pre-wrap font-mono text-slate-800 bg-slate-50 rounded-lg p-4 border border-slate-100">{{ schedule.body }}</pre>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-100 text-sm">
+    <div>
+      <div class="text-xs text-slate-500">Days</div>
+      <div class="font-medium text-slate-900 mt-0.5">{{ schedule.days_label }}</div>
+    </div>
+    <div>
+      <div class="text-xs text-slate-500">Times</div>
+      <div class="font-medium text-slate-900 mt-0.5">{{ schedule.times_label }}</div>
+    </div>
+    <div>
+      <div class="text-xs text-slate-500">Starts</div>
+      <div class="font-medium text-slate-900 mt-0.5">
+        {{ schedule.starts_on.strftime('%d %b %Y') }}
+      </div>
+    </div>
+    <div>
+      <div class="text-xs text-slate-500">Ends</div>
+      <div class="font-medium text-slate-900 mt-0.5">
+        {% if schedule.ends_on %}
+          {{ schedule.ends_on.strftime('%d %b %Y') }}
+        {% else %}
+          Never
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Run history #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-5 py-4 border-b border-slate-200">
+    <h2 class="font-semibold text-slate-900">Run history</h2>
+    <p class="text-xs text-slate-500 mt-0.5">
+      Every run creates a new campaign. Click through to see the delivery report.
+    </p>
+  </div>
+
+  {% if runs %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Run at</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Sent</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Failed</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Credits</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for c in runs %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3">
+          <a href="{{ url_for('campaigns.detail', cid=c.id) }}"
+             class="font-medium text-slate-900 hover:text-emerald-600">
+            {{ c.created_at.strftime('%d %b %Y, %H:%M') }}
+          </a>
+        </td>
+        <td class="px-5 py-3">
+          {% if c.status == 'complete' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
+          {% elif c.status == 'sending' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+            sending
+          </span>
+          {% elif c.status == 'queued' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+          {{ c.sent_count or 0 }}/{{ c.total or 0 }}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums
+                   {% if c.failed_count %}text-red-600{% else %}text-slate-500{% endif %}">
+          {{ c.failed_count or 0 }}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+          {{ c.credits_debited or 0 }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-12 px-4">
+    <div class="text-slate-400 text-sm">No runs yet.</div>
+    <div class="text-xs text-slate-400 mt-1">
+      The first run will happen at
+      {% if schedule.next_run_at %}
+        {{ schedule.next_run_at.strftime('%d %b %H:%M') }} UTC.
+      {% else %}
+        the next matching slot.
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit group' if group else 'New group' }} — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="max-w-lg">
+  <div class="mb-6">
+    <a href="{{ url_for('groups.index') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Groups</a>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 mt-1">
+      {{ 'Edit group' if group else 'New group' }}
+    </h1>
+  </div>
+
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
+      <input name="name" required maxlength="80"
+             value="{{ group.name if group else form.get('name','') }}"
+             placeholder="e.g. VIP Customers"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Description <span class="text-slate-400 font-normal">(optional)</span>
+      </label>
+      <input name="description" maxlength="255"
+             value="{{ group.description or '' if group else form.get('description','') }}"
+             placeholder="What is this group for?"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        {{ 'Save changes' if group else 'Create group' }}
+      </button>
+      <a href="{{ url_for('groups.index') }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

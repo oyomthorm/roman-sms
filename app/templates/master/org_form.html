@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit associate' if org else 'New associate' }} — Roman SMS{% endblock %}
+{% block breadcrumb %}Associates{% endblock %}
+{% block page_header %}{{ 'Edit associate' if org else 'New associate' }}{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl">
+  <div class="mb-6">
+    <a href="{{ url_for('master.orgs') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Associates</a>
+  </div>
+
+  <form method="post"
+        class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Organization name
+        </label>
+        <input name="name" required
+               value="{{ org.name if org else form.get('name','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Slug</label>
+        {% if org %}
+        <input value="{{ org.slug }}" readonly
+               class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3.5 py-2.5
+                      text-sm font-mono text-slate-500">
+        <p class="text-xs text-slate-500 mt-1.5">Slug cannot be changed.</p>
+        {% else %}
+        <input name="slug" required placeholder="kampalafit"
+               value="{{ form.get('slug','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5
+                      text-sm font-mono
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <p class="text-xs text-slate-500 mt-1.5">
+          Lowercase letters, numbers, dashes. Cannot be changed later.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Brand prefix
+      </label>
+      <input name="brand_name" required maxlength="20"
+             value="{{ org.brand_name if org else form.get('brand_name','') }}"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      <p class="text-xs text-slate-500 mt-1.5">
+        Prepended to every SMS: <code class="bg-slate-100 px-1 rounded">BRAND: your message here</code>.
+        Max 20 characters.
+      </p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        District (area of operation)
+      </label>
+      <select name="district_id"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <option value="">Not set</option>
+        {% for region, districts in districts_by_region %}
+        <optgroup label="{{ region }}">
+          {% for d in districts %}
+          <option value="{{ d.id }}"
+            {% if org and org.district_id == d.id %}selected{% endif %}>
+            {{ d.name }}
+          </option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      <p class="text-xs text-slate-500 mt-1.5">
+        Where this associate operates. Used for platform reports and
+        district filtering.
+      </p>
+    </div>
+
+    {% if not org %}
+    <div class="border-t border-slate-200 pt-5">
+      <div class="text-sm font-medium text-slate-900 mb-4">First administrator</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            Full name
+          </label>
+          <input name="admin_full_name"
+                 value="{{ form.get('admin_full_name','') }}"
+                 class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+          <input name="admin_email" type="email" required
+                 value="{{ form.get('admin_email','') }}"
+                 class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            Initial password
+          </label>
+          <input name="admin_password" type="text" required minlength="8"
+                 value="{{ form.get('admin_password','') }}"
+                 class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5
+                        text-sm font-mono
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <p class="text-xs text-slate-500 mt-1.5">
+            Share this with the client. They should change it after first login.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="border-t border-slate-200 pt-5">
+      <div class="text-sm font-medium text-slate-900 mb-4">
+        Contact <span class="text-slate-400 font-normal">(optional)</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+          <input name="contact_email" type="email"
+                 value="{{ org.contact_email or '' if org else form.get('contact_email','') }}"
+                 class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+          <input name="contact_phone"
+                 value="{{ org.contact_phone or '' if org else form.get('contact_phone','') }}"
+                 class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        {{ 'Save changes' if org else 'Create associate' }}
+      </button>
+      <a href="{{ url_for('master.org_detail', oid=org.id) if org else url_for('master.orgs') }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+{% block title %}{{ org.name }} — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}{{ org.name }}{% endblock %}
+{% block content %}
+
+{# Header #}
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div class="min-w-0">
+    <p class="text-sm text-slate-500">
+      <span class="font-mono">{{ org.slug }}</span> ·
+      brand <code class="bg-slate-100 px-1 rounded">{{ org.prefix }}</code> ·
+      {% if org.status == 'active' %}
+        <span class="text-emerald-600">active</span>
+      {% else %}
+        <span class="text-red-600">{{ org.status }}</span>
+      {% endif %}
+    </p>
+    {% if org.contact_email or org.contact_phone %}
+    <p class="text-xs text-slate-500 mt-1">
+      {% if org.contact_email %}{{ org.contact_email }}{% endif %}
+      {% if org.contact_email and org.contact_phone %} · {% endif %}
+      {% if org.contact_phone %}{{ org.contact_phone }}{% endif %}
+    </p>
+    {% endif %}
+  </div>
+  <div class="flex gap-2 shrink-0">
+    <a href="{{ url_for('master.org_edit', oid=org.id) }}"
+       class="border border-slate-300 hover:bg-slate-50 text-sm px-4 py-2 rounded-lg transition">
+      Edit
+    </a>
+    {% if org.status == 'active' %}
+    <form method="post" action="{{ url_for('master.org_suspend', oid=org.id) }}"
+          onsubmit="return confirm('Suspend {{ org.name }}? Pending sends will be cancelled.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition">
+        Suspend
+      </button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('master.org_activate', oid=org.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg transition">
+        Activate
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{# Summary cards #}
+{% set rl = status if status is defined and status else None %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Balance</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums whitespace-nowrap">
+      UGX {{ '{:,.0f}'.format(balance_ugx) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-1">
+      {{ '{:,}'.format(balance) }} SMS
+      {% if rate_ugx %}
+      · {{ '{:,.0f}'.format(rate_ugx) }} UGX/SMS
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Active plan</div>
+    {% if active_sub %}
+      <div class="text-lg font-semibold text-slate-900 mt-1 truncate">
+        {{ active_sub.plan.name }}
+      </div>
+      <div class="text-xs text-slate-500 mt-1">
+        expires {{ active_sub.expires_at.strftime('%d %b %Y') }}
+      </div>
+    {% else %}
+      <div class="text-lg font-semibold text-slate-400 mt-1">None</div>
+      <div class="text-xs text-slate-500 mt-1">assign a plan below</div>
+    {% endif %}
+  </div>
+
+  {% if margin %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5
+              {% if margin.value < 0 %}ring-1 ring-red-200{% endif %}">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+      Margin (30d)
+    </div>
+    <div class="text-2xl font-bold mt-1 tabular-nums whitespace-nowrap
+                {% if margin.value < 0 %}text-red-600
+                {% elif margin.value < 50000 %}text-amber-600
+                {% else %}text-emerald-600{% endif %}">
+      {{ '{:+,.0f}'.format(margin.value) }}
+      <span class="text-sm font-medium text-slate-400">UGX</span>
+    </div>
+    <div class="text-xs text-slate-500 mt-1 leading-tight">
+      UGX {{ '{:,.0f}'.format(margin.retail) }} billed ·
+      UGX {{ '{:,.0f}'.format(margin.wholesale) }} cost
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Users</div>
+    <div class="text-3xl font-bold text-slate-900 mt-1">
+      {{ users|length }}
+    </div>
+    <div class="text-xs text-slate-500 mt-1">
+      {{ users|selectattr('role','equalto','associate_admin')|list|length }} admin
+    </div>
+  </div>
+
+  {% if rl %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Rate limit (24h)</div>
+    <div class="text-lg font-semibold text-slate-900 mt-1 tabular-nums">
+      {{ rl.max_day - rl.remaining_day }} / {{ rl.max_day }}
+    </div>
+    <div class="text-xs text-slate-500 mt-1">
+      per minute: {{ rl.max_minute - rl.remaining_minute }} / {{ rl.max_minute }}
+    </div>
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Campaigns</div>
+    <div class="text-3xl font-bold text-slate-900 mt-1">{{ campaigns|length }}</div>
+    <div class="text-xs text-slate-500 mt-1">recent</div>
+  </div>
+  {% endif %}
+</div>
+
+{# Actions #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="font-semibold text-slate-900 mb-3">Grant credit</h2>
+    <form method="post" action="{{ url_for('master.org_grant', oid=org.id) }}"
+          class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Amount (SMS credits)
+        </label>
+        <input name="amount" type="number" min="1" required
+               class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <p class="text-xs text-slate-500 mt-1.5">
+          1 SMS credit ≈ {{ '{:,.0f}'.format(rate_ugx) }} UGX for this associate
+        </p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Note (optional)</label>
+        <input name="note" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <button class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-lg text-sm transition">
+        Grant credit
+      </button>
+      <p class="text-xs text-slate-500">No invoice. For corrections or goodwill.</p>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="font-semibold text-slate-900 mb-3">Assign plan</h2>
+    <form method="post" action="{{ url_for('master.org_assign_plan', oid=org.id) }}"
+          class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Plan</label>
+        <select name="plan_id" required
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <option value="">— select —</option>
+          {% for p in plans %}
+          <option value="{{ p.id }}">
+            {{ p.name }} — {{ '{:,.0f}'.format(p.price) }} UGX / {{ p.credits }} SMS
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Duration override (days)
+        </label>
+        <input name="duration_days" type="number" min="1"
+               placeholder="uses plan default"
+               class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="credit_wallet" value="1" checked>
+        Also credit the wallet
+      </label>
+      <button class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-lg text-sm transition">
+        Assign plan
+      </button>
+      <p class="text-xs text-slate-500">Skips invoicing. For trials or manual agreements.</p>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="font-semibold text-slate-900 mb-3">Issue invoice</h2>
+    <form method="post" action="{{ url_for('master.org_new_invoice', oid=org.id) }}"
+          class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Plan</label>
+        <select name="plan_id" required
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <option value="">— select —</option>
+          {% for p in plans %}
+          <option value="{{ p.id }}">
+            {{ p.name }} — {{ '{:,.0f}'.format(p.price) }} UGX
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-lg text-sm transition">
+        Create invoice
+      </button>
+      <p class="text-xs text-slate-500">
+        The associate sees it in their wallet. Mark it paid once payment is received.
+      </p>
+    </form>
+  </div>
+</div>
+
+{# Users #}
+<h2 class="text-lg font-semibold text-slate-900 mb-3">Users</h2>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Email</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Role</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Last login</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for u in users %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 font-mono text-xs text-slate-700">{{ u.email }}</td>
+        <td class="px-5 py-3 text-slate-700">{{ u.full_name or '' }}</td>
+        <td class="px-5 py-3">
+          {% if u.role == 'associate_admin' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">admin</span>
+          {% else %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">user</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs">
+          {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else '—' }}
+        </td>
+        <td class="px-5 py-3 text-right">
+          <form method="post"
+                action="{{ url_for('master.user_reset_password', oid=org.id, uid=u.id) }}"
+                class="inline-flex gap-2 items-center"
+                onsubmit="return confirm('Reset password for {{ u.email }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input name="new_password" required minlength="8"
+                   placeholder="new password"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs font-mono w-36">
+            <button class="text-amber-700 hover:underline text-xs">Reset</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Recent wallet activity #}
+<h2 class="text-lg font-semibold text-slate-900 mb-3">Recent wallet activity</h2>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">When</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Reason</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Change</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">After</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Note</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for t in ledger %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ t.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </td>
+        <td class="px-5 py-3 font-mono text-xs text-slate-700">{{ t.reason }}</td>
+        <td class="px-5 py-3 text-right tabular-nums whitespace-nowrap
+                   {% if t.delta > 0 %}text-emerald-700{% else %}text-slate-700{% endif %}">
+          {{ '+' if t.delta > 0 }}UGX {{ '{:,.0f}'.format(t.delta * rate_ugx) }}
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">
+            {{ '+' if t.delta > 0 }}{{ t.delta }} SMS
+          </div>
+        </td>
+        <td class="px-5 py-3 text-right text-slate-500 tabular-nums whitespace-nowrap">
+          UGX {{ '{:,.0f}'.format(t.balance_after * rate_ugx) }}
+          <div class="text-[10px] text-slate-400 mt-0.5">
+            {{ '{:,}'.format(t.balance_after) }} SMS
+          </div>
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs">{{ t.note or '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="p-6 text-center text-slate-500">
+        No transactions yet.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Subscription history #}
+<h2 class="text-lg font-semibold text-slate-900 mb-3">Subscription history</h2>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Plan</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Starts</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Expires</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">SMS</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for s in subs %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 text-slate-900 font-medium">{{ s.plan.name }}</td>
+        <td class="px-5 py-3 text-slate-500 text-xs">
+          {{ s.starts_at.strftime('%Y-%m-%d') }}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs">
+          {{ s.expires_at.strftime('%Y-%m-%d') }}
+        </td>
+        <td class="px-5 py-3">
+          {% if s.status == 'active' %}
+            <span class="text-emerald-600 text-xs">active</span>
+          {% else %}
+            <span class="text-slate-500 text-xs">{{ s.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+          {{ '{:,}'.format(s.credits_granted or 0) }}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="p-6 text-center text-slate-500">
+        No subscriptions yet.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Recent campaigns #}
+<h2 class="text-lg font-semibold text-slate-900 mb-3">Recent campaigns</h2>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Sent</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Failed</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for c in campaigns %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 text-slate-900">{{ c.name }}</td>
+        <td class="px-5 py-3">
+          {% if c.status == 'complete' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">complete</span>
+          {% elif c.status == 'sending' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">sending</span>
+          {% elif c.status == 'queued' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">queued</span>
+          {% elif c.status == 'cancelled' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">cancelled</span>
+          {% else %}
+            <span class="text-xs text-slate-600">{{ c.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+          {{ c.sent_count or 0 }}/{{ c.total or 0 }}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums
+                   {% if c.failed_count %}text-red-600{% else %}text-slate-500{% endif %}">
+          {{ c.failed_count or 0 }}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="p-6 text-center text-slate-500">
+        No campaigns yet.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

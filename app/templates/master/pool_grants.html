@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Pool grants — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}Pool permission grants{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="{{ url_for('master.pool') }}"
+     class="text-sm text-slate-500 hover:text-slate-900 transition">← Master pool</a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Organization</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Granted by</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Granted at</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Revoked</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Version</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for p in rows %}
+      <tr>
+        <td class="px-5 py-3 font-medium text-slate-900">
+          {{ orgs_by_id[p.org_id].name if p.org_id in orgs_by_id else '—' }}
+        </td>
+        <td class="px-5 py-3">
+          {% if p.status == 'active' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">active</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">revoked</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-xs text-slate-600">
+          {{ users_by_id[p.granted_by].email if p.granted_by in users_by_id else '—' }}
+        </td>
+        <td class="px-5 py-3 text-xs text-slate-600">
+          {{ p.granted_at.strftime('%d %b %Y, %H:%M') if p.granted_at else '—' }}
+        </td>
+        <td class="px-5 py-3 text-xs text-slate-600">
+          {{ p.revoked_at.strftime('%d %b %Y, %H:%M') if p.revoked_at else '—' }}
+        </td>
+        <td class="px-5 py-3 text-xs font-mono text-slate-500">
+          {{ p.agreement_version }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

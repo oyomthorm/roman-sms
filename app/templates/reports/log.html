@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Reports — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Delivery reports</h1>
+    <p class="text-sm text-slate-500 mt-1">Every message sent, with delivery status.</p>
+  </div>
+  <a href="{{ url_for('reports.log_csv', days=days) }}"
+     class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
+            text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/>
+    </svg>
+    Download CSV
+  </a>
+</div>
+
+<form method="get" class="flex flex-col sm:flex-row gap-2 mb-4">
+  <select name="status"
+          class="rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    <option value="">All statuses</option>
+    {% for s in ['pending', 'sent', 'failed', 'cancelled'] %}
+    <option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <select name="days"
+          class="rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    {% for d in [1, 7, 30, 90] %}
+    <option value="{{ d }}" {% if d == days %}selected{% endif %}>
+      Last {{ d }} day{{ 's' if d != 1 else '' }}
+    </option>
+    {% endfor %}
+  </select>
+  <button class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium
+                 px-5 py-2.5 rounded-lg transition">Filter</button>
+</form>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  {% if rows %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Phone</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Sent</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Body</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in rows %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 font-mono text-xs text-slate-700">{{ r.phone }}</td>
+        <td class="px-5 py-3">
+          {% if r.status == 'sent' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">sent</span>
+          {% elif r.status == 'failed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">failed</span>
+          {% elif r.status == 'cancelled' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">pending</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ r.sent_at.strftime('%d %b, %H:%M') if r.sent_at else '—' }}
+        </td>
+        <td class="px-5 py-3 text-slate-600 text-xs truncate max-w-md" title="{{ r.body }}">
+          {{ r.body[:80] }}{% if r.body|length > 80 %}…{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-16 px-4">
+    <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+    </svg>
+    <div class="text-slate-500 font-medium">No messages in this range</div>
+    <div class="text-sm text-slate-400 mt-1">Try a longer time period or different status.</div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

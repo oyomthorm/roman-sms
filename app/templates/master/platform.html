@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Platform sender — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}Platform sender{% endblock %}
+{% block page_header_mobile %}Platform{% endblock %}
+{% block content %}
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Sending balance</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1">
+      {{ '{:,}'.format(balance) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">credits</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Sent (30d)</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1">{{ sent_30d }}</div>
+    <div class="text-xs text-slate-500 mt-0.5">messages</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Sent (all time)</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1">{{ '{:,}'.format(sent_total) }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Brand</div>
+    <div class="text-lg font-semibold text-slate-900 mt-1">{{ org.prefix.strip() }}</div>
+    <div class="text-xs text-slate-500 mt-0.5">sender ID prefix</div>
+  </div>
+</div>
+
+{% if balance < 500 %}
+<div class="flex items-start gap-3 bg-amber-50 border border-amber-200
+            rounded-xl p-4 mb-6">
+  <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none"
+       stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+  </svg>
+  <div class="flex-1">
+    <div class="text-sm font-semibold text-amber-900">Platform wallet running low</div>
+    <div class="text-sm text-amber-800 mt-0.5">
+      Pool campaigns will fail once the balance reaches zero. Top it up below.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-slate-900 mb-4">Top up sending budget</h2>
+  <form method="post" action="{{ url_for('master.platform_topup') }}"
+        class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Amount</label>
+      <input name="amount" type="number" min="1" required
+             placeholder="e.g. 50000"
+             class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+    <div class="sm:col-span-2">
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Note</label>
+      <div class="flex gap-2">
+        <input name="note" placeholder="e.g. Q1 budget"
+               class="flex-1 rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <button class="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold
+                       px-5 py-2.5 rounded-lg transition shadow-sm text-sm whitespace-nowrap">
+          Add credits
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+  <div class="px-5 py-4 border-b border-slate-200">
+    <h2 class="font-semibold text-slate-900">Recent wallet activity</h2>
+  </div>
+  {% if ledger %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">When</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Reason</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Change</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Balance</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for t in ledger %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ t.created_at.strftime('%d %b %Y, %H:%M') }}
+        </td>
+        <td class="px-5 py-3">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono bg-slate-100 text-slate-700">
+            {{ t.reason }}
+          </span>
+        </td>
+        <td class="px-5 py-3 text-right font-medium
+                   {% if t.delta > 0 %}text-emerald-600{% else %}text-slate-700{% endif %}">
+          {{ '+' if t.delta > 0 }}{{ t.delta }}
+        </td>
+        <td class="px-5 py-3 text-right text-slate-500">{{ t.balance_after }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-12 text-slate-400 text-sm">No activity yet.</div>
+  {% endif %}
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-5 py-4 border-b border-slate-200">
+    <h2 class="font-semibold text-slate-900">Recent platform campaigns</h2>
+  </div>
+  {% if campaigns %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Sent</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Credits</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for c in campaigns %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 text-slate-900 font-medium">{{ c.name }}</td>
+        <td class="px-5 py-3">
+          {% if c.status == 'complete' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
+          {% elif c.status == 'sending' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+            sending
+          </span>
+          {% elif c.status == 'queued' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+          {% elif c.status == 'cancelled' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right text-slate-700">
+          {{ c.sent_count or 0 }}<span class="text-slate-400">/{{ c.total or 0 }}</span>
+        </td>
+        <td class="px-5 py-3 text-right text-slate-500 text-xs">
+          {{ c.credits_debited or 0 }}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ c.created_at.strftime('%d %b %Y, %H:%M') }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-12 text-slate-400 text-sm">
+    No platform campaigns yet.
+    <a href="{{ url_for('master.pool_send') }}"
+       class="text-emerald-600 hover:underline">Send one →</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

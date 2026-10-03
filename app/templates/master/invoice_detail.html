@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-semibold">{{ invoice.number }}</h1>
+      <p class="text-sm text-slate-500">
+        {{ invoice.org.name }} ·
+        issued {{ invoice.issued_at.strftime('%Y-%m-%d %H:%M') }}
+      </p>
+    </div>
+    <a href="{{ url_for('master.invoices') }}"
+       class="text-sm text-slate-600">← Invoices</a>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <div class="text-xs uppercase text-slate-500">Plan (snapshot)</div>
+        <div class="font-medium">{{ invoice.plan_name }}</div>
+      </div>
+      <div>
+        <div class="text-xs uppercase text-slate-500">Amount</div>
+        <div class="font-medium">
+          {{ '{:,.0f}'.format(invoice.amount) }} {{ invoice.currency }}
+        </div>
+      </div>
+      <div>
+        <div class="text-xs uppercase text-slate-500">Credits</div>
+        <div class="font-medium">{{ invoice.credits }}</div>
+      </div>
+      <div>
+        <div class="text-xs uppercase text-slate-500">Validity</div>
+        <div class="font-medium">{{ invoice.validity_days }} days</div>
+      </div>
+    </div>
+  </div>
+
+  {% if invoice.status == 'unpaid' %}
+
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="font-semibold mb-4">Mark paid</h2>
+    <form method="post"
+          action="{{ url_for('master.invoice_mark_paid', invoice_id=invoice.id) }}"
+          class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm mb-1">Payment method</label>
+          <select name="payment_method" required
+                  class="w-full border rounded px-3 py-2">
+            <option value="">— select —</option>
+            <option value="momo">Mobile money</option>
+            <option value="bank">Bank transfer</option>
+            <option value="cash">Cash</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Reference</label>
+          <input name="payment_reference" required
+                 placeholder="e.g. MoMo txn ID"
+                 class="w-full border rounded px-3 py-2 font-mono text-sm">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm mb-1">
+          Duration override (days, optional)
+        </label>
+        <input name="duration_days" type="number" min="1"
+               placeholder="{{ invoice.validity_days }}"
+               class="w-full border rounded px-3 py-2">
+        <p class="text-xs text-slate-500 mt-1">
+          Defaults to the invoice's {{ invoice.validity_days }} days.
+        </p>
+      </div>
+      <div>
+        <label class="block text-sm mb-1">Note (optional)</label>
+        <input name="note" class="w-full border rounded px-3 py-2">
+      </div>
+      <button class="bg-emerald-600 text-white px-6 py-2 rounded">
+        Mark paid and grant {{ invoice.credits }} credits
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="font-semibold mb-3 text-red-700">Cancel invoice</h2>
+    <form method="post"
+          action="{{ url_for('master.invoice_cancel', invoice_id=invoice.id) }}"
+          onsubmit="return confirm('Cancel this invoice?')"
+          class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input name="reason" required placeholder="Reason"
+             class="w-full border rounded px-3 py-2">
+      <button class="border border-red-300 text-red-700 px-5 py-2 rounded text-sm">
+        Cancel invoice
+      </button>
+    </form>
+  </div>
+
+  {% else %}
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="font-semibold mb-3">Record</h2>
+    <dl class="text-sm space-y-2">
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Status</dt>
+        <dd class="font-medium">{{ invoice.status }}</dd>
+      </div>
+      {% if invoice.paid_at %}
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Paid at</dt>
+        <dd>{{ invoice.paid_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Method</dt>
+        <dd>{{ invoice.payment_method }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Reference</dt>
+        <dd class="font-mono text-xs">{{ invoice.payment_reference }}</dd>
+      </div>
+      {% if paid_by %}
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Marked by</dt>
+        <dd>{{ paid_by.email }}</dd>
+      </div>
+      {% endif %}
+      {% endif %}
+      {% if invoice.cancelled_at %}
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Cancelled at</dt>
+        <dd>{{ invoice.cancelled_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Reason</dt>
+        <dd>{{ invoice.cancellation_reason }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

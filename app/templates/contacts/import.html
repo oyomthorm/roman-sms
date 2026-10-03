@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+{% block title %}Import contacts — Roman SMS{% endblock %}
+{% block page_header %}Import contacts{% endblock %}
+{% block page_header_mobile %}Import{% endblock %}
+{% block content %}
+
+<div class="max-w-4xl">
+  <div class="mb-6 flex items-start justify-between gap-4">
+    <div>
+      <a href="{{ url_for('contacts.index') }}"
+         class="text-sm text-slate-500 hover:text-slate-900 transition">← Contacts</a>
+      <p class="text-sm text-slate-500 mt-2">
+        Upload a CSV, review the preview, then confirm.
+      </p>
+    </div>
+    <a href="{{ url_for('contacts.import_history') }}"
+       class="shrink-0 text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+      Past imports →
+    </a>
+  </div>
+
+  {# ---------------------------------------------------------------- #}
+  {# Step 1 — Format guidance                                          #}
+  {# ---------------------------------------------------------------- #}
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+    <h2 class="font-semibold text-slate-900 mb-2">1. Prepare your file</h2>
+    <p class="text-sm text-slate-600 mb-3">
+      Your CSV must have a header row with a phone number column.
+      Recognised headers:
+      <code class="bg-slate-100 px-1 py-0.5 rounded">phone</code>,
+      <code class="bg-slate-100 px-1 py-0.5 rounded">number</code>,
+      <code class="bg-slate-100 px-1 py-0.5 rounded">mobile</code>,
+      <code class="bg-slate-100 px-1 py-0.5 rounded">msisdn</code>.
+      Optional columns:
+      <code class="bg-slate-100 px-1 py-0.5 rounded">name</code>,
+      <code class="bg-slate-100 px-1 py-0.5 rounded">group</code>,
+      <code class="bg-slate-100 px-1 py-0.5 rounded">district</code>.
+    </p>
+    <p class="text-sm text-slate-600 mb-3">
+      Phone numbers can be in any of these forms — they are all treated
+      as the same number:
+      <code>0700123456</code>, <code>700123456</code>,
+      <code>256700123456</code>, <code>+256700123456</code>,
+      <code>00256700123456</code>.
+    </p>
+    <p class="text-sm text-slate-600 mb-3">
+      Landlines (starting 041, 043, etc.) are rejected because SMS
+      cannot be delivered to them.
+    </p>
+    <a href="{{ url_for('contacts.sample_csv') }}"
+       class="inline-flex items-center gap-2 text-sm bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+      </svg>
+      Download sample CSV
+    </a>
+  </div>
+
+  <form method="post" action="{{ url_for('contacts.import_csv') }}"
+        enctype="multipart/form-data" id="import-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ---------------------------------------------------------------- #}
+    {# Step 2 — File + options                                           #}
+    {# ---------------------------------------------------------------- #}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+      <h2 class="font-semibold text-slate-900 mb-3">2. Choose your file</h2>
+
+      <label for="file"
+             class="block border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition">
+        <input type="file" name="file" id="file" accept=".csv,text/csv"
+               class="hidden">
+        <div class="text-slate-600">
+          <svg class="w-8 h-8 mx-auto mb-2 text-slate-400" fill="none"
+               stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/>
+          </svg>
+          <div class="text-sm font-medium">
+            <span id="file-label">Click to select a CSV file</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">or drag and drop</div>
+        </div>
+      </label>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            Default group
+          </label>
+          <input name="group" list="group-list"
+                 placeholder="Blank = use file column"
+                 class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                        placeholder:text-slate-400
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <datalist id="group-list">
+            {% for g, c in groups %}<option value="{{ g.name }}">{% endfor %}
+          </datalist>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            Default district
+          </label>
+          <select name="district_id"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            <option value="">Blank = use file column</option>
+            {% for region, districts in districts_by_region %}
+            <optgroup label="{{ region }}">
+              {% for d in districts %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            If contact exists
+          </label>
+          <select name="on_duplicate"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            <option value="skip">Skip (keep existing)</option>
+            <option value="update">Update from file</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500 mt-3">
+        Groups in your file that don't exist yet are created automatically.
+        Districts are matched against the reference list — unknown names
+        are skipped, not created.
+      </p>
+    </div>
+
+    {# ---------------------------------------------------------------- #}
+    {# Step 3 — Preview                                                  #}
+    {# ---------------------------------------------------------------- #}
+    <div id="preview-wrap" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-slate-900">3. Review</h2>
+        <button type="button" id="clear-btn"
+                class="text-xs text-slate-500 hover:text-slate-800 transition">
+          Clear
+        </button>
+      </div>
+
+      <div id="summary" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+        <div class="bg-slate-50 rounded-lg p-3">
+          <div class="text-xs font-medium uppercase text-slate-500">Total rows</div>
+          <div class="text-xl font-semibold text-slate-900" id="s-total">0</div>
+        </div>
+        <div class="bg-emerald-50 rounded-lg p-3">
+          <div class="text-xs font-medium uppercase text-emerald-700">Will add</div>
+          <div class="text-xl font-semibold text-emerald-700" id="s-add">0</div>
+        </div>
+        <div class="bg-amber-50 rounded-lg p-3">
+          <div class="text-xs font-medium uppercase text-amber-700">Duplicates</div>
+          <div class="text-xl font-semibold text-amber-700" id="s-dup">0</div>
+        </div>
+        <div class="bg-slate-100 rounded-lg p-3">
+          <div class="text-xs font-medium uppercase text-slate-600">Opted out</div>
+          <div class="text-xl font-semibold text-slate-600" id="s-opt">0</div>
+        </div>
+        <div class="bg-red-50 rounded-lg p-3">
+          <div class="text-xs font-medium uppercase text-red-700">Invalid</div>
+          <div class="text-xl font-semibold text-red-700" id="s-invalid">0</div>
+        </div>
+      </div>
+
+      <div id="fatal" class="hidden bg-red-50 border border-red-200 text-red-800
+                             rounded-lg p-4 mb-4 text-sm"></div>
+
+      <div class="max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left sticky top-0">
+            <tr>
+              <th class="p-2 w-14 font-semibold text-slate-700">Row</th>
+              <th class="p-2 font-semibold text-slate-700">Phone (input)</th>
+              <th class="p-2 font-semibold text-slate-700">Normalized</th>
+              <th class="p-2 font-semibold text-slate-700">Name</th>
+              <th class="p-2 font-semibold text-slate-700">Group</th>
+              <th class="p-2 font-semibold text-slate-700">District</th>
+              <th class="p-2 w-40 font-semibold text-slate-700">Status</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" id="submit-btn" disabled
+              class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     disabled:opacity-40 disabled:cursor-not-allowed
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        Import contacts
+      </button>
+      <span id="submit-hint" class="text-sm text-slate-500">
+        Select a file to continue.
+      </span>
+      <a href="{{ url_for('contacts.index') }}"
+         class="text-slate-600 text-sm ml-auto">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+(function () {
+  const existingPhones = new Set({{ existing_phones | tojson }});
+  const optOutPhones   = new Set({{ opt_out_phones | tojson }});
+
+  // Cache the on_duplicate select so we can react to changes.
+  const onDupSelect = document.querySelector('select[name="on_duplicate"]');
+
+  const fileInput = document.getElementById('file');
+  const fileLabel = document.getElementById('file-label');
+  const previewWrap = document.getElementById('preview-wrap');
+  const previewBody = document.getElementById('preview-body');
+  const fatalBox = document.getElementById('fatal');
+  const submitBtn = document.getElementById('submit-btn');
+  const submitHint = document.getElementById('submit-hint');
+  const clearBtn = document.getElementById('clear-btn');
+
+  const sTotal = document.getElementById('s-total');
+  const sAdd = document.getElementById('s-add');
+  const sDup = document.getElementById('s-dup');
+  const sOpt = document.getElementById('s-opt');
+  const sInvalid = document.getElementById('s-invalid');
+
+  // Mirror of services/phones.normalize_ug. Keep in sync.
+  // The server is authoritative; this is only for preview.
+  function normalizeUG(raw) {
+    const d = String(raw || '').replace(/\D/g, '');
+    if (!d) return { canonical: null, reason: 'empty' };
+
+    let digits = d;
+    if (digits.startsWith('00')) digits = digits.slice(2);
+
+    const isCanonical = (s) => /^2567\d{8}$/.test(s);
+
+    if (digits.length === 12 && digits.startsWith('256')) {
+      return isCanonical(digits)
+        ? { canonical: digits, reason: null }
+        : { canonical: null, reason: 'not a mobile number' };
+    }
+
+    if (digits.length === 10 && digits.startsWith('0')) {
+      const candidate = '256' + digits.slice(1);
+      return isCanonical(candidate)
+        ? { canonical: candidate, reason: null }
+        : { canonical: null, reason: 'not a mobile number' };
+    }
+
+    if (digits.length === 9) {
+      const candidate = '256' + digits;
+      return isCanonical(candidate)
+        ? { canonical: candidate, reason: null }
+        : { canonical: null, reason: 'not a mobile number' };
+    }
+
+    if (digits.length < 9) {
+      return { canonical: null, reason: `too short (${digits.length} digits)` };
+    }
+    return { canonical: null, reason: `invalid length (${digits.length} digits)` };
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;',
+      '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  // Cache the parsed rows so we can re-render on strategy change.
+  let cachedRows = null;
+
+  function reset() {
+    previewWrap.classList.add('hidden');
+    fatalBox.classList.add('hidden');
+    fatalBox.textContent = '';
+    previewBody.innerHTML = '';
+    submitBtn.disabled = true;
+    submitHint.textContent = 'Select a file to continue.';
+    fileLabel.textContent = 'Click to select a CSV file';
+    fileInput.value = '';
+    sTotal.textContent = sAdd.textContent = sDup.textContent =
+      sOpt.textContent = sInvalid.textContent = '0';
+    cachedRows = null;
+  }
+
+  function showFatal(msg) {
+    fatalBox.textContent = msg;
+    fatalBox.classList.remove('hidden');
+    previewWrap.classList.remove('hidden');
+    submitBtn.disabled = true;
+    submitHint.textContent = 'Fix the file and try again.';
+  }
+
+  function renderRow(index, row, status, label) {
+    const cls = {
+      'new':       'text-emerald-700',
+      'update':    'text-sky-700',
+      'dup_file':  'text-amber-700',
+      'dup_db':    'text-amber-700',
+      'optout':    'text-slate-500',
+      'invalid':   'text-red-700',
+    }[status] || 'text-slate-700';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 text-slate-400 text-xs">${index}</td>
+      <td class="p-2 font-mono text-xs text-slate-600">${escapeHtml(row.raw_phone)}</td>
+      <td class="p-2 font-mono text-xs ${row.canonical ? 'text-slate-900' : 'text-red-600'}">
+        ${escapeHtml(row.canonical || row.reason || '—')}
+      </td>
+      <td class="p-2 text-slate-900">${escapeHtml(row.name)}</td>
+      <td class="p-2 text-slate-500">${escapeHtml(row.group)}</td>
+      <td class="p-2 text-slate-500">${escapeHtml(row.district)}</td>
+      <td class="p-2 text-xs font-medium ${cls}">${label}</td>
+    `;
+    previewBody.appendChild(tr);
+  }
+
+  function renderPreview() {
+    if (!cachedRows) return;
+
+    const onDup = onDupSelect ? onDupSelect.value : 'skip';
+
+    previewBody.innerHTML = '';
+    let add = 0, dup = 0, opt = 0, inv = 0, upd = 0;
+
+    cachedRows.forEach(function (row, i) {
+      const idx = row.row_num;
+
+      if (!row.canonical) {
+        inv++;
+        renderRow(idx, row, 'invalid', row.reason || 'invalid');
+        return;
+      }
+
+      if (optOutPhones.has(row.canonical)) {
+        opt++;
+        renderRow(idx, row, 'optout', 'Opted out');
+        return;
+      }
+
+      if (row.in_file_duplicate) {
+        dup++;
+        renderRow(idx, row, 'dup_file', 'Duplicate in file');
+        return;
+      }
+
+      if (existingPhones.has(row.canonical)) {
+        if (onDup === 'update') {
+          upd++;
+          renderRow(idx, row, 'update', 'Will update');
+        } else {
+          dup++;
+          renderRow(idx, row, 'dup_db', 'Already in list');
+        }
+        return;
+      }
+
+      add++;
+      renderRow(idx, row, 'new', 'Will add');
+    });
+
+    sTotal.textContent = cachedRows.length;
+    sAdd.textContent = add + upd;   // "Will add" bucket includes updates
+    sDup.textContent = dup;
+    sOpt.textContent = opt;
+    sInvalid.textContent = inv;
+
+    previewWrap.classList.remove('hidden');
+
+    const total = add + upd;
+    if (total > 0) {
+      submitBtn.disabled = false;
+      let hint = `${add} new`;
+      if (upd) hint += `, ${upd} updated`;
+      if (dup) hint += `, ${dup} skipped (duplicate)`;
+      if (opt) hint += `, ${opt} skipped (opted out)`;
+      if (inv) hint += `, ${inv} skipped (invalid)`;
+      submitHint.textContent = hint + '.';
+    } else {
+      submitBtn.disabled = true;
+      submitHint.textContent = 'No valid new contacts to import.';
+    }
+  }
+
+  function handleResults(results) {
+    const rows = (results.data || []).filter(r =>
+      Object.values(r).some(v => String(v || '').trim() !== ''));
+
+    if (rows.length === 0) {
+      return showFatal('No data rows found. The file must have a header ' +
+                       'row and at least one data row.');
+    }
+
+    const fields = Object.keys(rows[0]).map(f => f.toLowerCase().trim());
+    const acceptedPhoneFields = [
+      'phone', 'number', 'mobile', 'msisdn',
+      'phone_number', 'phone number',
+      'mobile_number', 'mobile number',
+      'telephone', 'tel', 'contact_phone'
+    ];
+    const hasPhoneField = acceptedPhoneFields.some(f => fields.includes(f));
+    if (!hasPhoneField) {
+      return showFatal(
+        'Missing a phone number column. Your header must include one ' +
+        'of: ' + acceptedPhoneFields.join(', ') + '. ' +
+        'Download the sample for the expected format.'
+      );
+    }
+
+    // Find the actual header key for phone (case-insensitive).
+    const headerKeys = Object.keys(rows[0]);
+    const phoneKey = headerKeys.find(k =>
+      acceptedPhoneFields.includes(k.toLowerCase().trim()));
+
+    // Normalize every row.
+    const seenInFile = new Set();
+    const normalized = rows.map(function (raw, i) {
+      const lower = {};
+      for (const k of Object.keys(raw)) {
+        lower[k.toLowerCase().trim()] = raw[k];
+      }
+
+      const rawPhone = (raw[phoneKey] || '').trim();
+      const { canonical, reason } = normalizeUG(rawPhone);
+
+      // Track in-file duplicates only for canonical numbers we have not
+      // seen before.
+      let inFileDup = false;
+      if (canonical) {
+        if (seenInFile.has(canonical)) {
+          inFileDup = true;
+        } else {
+          seenInFile.add(canonical);
+        }
+      }
+
+      return {
+        row_num: i + 2,               // +2 for header + 1-based index
+        raw_phone: rawPhone,
+        canonical: canonical,
+        reason: reason,
+        name: (lower.name || '').trim(),
+        group: (lower.group || '').trim(),
+        district: (lower.district || '').trim(),
+        in_file_duplicate: inFileDup,
+      };
+    });
+
+    cachedRows = normalized;
+    renderPreview();
+  }
+
+  function previewFile(file) {
+    if (!file) return;
+    fileLabel.textContent = file.name;
+    fatalBox.classList.add('hidden');
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: 'greedy',
+      complete: (results) => {
+        if (results.errors && results.errors.length) {
+          const first = results.errors[0];
+          if (first.type === 'Delimiter' && results.data.length === 0) {
+            return showFatal('Could not read the file as CSV. ' +
+                             'Download the sample for the expected format.');
+          }
+        }
+        handleResults(results);
+      },
+      error: (err) => showFatal('Could not read the file: ' + err.message),
+    });
+  }
+
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    previewFile(f);
+  });
+
+  // Re-render when the user changes the on_duplicate strategy.
+  if (onDupSelect) {
+    onDupSelect.addEventListener('change', renderPreview);
+  }
+
+  const dropZone = fileInput.closest('label');
+  ['dragenter', 'dragover'].forEach(ev =>
+    dropZone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropZone.classList.add('bg-emerald-50', 'border-emerald-400');
+    }));
+  ['dragleave', 'drop'].forEach(ev =>
+    dropZone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropZone.classList.remove('bg-emerald-50', 'border-emerald-400');
+    }));
+  dropZone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) {
+      fileInput.files = e.dataTransfer.files;
+      previewFile(f);
+    }
+  });
+
+  clearBtn.addEventListener('click', reset);
+})();
+</script>
+
+{% endblock %}

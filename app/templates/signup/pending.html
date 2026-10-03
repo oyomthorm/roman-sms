@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Application received — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4">
+  <div class="max-w-md w-full">
+
+    <div class="text-center mb-8">
+      <a href="{{ url_for('landing.index') }}"
+         class="inline-flex items-center gap-2.5 font-bold text-lg tracking-tight">
+        <span class="w-9 h-9 rounded-lg bg-emerald-500 text-white
+                     flex items-center justify-center text-base font-bold">R</span>
+        <span class="text-slate-900">Roman<span class="text-emerald-600">SMS</span></span>
+      </a>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full
+                  bg-emerald-100 text-emerald-600 mb-5">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+
+      <h1 class="text-xl font-bold tracking-tight text-slate-900">
+        Application received
+      </h1>
+      <p class="text-sm text-slate-600 mt-3 leading-relaxed">
+        Thank you for applying for a Roman SMS account. We review every
+        application manually and reply within one working day.
+      </p>
+      <p class="text-sm text-slate-600 mt-3 leading-relaxed">
+        If approved, you will receive an email with a link to set your
+        password and sign in.
+      </p>
+
+      <div class="mt-8 pt-6 border-t border-slate-200">
+        <a href="{{ url_for('landing.index') }}"
+           class="text-sm text-slate-500 hover:text-slate-900 transition">
+          ← Back to homepage
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Opted out — Roman SMS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
+
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-sm">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-full
+                  bg-emerald-100 text-emerald-600 mb-5">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+
+      <h1 class="text-xl font-bold tracking-tight text-slate-900">You're opted out</h1>
+      <p class="text-sm text-slate-500 mt-2">
+        <span class="font-mono text-slate-700">{{ phone }}</span> will not receive
+        any further messages from any business using Roman SMS.
+      </p>
+
+      <div class="mt-6 pt-6 border-t border-slate-200">
+        <a href="{{ url_for('public.optout_landing') }}"
+           class="text-sm text-slate-500 hover:text-slate-900 transition">
+          Opt out another number →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

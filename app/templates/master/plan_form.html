@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit plan' if plan else 'New plan' }} — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}{{ 'Edit plan' if plan else 'New plan' }}{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl">
+  <div class="mb-6">
+    <a href="{{ url_for('master.plans') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Plans</a>
+  </div>
+
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Plan name
+      </label>
+      <input name="name" required
+             placeholder="e.g. Growth"
+             value="{{ plan.name if plan else form.get('name','') }}"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Price (total)
+        </label>
+        <input name="price" type="number" step="0.01" min="1" required
+               value="{{ plan.price if plan else form.get('price','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Currency
+        </label>
+        <input name="currency"
+               value="{{ plan.currency if plan else form.get('currency','UGX') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Credits
+        </label>
+        <input name="credits" type="number" min="1" required
+               value="{{ plan.credits if plan else form.get('credits','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Tier minimum (credits)
+        </label>
+        <input name="tier_min" type="number" min="0"
+               placeholder="e.g. 1001"
+               value="{{ plan.tier_min if plan and plan.tier_min is not none else form.get('tier_min','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      placeholder:text-slate-400
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Tier maximum (blank = unbounded)
+        </label>
+        <input name="tier_max" type="number" min="0"
+               placeholder="e.g. 10000"
+               value="{{ plan.tier_max if plan and plan.tier_max is not none else form.get('tier_max','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      placeholder:text-slate-400
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Sort order
+        </label>
+        <input name="sort_order" type="number"
+               placeholder="10, 20, 30…"
+               value="{{ plan.sort_order if plan else form.get('sort_order', 0) }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      placeholder:text-slate-400
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <p class="text-xs text-slate-500 mt-1.5">
+          Lower numbers appear first in the pricing table.
+        </p>
+      </div>
+      <div class="flex items-end pb-2">
+        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" name="is_featured" value="1"
+                 {% if plan and plan.is_featured %}checked{% endif %}
+                 class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+          Feature in pricing table
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Validity (days) — leave blank for no expiry
+      </label>
+      <input name="validity_days" type="number" min="1"
+             placeholder="Leave blank for no expiry"
+             value="{{ plan.validity_days if plan and plan.validity_days else '' }}"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Max contacts
+        </label>
+        <input name="max_contacts" type="number" min="1"
+               placeholder="blank = unlimited"
+               value="{{ plan.max_contacts or '' if plan else form.get('max_contacts','') }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      placeholder:text-slate-400
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Max per minute
+        </label>
+        <input name="max_per_minute" type="number" min="1"
+               value="{{ plan.max_per_minute if plan else form.get('max_per_minute', 60) }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Max per day
+        </label>
+        <input name="max_per_day" type="number" min="1"
+               value="{{ plan.max_per_day if plan else form.get('max_per_day', 5000) }}"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        {{ 'Save changes' if plan else 'Create plan' }}
+      </button>
+      <a href="{{ url_for('master.plans') }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

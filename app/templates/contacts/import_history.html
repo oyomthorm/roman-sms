@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Import history — Roman SMS{% endblock %}
+{% block page_header %}Import history{% endblock %}
+{% block page_header_mobile %}Imports{% endblock %}
+{% block content %}
+
+<div class="max-w-5xl">
+
+  <div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-slate-500">
+      Every CSV import you have run, with the outcome.
+    </p>
+    <a href="{{ url_for('contacts.import_page') }}"
+       class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      New import
+    </a>
+  </div>
+
+  {% if jobs %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200 text-left">
+        <tr>
+          <th class="px-5 py-3 font-semibold text-slate-700">When</th>
+          <th class="px-5 py-3 font-semibold text-slate-700">File</th>
+          <th class="px-5 py-3 font-semibold text-slate-700 text-right">Added</th>
+          <th class="px-5 py-3 font-semibold text-slate-700 text-right">Skipped</th>
+          <th class="px-5 py-3 font-semibold text-slate-700 text-right">Invalid</th>
+          <th class="px-5 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for j in jobs %}
+        <tr class="hover:bg-slate-50/50 transition">
+          <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+            {{ j.created_at.strftime('%d %b %Y, %H:%M') }}
+          </td>
+          <td class="px-5 py-3">
+            <div class="text-slate-900 font-medium truncate max-w-xs">
+              {{ j.filename or '—' }}
+            </div>
+            <div class="text-xs text-slate-500 mt-0.5">
+              {{ j.on_duplicate }}
+              {% if j.cap_hit %} · cap hit{% endif %}
+            </div>
+          </td>
+          <td class="px-5 py-3 text-right text-emerald-600 font-medium">
+            {{ j.added or 0 }}{% if j.updated %} <span class="text-xs text-sky-600">+{{ j.updated }}</span>{% endif %}
+          </td>
+          <td class="px-5 py-3 text-right text-amber-600 font-medium">
+            {{ (j.skipped_duplicate or 0)
+               + (j.skipped_in_file or 0)
+               + (j.skipped_opt_out or 0) }}
+          </td>
+          <td class="px-5 py-3 text-right text-red-600 font-medium">
+            {{ j.invalid or 0 }}
+          </td>
+          <td class="px-5 py-3 text-right">
+            <a href="{{ url_for('contacts.import_report', job_id=j.id) }}"
+               class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+              View →
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
+    <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none"
+         stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+    </svg>
+    <div class="text-slate-600 font-medium">No imports yet</div>
+    <div class="text-sm text-slate-400 mt-1">
+      Your CSV uploads will appear here.
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

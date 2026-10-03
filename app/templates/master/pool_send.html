@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Send pool campaign — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}Send pool campaign{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl">
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <div class="font-semibold text-amber-900 mb-1">Read before sending</div>
+    <div class="text-sm text-amber-800">
+      This message will go out under <strong>Roman SMS</strong> branding
+      to pool contacts — customers who were originally added by an
+      associate who granted sharing permission. Anyone who has opted
+      out of the platform will be excluded automatically.
+    </div>
+  </div>
+
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Campaign name</label>
+      <input name="name" required placeholder="e.g. New feature announcement"
+             class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Filter by district
+        </label>
+        <select name="district_id"
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <option value="">All districts</option>
+          {% for region, districts in districts_by_region %}
+            <optgroup label="{{ region }}">
+              {% for d in districts %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Filter by group
+        </label>
+        <select name="group_name"
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <option value="">All groups</option>
+          {% for g in groups %}
+          <option value="{{ g }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+        {% if not groups %}
+        <p class="text-xs text-slate-500 mt-1.5">
+          No groups in the pool yet — contacts shared by associates
+          without a group name will not be filterable by group.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Message body</label>
+      <textarea name="body" rows="5" required
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                       font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"></textarea>
+      <p class="text-xs text-slate-500 mt-1.5">
+        An opt-out link is appended automatically. Keep it under 150
+        characters to stay within one SMS segment.
+      </p>
+    </div>
+
+    <div class="pt-2">
+      <button type="submit"
+              onclick="return confirm('Send this campaign to the master pool?')"
+              class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800
+                     text-white font-semibold px-5 py-2.5 rounded-lg text-sm
+                     transition shadow-sm">
+        Queue pool campaign
+      </button>
+      <a href="{{ url_for('master.pool') }}"
+         class="ml-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

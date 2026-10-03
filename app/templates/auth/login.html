@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Sign in — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="min-h-screen grid lg:grid-cols-2">
+
+  {# ============================================================ #}
+  {# LEFT PANEL — brand & proof (desktop only)                    #}
+  {# ============================================================ #}
+  <div class="hidden lg:flex relative overflow-hidden bg-slate-900 text-white flex-col justify-between p-12">
+
+    {# Background layers #}
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-900"></div>
+    <div class="absolute -top-32 -right-32 w-[28rem] h-[28rem] bg-emerald-500 rounded-full blur-[8rem] opacity-20"></div>
+    <div class="absolute -bottom-32 -left-32 w-[28rem] h-[28rem] bg-indigo-500 rounded-full blur-[8rem] opacity-20"></div>
+    <div class="absolute inset-0 opacity-[0.04]"
+         style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+    {# Top: brand #}
+    <a href="{{ url_for('landing.index') }}"
+       class="relative flex items-center gap-2.5 font-bold text-lg tracking-tight z-10">
+      <span class="w-9 h-9 rounded-lg bg-emerald-500 text-slate-900
+                   flex items-center justify-center text-base font-bold">
+        R
+      </span>
+      <span>Roman<span class="text-emerald-400">SMS</span></span>
+    </a>
+
+    {# Middle: headline #}
+    <div class="relative z-10 max-w-md">
+      <h1 class="text-4xl font-bold tracking-tight leading-tight">
+        Reach your customers.
+        <br>
+        <span class="text-emerald-400">Every single one.</span>
+      </h1>
+      <p class="mt-5 text-slate-300 leading-relaxed">
+        Bulk SMS to MTN, Airtel, and Lycamobile from one clean dashboard.
+        No SIM cards. No spreadsheets. No phone numbers lost in a notebook.
+      </p>
+
+      <ul class="mt-8 space-y-3 text-sm text-slate-300">
+        {% for point in ['Instant delivery across all networks',
+                         'One-click opt-out on every message',
+                         'Clear wallet ledger and reporting'] %}
+        <li class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          {{ point }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# Bottom: footer #}
+    <div class="relative z-10 text-xs text-slate-500">
+      &copy; 2025 Roman SMS Ltd · Kampala, Uganda
+    </div>
+  </div>
+
+  {# ============================================================ #}
+  {# RIGHT PANEL — login form                                     #}
+  {# ============================================================ #}
+  <div class="flex flex-col justify-center bg-slate-50 px-6 py-12 sm:px-10 lg:px-16">
+
+    {# Mobile-only brand #}
+    <a href="{{ url_for('landing.index') }}"
+       class="lg:hidden flex items-center justify-center gap-2.5 font-bold text-lg tracking-tight mb-10">
+      <span class="w-9 h-9 rounded-lg bg-emerald-500 text-slate-900
+                   flex items-center justify-center text-base font-bold">
+        R
+      </span>
+      <span class="text-slate-900">Roman<span class="text-emerald-600">SMS</span></span>
+    </a>
+
+    <div class="w-full max-w-sm mx-auto">
+
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold tracking-tight text-slate-900">
+          Welcome back
+        </h2>
+        <p class="text-sm text-slate-500 mt-2">
+          Sign in to your account to continue.
+        </p>
+      </div>
+
+      <form method="post" class="space-y-5" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+          <label for="email" class="block text-sm font-medium text-slate-700 mb-1.5">
+            Email address
+          </label>
+          <input id="email" name="email" type="email"
+                 autocomplete="email" required autofocus
+                 value="{{ request.form.get('email', '') }}"
+                 placeholder="you@example.com"
+                 class="w-full rounded-lg border border-slate-300 bg-white
+                        px-3.5 py-2.5 text-sm text-slate-900
+                        placeholder:text-slate-400
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500
+                        focus:border-emerald-500 transition">
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="password" class="block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <a href="{{ url_for('public.forgot_password') }}"
+               class="text-xs font-medium text-slate-500 hover:text-slate-900 transition">
+              Forgot?
+            </a>
+          </div>
+          <div class="relative">
+            <input id="password" name="password" type="password"
+                   autocomplete="current-password" required
+                   placeholder="••••••••"
+                   class="w-full rounded-lg border border-slate-300 bg-white
+                          px-3.5 py-2.5 pr-10 text-sm text-slate-900
+                          placeholder:text-slate-400
+                          focus:outline-none focus:ring-2 focus:ring-emerald-500
+                          focus:border-emerald-500 transition">
+            <button type="button"
+                    onclick="togglePassword()"
+                    tabindex="-1"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5
+                           text-slate-400 hover:text-slate-600 rounded transition"
+                    aria-label="Show password">
+              <svg id="eye-open" class="w-4.5 h-4.5" style="width:1.125rem;height:1.125rem"
+                   fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <svg id="eye-closed" class="hidden" style="width:1.125rem;height:1.125rem"
+                   fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-emerald-500 hover:bg-emerald-400
+                       text-white font-semibold py-2.5 rounded-lg
+                       transition shadow-sm shadow-emerald-500/20
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+          Sign in
+        </button>
+      </form>
+
+      <div class="mt-8 pt-6 border-t border-slate-200 text-center">
+        <p class="text-sm text-slate-500">
+          Don't have an account?
+          <a href="{{ url_for('landing.index') }}#contact"
+             class="font-medium text-slate-900 hover:underline">
+            Get in touch
+          </a>
+        </p>
+      </div>
+
+      <p class="mt-6 text-center text-xs text-slate-400 lg:hidden">
+        &copy; 2025 Roman SMS Ltd
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function togglePassword() {
+  var input = document.getElementById('password');
+  var eyeOpen = document.getElementById('eye-open');
+  var eyeClosed = document.getElementById('eye-closed');
+  if (input.type === 'password') {
+    input.type = 'text';
+    eyeOpen.classList.add('hidden');
+    eyeClosed.classList.remove('hidden');
+  } else {
+    input.type = 'password';
+    eyeOpen.classList.remove('hidden');
+    eyeClosed.classList.add('hidden');
+  }
+}
+</script>
+
+{% endblock %}

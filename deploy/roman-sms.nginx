@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name romansms.co.ug www.romansms.co.ug;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name romansms.co.ug www.romansms.co.ug;
+
+    ssl_certificate     /etc/letsencrypt/live/romansms.co.ug/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/romansms.co.ug/privkey.pem;
+
+    client_max_body_size 10m;
+
+    # Deny access to sensitive paths
+    location ~ /\.(env|git|venv) { deny all; }
+    location ~ ^/(migrations|scripts|tests)/ { deny all; }
+
+    location /static/ {
+        alias /opt/roman-sms/app/static/;
+        expires 7d;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}

@@ -1,0 +1,801 @@
+{% macro nav_link(endpoint, label, icon_path, badge=0) %}
+  {% set target_url = url_for(endpoint) %}
+  {% set current_url = request.path %}
+  {% set active = current_url == target_url
+                  or (target_url != '/'
+                      and not target_url.endswith('/')
+                      and current_url.startswith(target_url ~ '/')) %}
+  <a href="{{ url_for(endpoint) }}"
+     title="{{ label }}"
+     class="group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+            transition-colors duration-150 sidebar-row
+            {% if active %}
+              bg-white/[0.06] text-white
+            {% else %}
+              text-slate-400 hover:bg-white/[0.04] hover:text-white
+            {% endif %}">
+
+    {% if active %}
+    <span class="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5
+                 rounded-r-full bg-emerald-400
+                 shadow-[0_0_12px_rgba(52,211,153,0.6)]"></span>
+    {% endif %}
+
+    <span class="shrink-0 w-5 h-5 flex items-center justify-center
+                 {% if active %}text-emerald-400{% else %}text-slate-500 group-hover:text-slate-300{% endif %}
+                 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+        {{ icon_path|safe }}
+      </svg>
+    </span>
+
+    <span class="flex-1 truncate sidebar-label font-medium">{{ label }}</span>
+
+    {% if badge %}
+    <span class="sidebar-label inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
+                 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-bold
+                 shadow-[0_0_12px_rgba(52,211,153,0.4)]">
+      {{ badge if badge < 100 else '99+' }}
+    </span>
+    {% endif %}
+  </a>
+{% endmacro %}
+
+{% macro nav_section(title) %}
+  <div class="px-3 pt-6 pb-2 sidebar-section-label">
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+        {{ title }}
+      </span>
+      <span class="flex-1 h-px bg-gradient-to-r from-slate-800 to-transparent"></span>
+    </div>
+  </div>
+{% endmacro %}
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Roman SMS{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    (function () {
+      try {
+        var collapsed = localStorage.getItem('sidebar-collapsed') === '1';
+        if (collapsed && window.innerWidth >= 1024) {
+          document.documentElement.classList.add('sidebar-collapsed');
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    @media (min-width: 1024px) {
+      html.sidebar-collapsed #sidebar { width: 4.5rem; }
+      html.sidebar-collapsed #sidebar .sidebar-label,
+      html.sidebar-collapsed #sidebar .sidebar-section-label { display: none; }
+      html.sidebar-collapsed #sidebar .sidebar-row {
+        justify-content: center; padding-left: 0; padding-right: 0;
+      }
+      html.sidebar-collapsed #sidebar .sidebar-row span.absolute { display: none; }
+      html.sidebar-collapsed #main-column { padding-left: 4.5rem; }
+    }
+
+    @keyframes menu-in {
+      from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+    .menu-panel {
+      animation: menu-in 120ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+      70%  { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+    .sidebar-texture {
+      background-image:
+        radial-gradient(circle at 100% 0%, rgba(52, 211, 153, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(99, 102, 241, 0.06) 0%, transparent 40%);
+    }
+
+    input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
+
+{% if current_user.is_authenticated %}
+
+<div id="sidebar-backdrop"
+     class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 hidden lg:hidden"
+     onclick="closeSidebar()"
+     aria-hidden="true"></div>
+
+<aside id="sidebar"
+       class="fixed top-0 bottom-0 left-0 z-50 w-64 bg-slate-950 text-slate-200
+              flex flex-col sidebar-texture
+              border-r border-slate-900
+              -translate-x-full lg:translate-x-0
+              transition-[width,transform] duration-200 ease-out"
+       aria-label="Primary navigation">
+
+  <div class="h-16 flex items-center px-4 border-b border-slate-900 shrink-0">
+    <a href="{{ url_for('landing.index') }}"
+       class="flex items-center gap-2.5 font-bold text-lg tracking-tight text-white min-w-0">
+      <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600
+                   text-white flex items-center justify-center text-sm font-bold shrink-0
+                   shadow-[0_0_20px_rgba(52,211,153,0.3)]
+                   ring-1 ring-emerald-400/30">
+        R
+      </span>
+      <span class="sidebar-label truncate">
+        Roman<span class="text-emerald-400">SMS</span>
+      </span>
+    </a>
+
+    <button onclick="toggleSidebarCollapsed()"
+            class="sidebar-label hidden lg:flex ml-auto p-1.5 rounded-lg
+                   hover:bg-slate-900 text-slate-500 hover:text-slate-200 transition"
+            aria-label="Collapse sidebar">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
+
+    <button onclick="closeSidebar()"
+            class="ml-auto lg:hidden p-2 -mr-2 rounded-lg hover:bg-slate-900 text-slate-500"
+            aria-label="Close menu">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto px-2 pb-4">
+
+    {% if current_user.is_master %}
+
+      {{ nav_section('Overview') }}
+      {{ nav_link('master.index', 'Overview',
+          '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>') }}
+
+      {{ nav_section('Clients') }}
+      {{ nav_link('master.orgs', 'Associates',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>') }}
+      {{ nav_link('master.signups', 'Signups',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>') }}
+
+      {{ nav_section('Billing') }}
+      {{ nav_link('master.invoices', 'Invoices',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>') }}
+      {{ nav_link('master.plans', 'Plans',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>') }}
+
+      {{ nav_section('Pool') }}
+      {{ nav_link('master.pool', 'Master pool',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>') }}
+      {{ nav_link('master.platform', 'Platform sender',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>') }}
+
+      {{ nav_section('System') }}
+      {{ nav_link('master.audit_view', 'Audit log',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>') }}
+
+      {{ nav_section('Communication') }}
+      {{ nav_link('chat.index', 'Chat',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>',
+          chat_unread_count) }}
+
+    {% else %}
+
+      {{ nav_section('Overview') }}
+      {{ nav_link('dashboard.index', 'Dashboard',
+          '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>') }}
+
+      {{ nav_section('Sending') }}
+      {{ nav_link('campaigns.index', 'Campaigns',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>') }}
+      {{ nav_link('templates.index', 'Templates',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>') }}
+      {{ nav_link('reports.log', 'Reports',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>') }}
+
+      {{ nav_section('Contacts') }}
+      {{ nav_link('contacts.index', 'Contacts',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/>') }}
+      {{ nav_link('groups.index', 'Groups',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>') }}
+
+      {{ nav_section('Billing') }}
+      {{ nav_link('billing.wallet', 'Payments',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>') }}
+      {{ nav_link('billing.plans', 'Plans',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>') }}
+
+      {{ nav_section('Account') }}
+      {{ nav_link('chat.index', 'Chat',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>',
+          chat_unread_count) }}
+      {{ nav_link('settings.index', 'Settings',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>') }}
+      {{ nav_link('profile.index', 'Profile',
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>') }}
+
+    {% endif %}
+  </nav>
+
+  <div class="border-t border-slate-900 p-2 shrink-0">
+    <a href="{{ url_for('profile.index') }}"
+       title="{{ current_user.full_name or current_user.email }}"
+       class="sidebar-row flex items-center gap-3 p-2 rounded-lg
+              hover:bg-slate-900/70 transition-colors">
+      <div class="relative shrink-0">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-800
+                    text-slate-200 flex items-center justify-center font-semibold text-sm
+                    ring-1 ring-slate-700">
+          {{ (current_user.full_name or current_user.email)[0]|upper }}
+        </div>
+        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full
+                     bg-emerald-500 ring-2 ring-slate-950
+                     shadow-[0_0_8px_rgba(52,211,153,0.7)]"></span>
+      </div>
+      <div class="min-w-0 flex-1 sidebar-label">
+        <div class="text-slate-200 text-xs font-semibold truncate">
+          {{ current_user.full_name or current_user.email.split('@')[0] }}
+        </div>
+        <div class="text-slate-500 text-[11px] truncate mt-0.5">
+          {{ 'Master admin' if current_user.is_master else current_user.organization.name }}
+        </div>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<div id="main-column" class="lg:pl-64 min-h-screen flex flex-col transition-[padding] duration-200">
+
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/80">
+    <div class="h-16 px-3 md:px-5 lg:px-6 flex items-center gap-2">
+
+      <button onclick="openSidebar()"
+              class="lg:hidden p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200
+                     text-slate-600 transition shrink-0"
+              aria-label="Open menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+
+      <button onclick="toggleSidebarCollapsed()"
+              class="hidden lg:flex sidebar-collapsed-only p-2 rounded-lg
+                     hover:bg-slate-100 text-slate-600 transition shrink-0"
+              aria-label="Expand sidebar">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+      <div class="flex-1 min-w-0 flex items-center gap-2">
+        <div class="lg:hidden flex items-center gap-2 font-bold text-base tracking-tight text-slate-900">
+          <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600
+                       text-white flex items-center justify-center text-xs font-bold shrink-0">
+            R
+          </span>
+          <span class="truncate">{% block page_header_mobile %}Roman SMS{% endblock %}</span>
+        </div>
+        <div class="hidden lg:flex flex-col min-w-0">
+          {% block breadcrumb %}
+            <div class="text-[11px] uppercase tracking-[0.1em] text-slate-400 leading-none font-semibold">
+              {{ 'Master' if current_user.is_master else 'Workspace' }}
+            </div>
+          {% endblock %}
+          <h1 class="text-base font-semibold text-slate-900 leading-tight truncate mt-1">
+            {% block page_header %}{% endblock %}
+          </h1>
+        </div>
+      </div>
+
+      <form method="get" action="{{ url_for('contacts.index') }}"
+            class="hidden md:flex items-center relative shrink-0 group">
+        <svg class="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none
+                    group-focus-within:text-emerald-500 transition-colors"
+             fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input name="q" type="search" placeholder="Search contacts…"
+               class="w-56 lg:w-72 rounded-lg border border-slate-200 bg-slate-50/70
+                      pl-9 pr-14 py-2 text-sm text-slate-900
+                      placeholder:text-slate-400
+                      focus:bg-white focus:border-emerald-500 focus:ring-2
+                      focus:ring-emerald-500/20 focus:outline-none transition">
+        <kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden lg:inline-flex
+                    items-center gap-0.5 px-1.5 py-0.5 rounded
+                    bg-white border border-slate-200 text-[10px] font-medium
+                    text-slate-400 shadow-sm pointer-events-none">
+          <span class="text-xs">⌘</span>K
+        </kbd>
+      </form>
+
+      {# ---- Wallet pill (associates only) — shows UGX ---- #}
+      {% if wallet_balance is not none %}
+      <a href="{{ url_for('billing.wallet') }}"
+         title="{{ '{:,}'.format(wallet_balance) }} SMS available · click to top up"
+         class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg
+                transition shrink-0
+                {% if wallet_balance == 0 %}
+                  bg-red-50 ring-1 ring-red-200 hover:bg-red-100
+                {% elif wallet_balance < 100 %}
+                  bg-amber-50 ring-1 ring-amber-200 hover:bg-amber-100
+                {% else %}
+                  bg-slate-100 hover:bg-slate-200
+                {% endif %}">
+        <svg class="w-4 h-4
+                    {% if wallet_balance == 0 %}text-red-600
+                    {% elif wallet_balance < 100 %}text-amber-600
+                    {% else %}text-emerald-600{% endif %}"
+             fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+        </svg>
+        <span class="text-sm font-semibold tabular-nums
+                     {% if wallet_balance == 0 %}text-red-700
+                     {% elif wallet_balance < 100 %}text-amber-700
+                     {% else %}text-slate-900{% endif %}">
+          UGX {{ '{:,.0f}'.format(wallet_value_ugx) }}
+        </span>
+      </a>
+      {% endif %}
+
+      {% if current_user.is_master %}
+      <a href="{{ url_for('master.org_new') }}"
+         class="hidden sm:inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800
+                active:scale-[0.98] text-white text-sm font-medium
+                px-3.5 py-2 rounded-lg transition-all shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span class="hidden lg:inline">New associate</span>
+      </a>
+      {% else %}
+      <a href="{{ url_for('campaigns.new') }}"
+         class="hidden sm:inline-flex items-center gap-2
+                bg-gradient-to-b from-emerald-500 to-emerald-600
+                hover:from-emerald-400 hover:to-emerald-500
+                active:scale-[0.98] text-white text-sm font-semibold
+                px-3.5 py-2 rounded-lg transition-all shrink-0
+                shadow-[0_4px_12px_-2px_rgba(16,185,129,0.4)]
+                ring-1 ring-emerald-500/30">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span class="hidden lg:inline">New campaign</span>
+      </a>
+      {% endif %}
+
+      <div class="relative shrink-0">
+        <button onclick="toggleNotifications(event)"
+                class="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600
+                       active:scale-95 transition-all"
+                aria-label="Notifications">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          {% if unread_count %}
+          <span data-notif-badge
+                class="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                       bg-red-500 text-white text-[10px] font-bold
+                       flex items-center justify-center
+                       ring-2 ring-white pulse-ring">
+            {{ unread_count if unread_count < 10 else '9+' }}
+          </span>
+          {% else %}
+          <span data-notif-badge
+                class="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                       bg-red-500 text-white text-[10px] font-bold
+                       items-center justify-center ring-2 ring-white hidden"></span>
+          {% endif %}
+        </button>
+
+        <div id="notif-menu"
+             class="hidden menu-panel absolute right-0 mt-2 w-80 sm:w-96 bg-white
+                    rounded-2xl border border-slate-200
+                    shadow-[0_20px_60px_-15px_rgba(15,23,42,0.25)]
+                    z-40 overflow-hidden">
+
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3
+                      bg-gradient-to-b from-slate-50 to-white">
+            <div class="min-w-0">
+              <div class="font-semibold text-sm text-slate-900">Notifications</div>
+              {% if unread_count %}
+              <div class="text-xs text-slate-500 mt-0.5 truncate">
+                {{ unread_count }} active item{{ '' if unread_count == 1 else 's' }}
+              </div>
+              {% else %}
+              <div class="text-xs text-slate-500 mt-0.5">Nothing pending</div>
+              {% endif %}
+            </div>
+            <a href="{{ url_for('notifications.index') }}"
+               class="text-xs font-semibold text-emerald-600 hover:text-emerald-500 transition shrink-0">
+              View all →
+            </a>
+          </div>
+
+          {% if notifications %}
+          <div class="max-h-80 overflow-y-auto">
+            {% for n in notifications %}
+            <div data-notification-row="{{ n.key or '' }}"
+                 class="flex items-start gap-2 px-5 py-3.5 hover:bg-slate-50/70
+                        transition-colors border-b border-slate-100 group/notif last:border-b-0">
+              <a href="{{ n.url }}" class="flex gap-3 flex-1 min-w-0">
+                <div class="shrink-0 mt-0.5">
+                  {% if n.type == 'success' %}
+                  <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center
+                              ring-1 ring-emerald-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </div>
+                  {% elif n.type == 'danger' %}
+                  <div class="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center
+                              ring-1 ring-red-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </div>
+                  {% elif n.type == 'warning' %}
+                  <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center
+                              ring-1 ring-amber-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+                    </svg>
+                  </div>
+                  {% else %}
+                  <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center
+                              ring-1 ring-sky-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-slate-900 leading-snug pr-4">{{ n.title }}</div>
+                  {% if n.body %}
+                  <div class="text-xs text-slate-500 mt-1 leading-snug pr-4">{{ n.body }}</div>
+                  {% endif %}
+                </div>
+              </a>
+
+              {% if n.dismissible and n.key %}
+              <button type="button"
+                      onclick="dismissNotification(event, '{{ n.key }}')"
+                      title="Dismiss"
+                      class="shrink-0 mt-0.5 p-1.5 rounded-md text-slate-300
+                             hover:text-slate-700 hover:bg-slate-100
+                             opacity-0 group-hover/notif:opacity-100
+                             focus:opacity-100 transition-all"
+                      aria-label="Dismiss notification">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+              {% endif %}
+            </div>
+            {% endfor %}
+
+            <a href="{{ url_for('notifications.index') }}"
+               class="block px-5 py-3 text-center text-xs font-semibold text-slate-600
+                      hover:bg-slate-50 transition">
+              View all notifications →
+            </a>
+          </div>
+
+          {% else %}
+          <div class="text-center py-12 px-4">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600
+                        flex items-center justify-center mx-auto mb-3
+                        ring-1 ring-emerald-200">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div class="text-sm font-medium text-slate-700">You're all caught up</div>
+            <div class="text-xs text-slate-500 mt-1">Nothing needs your attention.</div>
+            <a href="{{ url_for('notifications.index') }}"
+               class="inline-block mt-4 text-xs font-semibold text-emerald-600 hover:text-emerald-500 transition">
+              Open notifications →
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="relative shrink-0">
+        <button onclick="toggleUserMenu(event)"
+                class="flex items-center gap-2 p-1 pr-2.5 rounded-lg hover:bg-slate-100
+                       active:scale-[0.98] transition-all">
+          <div class="w-8 h-8 rounded-full
+                      bg-gradient-to-br from-emerald-400 to-emerald-600
+                      text-white flex items-center justify-center text-sm font-bold shrink-0
+                      ring-1 ring-emerald-500/30 shadow-[0_0_12px_rgba(52,211,153,0.25)]">
+            {{ (current_user.full_name or current_user.email)[0]|upper }}
+          </div>
+          <svg class="hidden md:block w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <div id="user-menu"
+             class="hidden menu-panel absolute right-0 mt-2 w-64 bg-white rounded-2xl
+                    border border-slate-200
+                    shadow-[0_20px_60px_-15px_rgba(15,23,42,0.25)]
+                    z-40 overflow-hidden">
+
+          <div class="px-5 py-4 border-b border-slate-100
+                      bg-gradient-to-b from-slate-50 to-white">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full
+                          bg-gradient-to-br from-emerald-400 to-emerald-600
+                          text-white flex items-center justify-center font-bold shrink-0">
+                {{ (current_user.full_name or current_user.email)[0]|upper }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-semibold text-slate-900 truncate">
+                  {{ current_user.full_name or 'No name set' }}
+                </div>
+                <div class="text-xs text-slate-500 truncate">{{ current_user.email }}</div>
+              </div>
+            </div>
+            <div class="mt-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full
+                        text-[10px] font-semibold uppercase tracking-wider
+                        {% if current_user.is_master %}
+                        bg-slate-900 text-white
+                        {% else %}
+                        bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                        {% endif %}">
+              {{ 'Master admin' if current_user.is_master else current_user.organization.name }}
+            </div>
+          </div>
+
+          <div class="py-1.5">
+            <a href="{{ url_for('profile.index') }}"
+               class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700
+                      hover:bg-slate-50 transition-colors">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              My profile
+            </a>
+            <a href="{{ url_for('chat.index') }}"
+               class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700
+                      hover:bg-slate-50 transition-colors">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+              </svg>
+              Chat
+              {% if chat_unread_count %}
+              <span class="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
+                           rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                {{ chat_unread_count }}
+              </span>
+              {% endif %}
+            </a>
+            {% if not current_user.is_master %}
+            <a href="{{ url_for('billing.wallet') }}"
+               class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700
+                      hover:bg-slate-50 transition-colors">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+              Payments
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="border-t border-slate-100 py-1.5">
+            <a href="{{ url_for('auth.logout') }}"
+               class="flex items-center gap-3 px-5 py-2.5 text-sm text-red-600
+                      hover:bg-red-50 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+              Sign out
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full">
+    <div class="max-w-7xl mx-auto px-3 md:px-5 lg:px-6 py-5 md:py-6">
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-4 space-y-2">
+            {% for cat, msg in messages %}
+            <div class="flex items-start gap-3 px-4 py-3 rounded-xl border text-sm
+              {% if cat == 'danger' %}bg-red-50 border-red-200 text-red-800
+              {% elif cat == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800
+              {% elif cat == 'warning' %}bg-amber-50 border-amber-200 text-amber-800
+              {% else %}bg-sky-50 border-sky-200 text-sky-800{% endif %}">
+              <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                {% if cat == 'success' %}
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                {% elif cat == 'danger' %}
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+                {% else %}
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                {% endif %}
+              </svg>
+              <span>{{ msg }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+{% else %}
+
+<main class="min-h-screen">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="max-w-sm mx-auto pt-6 px-4 space-y-2">
+        {% for cat, msg in messages %}
+        <div class="px-4 py-3 rounded-xl border text-sm
+          {% if cat == 'danger' %}bg-red-50 border-red-200 text-red-800
+          {% elif cat == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800
+          {% elif cat == 'warning' %}bg-amber-50 border-amber-200 text-amber-800
+          {% else %}bg-sky-50 border-sky-200 text-sky-800{% endif %}">
+          {{ msg }}
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+{% endif %}
+
+      {% block content %}{% endblock %}
+
+{% if current_user.is_authenticated %}
+    </div>
+  </main>
+</div>
+{% else %}
+</main>
+{% endif %}
+
+<script>
+(function () {
+  var sidebar = document.getElementById('sidebar');
+  var backdrop = document.getElementById('sidebar-backdrop');
+  var notifMenu = document.getElementById('notif-menu');
+  var userMenu = document.getElementById('user-menu');
+  var root = document.documentElement;
+
+  window.openSidebar = function () {
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.remove('-translate-x-full');
+    backdrop.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeSidebar = function () {
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.add('-translate-x-full');
+    backdrop.classList.add('hidden');
+    document.body.style.overflow = '';
+  };
+
+  window.toggleSidebarCollapsed = function () {
+    var collapsed = root.classList.toggle('sidebar-collapsed');
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+  };
+
+  function closeAllMenus() {
+    if (notifMenu) notifMenu.classList.add('hidden');
+    if (userMenu) userMenu.classList.add('hidden');
+  }
+  window.toggleNotifications = function (e) {
+    e.stopPropagation();
+    if (!notifMenu) return;
+    var wasHidden = notifMenu.classList.contains('hidden');
+    closeAllMenus();
+    if (wasHidden) notifMenu.classList.remove('hidden');
+  };
+  window.toggleUserMenu = function (e) {
+    e.stopPropagation();
+    if (!userMenu) return;
+    var wasHidden = userMenu.classList.contains('hidden');
+    closeAllMenus();
+    if (wasHidden) userMenu.classList.remove('hidden');
+  };
+
+  document.addEventListener('click', function (e) {
+    if (notifMenu && !notifMenu.classList.contains('hidden')
+        && !notifMenu.contains(e.target)
+        && !e.target.closest('button[onclick*="toggleNotifications"]')) {
+      notifMenu.classList.add('hidden');
+    }
+    if (userMenu && !userMenu.classList.contains('hidden')
+        && !userMenu.contains(e.target)
+        && !e.target.closest('button[onclick*="toggleUserMenu"]')) {
+      userMenu.classList.add('hidden');
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { window.closeSidebar(); closeAllMenus(); }
+  });
+
+  window.dismissNotification = function (e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    var row = e.currentTarget.closest('[data-notification-row]');
+
+    fetch('/notifications/' + encodeURIComponent(key) + '/dismiss', {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'X-CSRFToken': '{{ csrf_token() }}'
+      },
+      credentials: 'same-origin'
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        if (row) {
+          row.style.transition = 'opacity 150ms ease-out';
+          row.style.opacity = '0';
+          setTimeout(function () { row.remove(); }, 150);
+        }
+        updateNotifBadge(data.count);
+      })
+      .catch(function () {});
+  };
+
+  function updateNotifBadge(count) {
+    var badges = document.querySelectorAll('[data-notif-badge]');
+    badges.forEach(function (el) {
+      if (count > 0) {
+        el.textContent = count < 10 ? count : '9+';
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      } else {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      }
+    });
+  }
+
+  if (sidebar) {
+    sidebar.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        if (window.innerWidth < 1024) window.closeSidebar();
+      });
+    });
+  }
+
+  window.addEventListener('resize', function () {
+    if (window.innerWidth >= 1024) {
+      document.body.style.overflow = '';
+      if (backdrop) backdrop.classList.add('hidden');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

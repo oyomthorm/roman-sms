@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Groups — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Contact groups</h1>
+    <p class="text-sm text-slate-500 mt-1">Organise your contacts into segments.</p>
+  </div>
+  <a href="{{ url_for('groups.new') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    New group
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  {% if rows %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Description</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Contacts</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Created</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for group, count in rows %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3">
+          <a href="{{ url_for('groups.detail', gid=group.id) }}"
+             class="font-medium text-slate-900 hover:text-emerald-600">{{ group.name }}</a>
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-sm">{{ group.description or '—' }}</td>
+        <td class="px-5 py-3 text-right">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            {{ count }}
+          </span>
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ group.created_at.strftime('%d %b %Y') }}
+        </td>
+        <td class="px-5 py-3 text-right">
+          <div class="flex items-center justify-end gap-3 text-sm">
+            <a href="{{ url_for('groups.edit', gid=group.id) }}"
+               class="text-slate-500 hover:text-slate-900 transition">Edit</a>
+            <a href="{{ url_for('groups.delete', gid=group.id) }}"
+               class="text-slate-500 hover:text-red-600 transition">Delete</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-16 px-4">
+    <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+    </svg>
+    <div class="text-slate-600 font-medium">No groups yet</div>
+    <div class="text-sm text-slate-400 mt-1 mb-4">
+      Create one, or import contacts with a "group" column and groups will be created automatically.
+    </div>
+    <a href="{{ url_for('groups.new') }}"
+       class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+      Create group
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Roman SMS{% endblock %}
+{% block breadcrumb %}{{ 'Master' if current_user.is_master else 'Workspace' }}{% endblock %}
+{% block page_header %}Notifications{% endblock %}
+{% block page_header_mobile %}Notifications{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl">
+
+  {# Filter tabs + Dismiss all #}
+  <div class="flex items-center justify-between gap-3 mb-5">
+    <div class="flex items-center gap-2 overflow-x-auto pb-1 flex-1">
+      {% set tabs = [
+        ('all',     'All',       counts.all,     'bg-slate-100 text-slate-700'),
+        ('danger',  'Urgent',    counts.danger,  'bg-red-100 text-red-800'),
+        ('warning', 'Warnings',  counts.warning, 'bg-amber-100 text-amber-800'),
+        ('info',    'Info',      counts.info,    'bg-sky-100 text-sky-800'),
+        ('success', 'Activity',  counts.success, 'bg-emerald-100 text-emerald-800')
+      ] %}
+
+      {% for key, label, count, badge_class in tabs %}
+      {% if key == 'all' or count > 0 %}
+      <a href="{{ url_for('notifications.index', kind=key) }}"
+         class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium
+                whitespace-nowrap transition
+                {% if active == key %}
+                  bg-slate-900 text-white shadow-sm
+                {% else %}
+                  bg-white border border-slate-200 text-slate-700 hover:bg-slate-50
+                {% endif %}">
+        {{ label }}
+        {% if count %}
+        <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
+                     rounded-full text-[10px] font-semibold
+                     {% if active == key %}bg-white/20 text-white
+                     {% else %}{{ badge_class }}{% endif %}">
+          {{ count if count < 100 else '99+' }}
+        </span>
+        {% endif %}
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if counts.all %}
+    <form method="post" action="{{ url_for('notifications.dismiss_all') }}"
+          class="shrink-0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit"
+              onclick="return confirm('Dismiss all {{ counts.all }} notification{{ '' if counts.all == 1 else 's' }}?')"
+              class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
+                     text-slate-700 text-sm font-medium px-3.5 py-2 rounded-lg transition
+                     whitespace-nowrap">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M5 13l4 4L19 7"/>
+        </svg>
+        <span class="hidden sm:inline">Dismiss all</span>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {# ---------------------------------------------------------- #}
+  {# Notifications list                                           #}
+  {# ---------------------------------------------------------- #}
+  {% if items %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+    {% for n in items %}
+    {% include 'notifications/_card.html' with context %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div class="text-center py-20 px-4">
+      {% if active == 'all' %}
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full
+                  bg-emerald-100 text-emerald-600 mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h2 class="text-lg font-semibold text-slate-900">You're all caught up</h2>
+      <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+        Nothing needs your attention right now. We'll let you know here if
+        something changes.
+      </p>
+      {% else %}
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full
+                  bg-slate-100 text-slate-400 mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
+      </div>
+      <h2 class="text-lg font-semibold text-slate-900">Nothing in this category</h2>
+      <p class="text-sm text-slate-500 mt-1">
+        Try a different filter or
+        <a href="{{ url_for('notifications.index') }}"
+           class="text-emerald-600 hover:underline">view all</a>.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------------------------------------------------------- #}
+  {# Footer link back to dashboard                                #}
+  {# ---------------------------------------------------------- #}
+  <p class="text-xs text-slate-500 mt-6 text-center">
+    Notifications refresh every time you load a page.
+    {% if current_user.is_master %}
+    <a href="{{ url_for('master.index') }}" class="text-slate-700 hover:underline">Back to overview →</a>
+    {% else %}
+    <a href="{{ url_for('dashboard.index') }}" class="text-slate-700 hover:underline">Back to dashboard →</a>
+    {% endif %}
+  </p>
+
+</div>
+
+<script>
+(function () {
+  window.dismissNotification = function (e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    var row = e.currentTarget.closest('[data-notification-row]');
+
+    fetch('/notifications/' + encodeURIComponent(key) + '/dismiss', {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'X-CSRFToken': '{{ csrf_token() }}'
+      },
+      credentials: 'same-origin'
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        if (row) {
+          row.style.transition = 'opacity 150ms ease-out';
+          row.style.opacity = '0';
+          setTimeout(function () {
+            row.remove();
+            // If nothing is left in this list, show the empty state on reload.
+            if (!document.querySelector('[data-notification-row]')) {
+              window.location.reload();
+            }
+          }, 150);
+        }
+        var badges = document.querySelectorAll('[data-notif-badge]');
+        badges.forEach(function (el) {
+          if (data.count > 0) {
+            el.textContent = data.count < 10 ? data.count : '9+';
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+          } else {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+          }
+        });
+      })
+      .catch(function () {});
+  };
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Chat — Roman SMS{% endblock %}
+{% block page_header %}Chat{% endblock %}
+{% block page_header_mobile %}Chat{% endblock %}
+{% block content %}
+
+{# Full-bleed layout — take over the page width #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+     style="height: calc(100vh - 8rem);">
+
+  <div class="flex h-full">
+
+    {# ---------------------------------------------------------- #}
+    {# CHANNEL SIDEBAR                                             #}
+    {# ---------------------------------------------------------- #}
+    <aside id="chat-channels"
+           class="w-full md:w-72 shrink-0 bg-slate-50 border-r border-slate-200
+                  flex flex-col
+                  {% if active %}hidden md:flex{% endif %}">
+
+      <div class="px-4 py-3 border-b border-slate-200 shrink-0">
+        <div class="font-semibold text-sm text-slate-900">Channels</div>
+        <div class="text-xs text-slate-500 mt-0.5">
+          {{ channels|length }} available
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto">
+        {% for c in channels %}
+        <a href="{{ url_for('chat.channel', cid=c.channel.id) }}"
+           class="flex items-start gap-3 px-4 py-3 border-b border-slate-100
+                  hover:bg-white transition
+                  {% if c.channel.id == active.id %}bg-white border-l-2 border-l-emerald-500{% endif %}">
+          <div class="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center
+                      {% if c.channel.kind == 'broadcast' %}
+                      bg-slate-900 text-white
+                      {% else %}
+                      bg-emerald-100 text-emerald-700
+                      {% endif %}">
+            {% if c.channel.kind == 'broadcast' %}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+            </svg>
+            {% else %}
+            <span class="text-sm font-bold">
+              {{ c.label[0]|upper }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-medium text-slate-900 truncate flex-1">
+                {{ c.label }}
+              </div>
+              {% if c.unread %}
+              <span class="inline-flex items-center justify-center min-w-[18px] h-[18px]
+                           px-1 rounded-full bg-emerald-500 text-white text-[10px] font-semibold">
+                {{ c.unread if c.unread < 100 else '99+' }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="text-xs text-slate-500 truncate mt-0.5">
+              {% if c.last_snippet %}
+              <span class="text-slate-400">{{ c.last_author }}:</span>
+              {{ c.last_snippet }}
+              {% else %}
+              {{ c.sublabel }}
+              {% endif %}
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </aside>
+
+    {# ---------------------------------------------------------- #}
+    {# MESSAGE FEED + COMPOSER                                     #}
+    {# ---------------------------------------------------------- #}
+    <section class="flex-1 flex flex-col min-w-0 bg-white">
+
+      {# Header #}
+      <div class="h-16 shrink-0 px-4 md:px-6 border-b border-slate-200
+                  flex items-center gap-3">
+        <a href="{{ url_for('chat.index') }}"
+           class="md:hidden p-2 -ml-2 rounded hover:bg-slate-100 text-slate-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <div class="font-semibold text-slate-900 truncate">{{ title }}</div>
+            {% if active.kind == 'broadcast' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full
+                         text-[10px] font-medium bg-slate-100 text-slate-700 uppercase tracking-wider">
+              Broadcast
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full
+                         text-[10px] font-medium bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+              Direct
+            </span>
+            {% endif %}
+          </div>
+          {% if subtitle %}
+          <div class="text-xs text-slate-500 truncate mt-0.5">{{ subtitle }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Messages #}
+      <div id="messages"
+           class="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-3
+                  bg-slate-50/40"
+           data-channel="{{ active.id }}"
+           data-last-id="{{ last_id }}"
+           data-self-id="{{ current_user.id }}"
+           data-poll-url="{{ url_for('chat.poll', cid=active.id) }}">
+
+        {% if not messages %}
+        <div class="text-center py-12">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full
+                      bg-slate-100 text-slate-400 mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </div>
+          <div class="text-sm font-medium text-slate-600">No messages yet</div>
+          <div class="text-xs text-slate-400 mt-1">
+            {% if active.kind == 'broadcast' %}
+            Say hello, ask a question, or share an announcement.
+            {% else %}
+            Start the conversation.
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        {% for m in messages %}
+        {% include 'chat/_message.html' with context %}
+        {% endfor %}
+        {% endif %}
+      </div>
+
+      {# Composer #}
+      <form id="composer"
+            method="post"
+            action="{{ url_for('chat.send', cid=active.id) }}"
+            class="shrink-0 border-t border-slate-200 px-4 md:px-6 py-3 bg-white">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="flex items-end gap-2">
+          <textarea name="body" id="composer-input"
+                    rows="1"
+                    placeholder="Type a message…"
+                    maxlength="4000"
+                    class="flex-1 resize-none rounded-lg border border-slate-300
+                           bg-white px-3.5 py-2.5 text-sm
+                           placeholder:text-slate-400
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500
+                           focus:border-emerald-500 transition"></textarea>
+          <button type="submit"
+                  class="shrink-0 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                         disabled:opacity-40 disabled:cursor-not-allowed
+                         text-white font-medium text-sm px-4 py-2.5 rounded-lg transition shadow-sm">
+            <span class="hidden sm:inline">Send</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 12h15"/>
+            </svg>
+          </button>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1.5 flex items-center justify-between">
+          <span>Enter to send · Shift+Enter for a new line</span>
+          <span id="composer-count"></span>
+        </div>
+      </form>
+
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var feed = document.getElementById('messages');
+  if (!feed) return;
+
+  var channelId = feed.dataset.channel;
+  var lastId = parseInt(feed.dataset.lastId, 10) || 0;
+  var selfId = parseInt(feed.dataset.selfId, 10);
+  var pollUrl = feed.dataset.pollUrl;
+
+  var composer = document.getElementById('composer-input');
+  var composerForm = document.getElementById('composer');
+  var composerCount = document.getElementById('composer-count');
+
+  // ---- Auto-scroll to bottom on load ----
+  function scrollToBottom(instant) {
+    if (instant) feed.scrollTop = feed.scrollHeight;
+    else feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+  }
+  scrollToBottom(true);
+
+  // ---- Auto-grow textarea ----
+  function autosize() {
+    composer.style.height = 'auto';
+    composer.style.height = Math.min(composer.scrollHeight, 160) + 'px';
+    composerCount.textContent = composer.value.length
+      ? composer.value.length + ' / 4000' : '';
+  }
+  if (composer) {
+    composer.addEventListener('input', autosize);
+    autosize();
+
+    // Enter sends, Shift+Enter inserts newline
+    composer.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (composer.value.trim()) composerForm.submit();
+      }
+    });
+
+    // Focus the composer on page load
+    composer.focus();
+  }
+
+  // ---- Build a message DOM node ----
+  function renderMessage(m) {
+    var wrap = document.createElement('div');
+    wrap.className = 'flex items-start gap-3 ' + (m.is_self ? 'flex-row-reverse' : '');
+
+    var avatar = document.createElement('div');
+    avatar.className = 'w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-semibold '
+      + (m.author_is_master
+          ? 'bg-slate-900 text-white'
+          : 'bg-emerald-100 text-emerald-700');
+    avatar.textContent = m.author_initials;
+
+    var bubble = document.createElement('div');
+    bubble.className = 'max-w-[75%] ' + (m.is_self ? 'items-end flex flex-col' : '');
+
+    var meta = document.createElement('div');
+    meta.className = 'text-[11px] text-slate-500 mb-1 ' + (m.is_self ? 'text-right' : '');
+    var when = new Date(m.created_at + 'Z');
+    var hhmm = when.getHours().toString().padStart(2, '0') + ':' +
+               when.getMinutes().toString().padStart(2, '0');
+    meta.innerHTML = '<span class="font-medium text-slate-700">'
+      + escapeHtml(m.author_name) + '</span>'
+      + (m.author_is_master ? ' <span class="text-[10px] px-1 rounded bg-slate-100 text-slate-600">MASTER</span>' : '')
+      + ' <span class="text-slate-400">· ' + hhmm + '</span>';
+
+    var body = document.createElement('div');
+    body.className = 'rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap break-words '
+      + (m.is_self
+          ? 'bg-emerald-500 text-white rounded-tr-sm'
+          : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm');
+    body.textContent = m.body;
+
+    bubble.appendChild(meta);
+    bubble.appendChild(body);
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    return wrap;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---- Poll for new messages ----
+  var polling = false;
+  function poll() {
+    if (polling) return;
+    polling = true;
+    fetch(pollUrl + '?since=' + lastId, { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        polling = false;
+        if (!data || !data.messages || !data.messages.length) return;
+        var nearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 120;
+        data.messages.forEach(function (m) {
+          if (m.id > lastId) lastId = m.id;
+          feed.appendChild(renderMessage(m));
+        });
+        feed.dataset.lastId = lastId;
+        if (nearBottom) scrollToBottom(false);
+      })
+      .catch(function () { polling = false; });
+  }
+
+  setInterval(poll, 3000);
+})();
+</script>
+
+{% endblock %}

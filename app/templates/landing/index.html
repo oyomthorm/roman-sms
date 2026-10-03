@@ -1,0 +1,617 @@
+{% extends "base.html" %}
+{% block title %}Roman SMS — Bulk SMS for Ugandan businesses{% endblock %}
+{% block content %}
+
+{# ============================================================ #}
+{# TOP CONTACT BAR                                              #}
+{# ============================================================ #}
+<div class="bg-slate-900 text-slate-300 text-xs">
+  <div class="max-w-7xl mx-auto px-4 h-9 flex items-center justify-between">
+    <div class="flex items-center gap-6">
+      <a href="mailto:hello@romansms.co.ug"
+         class="flex items-center gap-2 hover:text-white transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        hello@romansms.co.ug
+      </a>
+      <a href="tel:+256700123456"
+         class="hidden md:flex items-center gap-2 hover:text-white transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+        </svg>
+        +256 700 123 456
+      </a>
+    </div>
+    <div class="hidden lg:flex items-center gap-6">
+      <span class="flex items-center gap-2 text-emerald-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        Agent online
+      </span>
+      <span>Kampala, Uganda</span>
+    </div>
+  </div>
+</div>
+
+{# ============================================================ #}
+{# MAIN NAV                                                     #}
+{# ============================================================ #}
+<nav class="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <a href="{{ url_for('landing.index') }}"
+       class="flex items-center gap-2 font-bold text-xl tracking-tight">
+      <span class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">
+        R
+      </span>
+      <span class="text-slate-900">Roman<span class="text-emerald-600">SMS</span></span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-700">
+      <a href="#features" class="hover:text-slate-900 transition">Features</a>
+      <a href="#how" class="hover:text-slate-900 transition">How it works</a>
+      <a href="#pricing" class="hover:text-slate-900 transition">Pricing</a>
+      <a href="#faq" class="hover:text-slate-900 transition">FAQ</a>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('auth.login') }}"
+         class="hidden sm:inline-block text-sm font-medium text-slate-700 hover:text-slate-900 px-4 py-2">
+        Sign in
+      </a>
+      <a href="{{ url_for('signup.form') }}"
+         class="bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold px-5 py-2.5 rounded-md transition shadow-sm">
+        Get started
+      </a>
+    </div>
+  </div>
+</nav>
+
+{# ============================================================ #}
+{# HERO                                                         #}
+{# ============================================================ #}
+<section class="relative overflow-hidden bg-slate-900 text-white">
+  <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-900"></div>
+  <div class="absolute top-0 right-0 w-[40rem] h-[40rem] bg-emerald-500 rounded-full blur-[8rem] opacity-20 -translate-y-1/3 translate-x-1/4"></div>
+  <div class="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-indigo-500 rounded-full blur-[8rem] opacity-20 translate-y-1/3 -translate-x-1/4"></div>
+
+  <div class="absolute inset-0 opacity-[0.05]"
+       style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 py-20 md:py-28 grid lg:grid-cols-2 gap-12 items-center">
+
+    <div>
+      <div class="inline-flex items-center gap-2 text-xs font-medium
+                  bg-white/10 backdrop-blur border border-white/10
+                  text-emerald-300 px-3 py-1.5 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        Built for Ugandan businesses
+      </div>
+
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
+        Reach your customers.
+        <br>
+        <span class="text-emerald-400">Every single one.</span>
+      </h1>
+
+      <p class="mt-6 text-lg md:text-xl text-slate-300 leading-relaxed max-w-xl">
+        Send bulk SMS to MTN, Airtel, and Lycamobile customers from a
+        clean dashboard. No SIM cards. No spreadsheets. No phone numbers
+        lost in a notebook.
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="{{ url_for('signup.form') }}"
+           class="group inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                  text-white font-semibold px-6 py-3.5 rounded-md transition shadow-lg shadow-emerald-500/25">
+          Get started now
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+               fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </a>
+        <a href="#how"
+           class="inline-flex items-center gap-2 border border-white/20 hover:bg-white/5
+                  text-white font-medium px-6 py-3.5 rounded-md transition">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          See how it works
+        </a>
+      </div>
+
+      <div class="mt-10 grid grid-cols-2 gap-x-6 gap-y-3 text-sm text-slate-300">
+        {% for bullet in ['Instant delivery', 'Secure & private',
+                          'Custom sender branding', 'Easy CSV import'] %}
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          {{ bullet }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="relative flex justify-center lg:justify-end">
+      <div class="absolute inset-0 bg-emerald-500 rounded-full blur-3xl opacity-20"></div>
+
+      <div class="relative w-full max-w-md">
+        <div class="bg-slate-800 rounded-t-xl p-3 border border-slate-700 shadow-2xl">
+          <div class="flex items-center gap-1.5 mb-3">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500/70"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-amber-500/70"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/70"></div>
+            <div class="ml-3 text-[10px] text-slate-400 font-mono">
+              romansms.co.ug/campaigns
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-semibold text-slate-900">
+                Welcome back, Kampalafit
+              </div>
+              <div class="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">
+                Active
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-900 rounded-lg p-3 text-white">
+              <div class="text-[10px] uppercase text-slate-400 tracking-wider">
+                Wallet balance
+              </div>
+              <div class="text-2xl font-bold mt-1">
+                2,450 <span class="text-xs font-normal text-slate-400">credits</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-slate-50 rounded p-2">
+                <div class="text-[9px] uppercase text-slate-500">Contacts</div>
+                <div class="text-sm font-semibold">1,842</div>
+              </div>
+              <div class="bg-slate-50 rounded p-2">
+                <div class="text-[9px] uppercase text-slate-500">Sent</div>
+                <div class="text-sm font-semibold">3,201</div>
+              </div>
+              <div class="bg-slate-50 rounded p-2">
+                <div class="text-[9px] uppercase text-slate-500">Delivered</div>
+                <div class="text-sm font-semibold text-emerald-600">98.4%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-2 bg-slate-700 rounded-b-xl mx-4"></div>
+        <div class="h-1 bg-slate-600 rounded-b-2xl mx-8"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="relative">
+    <svg class="w-full h-12 md:h-16 text-white" viewBox="0 0 1440 100"
+         preserveAspectRatio="none" fill="currentColor">
+      <path d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,100L1360,100C1280,100,1120,100,960,100C800,100,640,100,480,100C320,100,160,100,80,100L0,100Z"/>
+    </svg>
+  </div>
+</section>
+
+<style>
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+</style>
+
+{# ============================================================ #}
+{# STATS STRIP                                                  #}
+{# ============================================================ #}
+<section class="bg-white">
+  <div class="max-w-7xl mx-auto px-4 -mt-8 md:-mt-12 relative z-10">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-100
+                grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-100">
+      {% for value, label in [('98.4%', 'Delivery rate'),
+                              ('< 60s', 'Average send time'),
+                              ('3', 'Networks covered'),
+                              ('24/7', 'Uptime target')] %}
+      <div class="p-5 md:p-6 text-center">
+        <div class="text-2xl md:text-3xl font-bold text-slate-900">{{ value }}</div>
+        <div class="text-xs md:text-sm text-slate-500 mt-1">{{ label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# FEATURES                                                     #}
+{# ============================================================ #}
+<section id="features" class="bg-white pt-24 pb-20">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="max-w-2xl mb-14">
+      <div class="text-sm font-semibold text-emerald-600 uppercase tracking-wider mb-2">
+        Features
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+        Everything you need to run SMS at scale
+      </h2>
+      <p class="mt-4 text-lg text-slate-600">
+        A dashboard built for the way businesses in Uganda actually work.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      {% set features = [
+        ('Contacts & groups',
+         'Import from CSV, organise into groups, mark opt-outs. Every customer, in one place, in seconds.',
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/>'),
+        ('Reusable templates',
+         'Save the messages you send often. Personalise each one with the customer name automatically.',
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>'),
+        ('Delivery reports',
+         'See what sent, what failed, and why. Export to CSV at the end of the month for accounting.',
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>'),
+        ('Credit wallet',
+         'Buy credits when you need them. See every top-up and every send in a clear ledger. No surprises.',
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'),
+        ('Opt-out built in',
+         'Every message carries a one-click unsubscribe link. Comply with the Data Protection Act without thinking about it.',
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>'),
+        ('Sends fast',
+         'Thousands of messages go out in minutes. Per-account rate limits keep everyone on the network happy.',
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>')
+      ] %}
+
+      {% for title, desc, icon in features %}
+      <div class="group bg-slate-50 hover:bg-white hover:shadow-lg rounded-xl p-6
+                  border border-transparent hover:border-slate-200 transition-all duration-200">
+        <div class="w-11 h-11 rounded-lg bg-slate-900 text-white flex items-center justify-center mb-4
+                    group-hover:bg-emerald-500 transition-colors duration-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            {{ icon|safe }}
+          </svg>
+        </div>
+        <h3 class="font-semibold text-slate-900 mb-2">{{ title }}</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">{{ desc }}</p>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# USE CASES                                                    #}
+{# ============================================================ #}
+<section class="bg-slate-900 text-white relative overflow-hidden">
+  <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-10"></div>
+  <div class="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-10"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 py-20">
+    <div class="max-w-2xl mb-12">
+      <div class="text-sm font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+        Who uses it
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight">
+        Built for how Ugandan businesses talk to customers
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
+      {% set uses = [
+        ('Retail & supermarkets', 'Promotions, stock arrivals, loyalty rewards.'),
+        ('Clinics & pharmacies', 'Appointment reminders, prescription ready notices.'),
+        ('Schools', 'Fee reminders, term dates, exam results.'),
+        ('SACCOs & lenders', 'Loan due dates, payment confirmations, statements.'),
+        ('Delivery & logistics', 'Dispatch notices, driver ETAs, delivery confirmation.'),
+        ('Churches & events', 'Service reminders, event details, giving prompts.')
+      ] %}
+      {% for title, desc in uses %}
+      <div class="flex gap-4">
+        <div class="w-10 h-10 shrink-0 rounded-lg bg-white/5 border border-white/10
+                    flex items-center justify-center text-emerald-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-semibold">{{ title }}</div>
+          <div class="text-slate-400 text-sm mt-1 leading-relaxed">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# HOW IT WORKS                                                 #}
+{# ============================================================ #}
+<section id="how" class="bg-white py-20">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="max-w-2xl mb-14">
+      <div class="text-sm font-semibold text-emerald-600 uppercase tracking-wider mb-2">
+        How it works
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+        From signup to first message in under 15 minutes
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-10 relative">
+      <div class="hidden md:block absolute top-8 left-[16%] right-[16%] h-0.5 bg-slate-200"></div>
+
+      {% set steps = [
+        ('01', 'Contact us and get set up',
+         'Send us an email or call. We create your account and send you your login. Choose a top-up tier and pay by mobile money.'),
+        ('02', 'Add your customers',
+         'Type them in, or upload a spreadsheet. Group them however you like — "VIPs", "January promos", "Debtors".'),
+        ('03', 'Write and send',
+         'Compose your message, pick a group, click send. Watch the delivery report come in live.')
+      ] %}
+      {% for num, title, desc in steps %}
+      <div class="relative">
+        <div class="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center
+                    font-bold text-lg mb-5 relative z-10 shadow-lg shadow-slate-900/20">
+          {{ num }}
+        </div>
+        <h3 class="font-bold text-slate-900 mb-2 text-lg">{{ title }}</h3>
+        <p class="text-slate-600 leading-relaxed">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# PRICING                                                      #}
+{# ============================================================ #}
+<section id="pricing" class="bg-slate-50 border-t border-slate-200 py-20">
+  <div class="max-w-5xl mx-auto px-4">
+    <div class="mb-10">
+      <div class="text-sm font-semibold text-emerald-600 uppercase tracking-wider mb-2">
+        Pricing
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+        Simple pay-as-you-go pricing
+      </h2>
+      <p class="mt-4 text-lg text-slate-600 max-w-2xl">
+        Pay only for the SMS you send. Larger top-ups get a lower rate.
+        Balance never expires. No monthly fees.
+      </p>
+    </div>
+
+    {% if plans %}
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-900 text-white">
+            <tr>
+              <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+                SMS credits per top-up
+              </th>
+              <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+                Cost per SMS
+              </th>
+              <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+                Balance expiry
+              </th>
+              <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+                Sender branding
+              </th>
+              <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+                Multiple users
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for p in plans %}
+            <tr class="{% if p.is_featured %}bg-emerald-50/40{% endif %}">
+              <td class="px-5 py-5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-slate-900">{{ p.tier_label }}</span>
+                  {% if p.is_featured %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full
+                               text-[10px] font-semibold uppercase tracking-wider
+                               bg-emerald-500 text-white">
+                    Best value
+                  </span>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5">
+                  {{ '{:,}'.format(p.credits) }} credits per purchase
+                </div>
+              </td>
+              <td class="px-5 py-5">
+                <div class="font-semibold text-slate-900">
+                  {% if p.rate_per_sms %}
+                  {{ '{:,.0f}'.format(p.rate_per_sms) }} {{ p.currency }}
+                  {% else %}
+                  —
+                  {% endif %}
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5">
+                  {{ '{:,.0f}'.format(p.price) }} {{ p.currency }} total
+                </div>
+              </td>
+              <td class="px-5 py-5 text-slate-700 whitespace-nowrap">Never expires</td>
+              <td class="px-5 py-5 text-slate-700 whitespace-nowrap">Included</td>
+              <td class="px-5 py-5 text-slate-700 whitespace-nowrap">Included</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-3
+                text-sm text-slate-600 mb-8">
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        No monthly fees
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        No forced commitment
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Account balance does not expire
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Prices in UGX
+      </span>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center text-slate-500 mb-6">
+      Pricing is being finalised.
+    </div>
+    {% endif %}
+
+    <div class="text-center">
+      <a href="#contact"
+         class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                text-white font-semibold px-6 py-3.5 rounded-md transition
+                shadow-lg shadow-emerald-500/25">
+        Talk to us about pricing
+      </a>
+    </div>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# FAQ                                                          #}
+{# ============================================================ #}
+<section id="faq" class="bg-white py-20">
+  <div class="max-w-3xl mx-auto px-4">
+    <div class="mb-12">
+      <div class="text-sm font-semibold text-emerald-600 uppercase tracking-wider mb-2">
+        FAQ
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+        Common questions
+      </h2>
+    </div>
+
+    <div class="space-y-3">
+      {% set faqs = [
+        ('Who receives my messages?',
+         'Anyone on any Ugandan network — MTN, Airtel, Lycamobile. Messages are delivered as normal SMS to their phone.'),
+        ('What do my customers see as the sender?',
+         'All messages come from a single registered Roman SMS sender ID. Your business name is shown at the start of every message body, so recipients know who is contacting them.'),
+        ('How does pricing work?',
+         'Pay only for the SMS you send. The larger your top-up, the lower your cost per SMS. Balance never expires and there are no monthly fees.'),
+        ('Can I send to international numbers?',
+         'Roman SMS is built for Ugandan numbers. For other countries, contact us and we will tell you what is possible.'),
+        ('How do I pay?',
+         'We invoice you when you buy a top-up. Pay by mobile money, bank transfer, or cash. Once payment is confirmed, your credits appear in your wallet immediately.'),
+        ('What happens if a message fails to send?',
+         'You are refunded automatically for any message that does not leave the platform. You can see the failed send and its reason in your reports.'),
+        ('Can my staff use it?',
+         'Yes. You can add team members to your account. You choose whether they can manage billing and users, or only send messages.'),
+        ('How do I stop people receiving messages they do not want?',
+         'Every message carries a one-click opt-out link. Once someone opts out, no business on Roman SMS can message them again.')
+      ] %}
+      {% for q, a in faqs %}
+      <details class="group bg-slate-50 hover:bg-slate-100 rounded-xl transition">
+        <summary class="flex items-center justify-between cursor-pointer
+                        px-5 py-4 select-none list-none">
+          <span class="font-medium text-slate-900 pr-4">{{ q }}</span>
+          <svg class="w-5 h-5 text-slate-400 shrink-0 transition-transform group-open:rotate-180"
+               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </summary>
+        <div class="px-5 pb-5 text-sm text-slate-600 leading-relaxed">
+          {{ a }}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# CONTACT CTA                                                  #}
+{# ============================================================ #}
+<section id="contact" class="relative overflow-hidden bg-slate-900 text-white">
+  <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-20"></div>
+  <div class="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-20"></div>
+
+  <div class="relative max-w-4xl mx-auto px-4 py-24 text-center">
+    <h2 class="text-3xl md:text-5xl font-bold tracking-tight">
+      Ready to get started?
+    </h2>
+    <p class="mt-5 text-lg md:text-xl text-slate-300 max-w-xl mx-auto">
+      Tell us a bit about your business and we will set you up. We reply
+      within one working day.
+    </p>
+
+    <div class="mt-10 flex flex-wrap gap-4 justify-center">
+      <a href="mailto:hello@romansms.co.ug?subject=Roman%20SMS%20enquiry"
+         class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                text-white font-semibold px-6 py-3.5 rounded-md transition
+                shadow-lg shadow-emerald-500/25">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        hello@romansms.co.ug
+      </a>
+      <a href="tel:+256700123456"
+         class="inline-flex items-center gap-2 border border-white/20 hover:bg-white/5
+                text-white font-medium px-6 py-3.5 rounded-md transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+        </svg>
+        +256 700 123 456
+      </a>
+    </div>
+
+    <p class="mt-8 text-sm text-slate-400">
+      Kampala, Uganda · Mon–Fri, 8:00–18:00 EAT
+    </p>
+  </div>
+</section>
+
+{# ============================================================ #}
+{# FOOTER                                                       #}
+{# ============================================================ #}
+<footer class="bg-slate-950 text-slate-400 text-sm">
+  <div class="max-w-7xl mx-auto px-4 py-10">
+    <div class="flex flex-wrap items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center text-sm font-bold">
+          R
+        </span>
+        <div>
+          <div class="text-white font-semibold">Roman SMS</div>
+          <div class="text-xs text-slate-500">&copy; 2025 Roman SMS Ltd</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-6">
+        <a href="#features" class="hover:text-white transition">Features</a>
+        <a href="#how" class="hover:text-white transition">How it works</a>
+        <a href="#pricing" class="hover:text-white transition">Pricing</a>
+        <a href="#contact" class="hover:text-white transition">Contact</a>
+        <a href="{{ url_for('auth.login') }}" class="hover:text-white transition">Sign in</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{% endblock %}

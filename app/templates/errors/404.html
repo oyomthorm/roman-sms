@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Page not found — Roman SMS{% endblock %}
+{% block content %}
+<div class="text-center py-24">
+  <div class="text-8xl font-bold text-slate-200">404</div>
+  <h1 class="text-2xl font-bold tracking-tight text-slate-900 mt-2">Page not found</h1>
+  <p class="text-slate-500 mt-2 max-w-md mx-auto">
+    The page you're looking for doesn't exist or has been moved.
+  </p>
+  <a href="{{ url_for('landing.index') }}"
+     class="inline-flex items-center gap-2 mt-8 bg-slate-900 hover:bg-slate-800
+            text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+    Go to homepage
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+[Unit]
+Description=Roman SMS queue worker
+After=network.target postgresql.service
+
+[Service]
+User=roman
+Group=roman
+WorkingDirectory=/opt/roman-sms
+EnvironmentFile=/opt/roman-sms/.env
+ExecStart=/opt/roman-sms/venv/bin/python worker.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold">Plans</h1>
+  <a href="{{ url_for('master.plan_new') }}"
+     class="bg-slate-900 text-white text-sm px-4 py-2 rounded">New plan</a>
+</div>
+
+<div class="bg-white rounded-lg shadow overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100 text-left">
+      <tr>
+        <th class="p-3">Name</th>
+        <th class="p-3">Price</th>
+        <th class="p-3">Credits</th>
+        <th class="p-3">Validity</th>
+        <th class="p-3">Limits</th>
+        <th class="p-3">Status</th>
+        <th class="p-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in plans %}
+      <tr class="border-t">
+        <td class="p-3 font-medium">{{ p.name }}</td>
+        <td class="p-3">{{ '{:,.0f}'.format(p.price) }} {{ p.currency }}</td>
+        <td class="p-3">{{ p.credits }}</td>
+        <td class="p-3">{{ p.validity_days }}d</td>
+        <td class="p-3 text-slate-500 text-xs">
+          {% if p.max_contacts %}{{ p.max_contacts }} contacts · {% endif %}
+          {{ p.max_per_minute }}/min · {{ p.max_per_day }}/day
+        </td>
+        <td class="p-3">
+          {% if p.is_active %}
+          <span class="text-emerald-600 text-xs">active</span>
+          {% else %}
+          <span class="text-slate-500 text-xs">inactive</span>
+          {% endif %}
+        </td>
+        <td class="p-3 text-right space-x-2">
+          <a href="{{ url_for('master.plan_edit', pid=p.id) }}"
+             class="text-sky-700 hover:underline">Edit</a>
+          <form method="post" action="{{ url_for('master.plan_toggle', pid=p.id) }}"
+                class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="text-amber-700 hover:underline">
+              {{ 'Deactivate' if p.is_active else 'Activate' }}
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="p-6 text-center text-slate-500">
+        No plans yet.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

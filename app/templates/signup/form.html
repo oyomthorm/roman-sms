@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Create an account — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 py-12 px-4">
+  <div class="max-w-2xl mx-auto">
+
+    <div class="text-center mb-8">
+      <a href="{{ url_for('landing.index') }}"
+         class="inline-flex items-center gap-2.5 font-bold text-lg tracking-tight">
+        <span class="w-9 h-9 rounded-lg bg-emerald-500 text-white
+                     flex items-center justify-center text-base font-bold">R</span>
+        <span class="text-slate-900">Roman<span class="text-emerald-600">SMS</span></span>
+      </a>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+          Create your Roman SMS account
+        </h1>
+        <p class="text-sm text-slate-500 mt-2">
+          We review every application manually and reply within one
+          working day. If approved, you will receive an email with a
+          link to set your password.
+        </p>
+      </div>
+
+      <form method="post" class="space-y-5" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# Honeypot — hidden from humans, filled by bots #}
+        <div class="hidden" aria-hidden="true">
+          <label>Website</label>
+          <input name="website" tabindex="-1" autocomplete="off">
+        </div>
+
+        {# ---- Section: Company ---- #}
+        <div class="border-b border-slate-200 pb-5">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">
+            Your business
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Company name
+              </label>
+              <input name="company_name" required maxlength="150"
+                     value="{{ form.get('company_name','') }}"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                            focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                URL slug
+              </label>
+              <input name="desired_slug" required maxlength="60"
+                     placeholder="e.g. kampalafit"
+                     value="{{ form.get('desired_slug','') }}"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-mono
+                            placeholder:text-slate-400
+                            focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+              <p class="text-xs text-slate-500 mt-1.5">
+                Lowercase letters, numbers, dashes. Used in your account URL.
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                SMS brand prefix
+              </label>
+              <input name="brand_name" required maxlength="20"
+                     placeholder="e.g. Kampalafit"
+                     value="{{ form.get('brand_name','') }}"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                            placeholder:text-slate-400
+                            focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+              <p class="text-xs text-slate-500 mt-1.5">
+                Appears at the start of every SMS. Max 20 characters.
+              </p>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                District
+              </label>
+              <select name="district_id"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                <option value="">Not set</option>
+                {% for region, districts in districts_by_region %}
+                <optgroup label="{{ region }}">
+                  {% for d in districts %}
+                  <option value="{{ d.id }}"
+                    {% if form.get('district_id') == d.id|string %}selected{% endif %}>
+                    {{ d.name }}
+                  </option>
+                  {% endfor %}
+                </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {# ---- Section: Contact ---- #}
+        <div class="border-b border-slate-200 pb-5">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">
+            Your details
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Your name
+              </label>
+              <input name="contact_name" required maxlength="120"
+                     value="{{ form.get('contact_name','') }}"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                            focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Phone (optional)
+              </label>
+              <input name="contact_phone" maxlength="20"
+                     placeholder="0700123456"
+                     value="{{ form.get('contact_phone','') }}"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-mono
+                            placeholder:text-slate-400
+                            focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Email address
+              </label>
+              <input name="contact_email" type="email" required
+                     value="{{ form.get('contact_email','') }}"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                            focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+              <p class="text-xs text-slate-500 mt-1.5">
+                This becomes your login email. We never share it.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {# ---- Section: Intent ---- #}
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">
+            Your expected usage
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Plan interest
+              </label>
+              <select name="plan_id"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                <option value="">Not sure yet</option>
+                {% for p in plans %}
+                <option value="{{ p.id }}"
+                  {% if form.get('plan_id') == p.id|string %}selected{% endif %}>
+                  {{ p.name }} — {{ p.tier_label }} credits
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Monthly volume
+              </label>
+              <select name="expected_volume"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                <option value="">Select…</option>
+                <option value="under_1000">Under 1,000 SMS</option>
+                <option value="1000_10000">1,000 – 10,000 SMS</option>
+                <option value="10000_50000">10,000 – 50,000 SMS</option>
+                <option value="50000_plus">50,000+ SMS</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Tell us about your business (optional)
+              </label>
+              <textarea name="message" rows="4" maxlength="2000"
+                        placeholder="What will you use Roman SMS for? Who are your customers?"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                               placeholder:text-slate-400
+                               focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">{{ form.get('message','') }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center gap-4">
+          <button type="submit"
+                  class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                         text-white font-semibold px-6 py-2.5 rounded-lg transition shadow-sm">
+            Submit application
+          </button>
+          <a href="{{ url_for('auth.login') }}"
+             class="text-sm text-slate-500 hover:text-slate-900 transition">
+            Already have an account? Sign in
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <p class="text-xs text-slate-500 text-center mt-6 max-w-md mx-auto">
+      By submitting this application you agree to our terms of service
+      and confirm that you will only send SMS to recipients who have
+      consented to receive them.
+    </p>
+
+  </div>
+</div>
+
+{% endblock %}

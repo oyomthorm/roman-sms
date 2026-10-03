@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} — Roman SMS{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <a href="{{ url_for('groups.index') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Groups</a>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 mt-1">{{ group.name }}</h1>
+    {% if group.description %}
+    <p class="text-sm text-slate-500 mt-1">{{ group.description }}</p>
+    {% endif %}
+    <p class="text-xs text-slate-500 mt-2">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+        {{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }}
+      </span>
+    </p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('groups.edit', gid=group.id) }}"
+       class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
+              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+      Edit
+    </a>
+    <a href="{{ url_for('groups.delete', gid=group.id) }}"
+       class="inline-flex items-center gap-2 border border-red-300 text-red-700 hover:bg-red-50
+              text-sm font-medium px-4 py-2 rounded-lg transition">
+      Delete
+    </a>
+    <a href="{{ url_for('campaigns.new') }}"
+       class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+      </svg>
+      Send campaign
+    </a>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  {% if contacts %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Phone</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for c in contacts %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 font-mono text-xs text-slate-700">{{ c.phone }}</td>
+        <td class="px-5 py-3 text-slate-900">{{ c.name or '—' }}</td>
+        <td class="px-5 py-3">
+          {% if c.opted_out %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">opted out</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">active</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-16 px-4">
+    <div class="text-slate-500 font-medium">No contacts in this group yet</div>
+    <div class="text-sm text-slate-400 mt-1">
+      <a href="{{ url_for('contacts.index') }}" class="text-emerald-600 hover:underline">
+        Add contacts
+      </a>
+      and assign them to this group.
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit contact' if contact else 'Add contact' }} — Roman SMS{% endblock %}
+{% block page_header %}{{ 'Edit contact' if contact else 'Add contact' }}{% endblock %}
+{% block page_header_mobile %}{{ 'Edit' if contact else 'New' }} contact{% endblock %}
+{% block content %}
+
+<div class="max-w-lg">
+  <div class="mb-6">
+    <a href="{{ url_for('contacts.index') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Contacts</a>
+  </div>
+
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Phone number</label>
+      <input name="phone" required
+             value="{{ contact.phone if contact else '' }}"
+             {% if contact %}readonly{% endif %}
+             placeholder="0700123456"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-mono
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition
+                    {% if contact %}bg-slate-50 text-slate-500{% endif %}">
+      <p class="text-xs text-slate-500 mt-1.5">
+        Accepts <code class="bg-slate-100 px-1 py-0.5 rounded">0700123456</code>,
+        <code class="bg-slate-100 px-1 py-0.5 rounded">256700123456</code>, or
+        <code class="bg-slate-100 px-1 py-0.5 rounded">+256700123456</code>
+      </p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Name <span class="text-slate-400 font-normal">(optional)</span>
+      </label>
+      <input name="name" value="{{ contact.name or '' if contact else '' }}"
+             placeholder="e.g. Alice Mukasa"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      <p class="text-xs text-slate-500 mt-1.5">
+        Leave blank if you don't have a name for this number.
+      </p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Group</label>
+      <select name="group_id"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <option value="">No group</option>
+        {% for g, c in groups %}
+        <option value="{{ g.id }}"
+          {% if contact and contact.group_id == g.id %}selected{% endif %}>
+          {{ g.name }} ({{ c }})
+        </option>
+        {% endfor %}
+      </select>
+      {% if not contact %}
+      <label class="block text-xs text-slate-500 mt-3 mb-1.5">
+        Or create a new group
+      </label>
+      <input name="group_new" placeholder="e.g. VIP Customers"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      {% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        District <span class="text-slate-400 font-normal">(optional)</span>
+      </label>
+      <select name="district_id"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <option value="">No district</option>
+        {% for region, districts in districts_by_region %}
+        <optgroup label="{{ region }}">
+          {% for d in districts %}
+          <option value="{{ d.id }}"
+            {% if contact and contact.district_id == d.id %}selected{% endif %}>
+            {{ d.name }}
+          </option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      <p class="text-xs text-slate-500 mt-1.5">
+        Leave blank if you don't know which district this contact is in.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Save contact
+      </button>
+      <a href="{{ url_for('contacts.index') }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

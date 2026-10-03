@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Signups — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}Signup applications{% endblock %}
+{% block content %}
+
+{# Tabs #}
+<div class="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
+  {% set tabs = [
+    ('pending',  'Pending',  counts.pending),
+    ('approved', 'Approved', counts.approved),
+    ('rejected', 'Rejected', counts.rejected),
+    ('spam',     'Spam',     counts.spam),
+    ('all',      'All',      counts.pending + counts.approved + counts.rejected + counts.spam)
+  ] %}
+  {% for key, label, count in tabs %}
+  <a href="{{ url_for('master.signups', status=key) }}"
+     class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium
+            whitespace-nowrap transition
+            {% if status == key %}
+              bg-slate-900 text-white shadow-sm
+            {% else %}
+              bg-white border border-slate-200 text-slate-700 hover:bg-slate-50
+            {% endif %}">
+    {{ label }}
+    {% if count %}
+    <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
+                 rounded-full text-[10px] font-semibold
+                 {% if status == key %}bg-white/20 text-white
+                 {% else %}bg-slate-100 text-slate-700{% endif %}">
+      {{ count if count < 100 else '99+' }}
+    </span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{# List #}
+{% if rows %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Company</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Contact</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">District</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Plan interest</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Submitted</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in rows %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3">
+          <a href="{{ url_for('master.signup_detail', rid=r.id) }}"
+             class="font-medium text-slate-900 hover:text-emerald-600">
+            {{ r.company_name }}
+          </a>
+          <div class="text-xs text-slate-500 mt-0.5 font-mono">
+            {{ r.desired_slug }}
+          </div>
+        </td>
+        <td class="px-5 py-3">
+          <div class="text-slate-900">{{ r.contact_name }}</div>
+          <div class="text-xs text-slate-500 mt-0.5">{{ r.contact_email }}</div>
+        </td>
+        <td class="px-5 py-3 text-slate-600 text-xs">
+          {{ r.district.name if r.district else '—' }}
+        </td>
+        <td class="px-5 py-3 text-slate-600 text-xs">
+          {{ r.plan.name if r.plan else '—' }}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ r.created_at.strftime('%d %b %Y, %H:%M') }}
+        </td>
+        <td class="px-5 py-3 text-right">
+          <a href="{{ url_for('master.signup_detail', rid=r.id) }}"
+             class="text-sm font-medium text-slate-600 hover:text-slate-900">
+            Open →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
+  <div class="inline-flex items-center justify-center w-14 h-14 rounded-full
+              bg-emerald-100 text-emerald-600 mb-4">
+    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+    </svg>
+  </div>
+  <div class="text-slate-600 font-medium">Nothing here</div>
+  <div class="text-sm text-slate-400 mt-1">
+    No {{ status }} applications.
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

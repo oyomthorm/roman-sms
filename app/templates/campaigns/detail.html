@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }} — Roman SMS{% endblock %}
+{% block page_header %}{{ campaign.name }}{% endblock %}
+{% block page_header_mobile %}Campaign{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div class="min-w-0">
+    <a href="{{ url_for('campaigns.index') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Campaigns</a>
+    <p class="text-sm text-slate-500 mt-1">
+      Created {{ campaign.created_at.strftime('%d %b %Y, %H:%M') }}
+      {% if campaign.group_filter or campaign.district_filter %}
+      ·
+      {% if campaign.group_filter %}
+      group <strong class="text-slate-700">{{ campaign.group_filter }}</strong>
+      {% endif %}
+      {% if campaign.group_filter and campaign.district_filter %} · {% endif %}
+      {% if campaign.district_filter %}
+      district <strong class="text-slate-700">{{ campaign.district_filter }}</strong>
+      {% endif %}
+      {% endif %}
+    </p>
+  </div>
+
+  {% if campaign.status in ('queued', 'sending') %}
+  <form method="post" action="{{ url_for('campaigns.cancel', cid=campaign.id) }}"
+        onsubmit="return confirm('Cancel this campaign? Messages already sent cannot be undone.')"
+        class="shrink-0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="inline-flex items-center gap-2 border border-red-300 text-red-700
+                   hover:bg-red-50 text-sm font-medium px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+      Cancel campaign
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+{# Stats row #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Status</div>
+    <div class="mt-2">
+      {% if campaign.status == 'complete' %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+        complete
+      </span>
+      {% elif campaign.status == 'sending' %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+        <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+        sending
+      </span>
+      {% elif campaign.status == 'queued' %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+      {% elif campaign.status == 'cancelled' %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+      {% else %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ campaign.status }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Delivered</div>
+    <div class="text-2xl font-bold text-emerald-600 mt-1">
+      {{ '{:,}'.format(breakdown.get('delivered', 0)) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">
+      of {{ '{:,}'.format(campaign.sent_count or 0) }} sent
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Failed</div>
+    <div class="text-2xl font-bold {% if campaign.failed_count %}text-red-600{% else %}text-slate-900{% endif %} mt-1">
+      {{ campaign.failed_count or 0 }}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">auto-refunded</div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Credits debited</div>
+    <div class="text-2xl font-bold text-slate-900 mt-1">
+      {{ '{:,}'.format(campaign.credits_debited or 0) }}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">
+      {{ '{:,}'.format(campaign.total or 0) }} recipients
+    </div>
+  </div>
+</div>
+
+{# Message body #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <div class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">Message body</div>
+  <pre class="text-sm whitespace-pre-wrap font-mono text-slate-800 bg-slate-50 rounded-lg p-4 border border-slate-100">{{ campaign.body }}</pre>
+</div>
+
+{# Message logs #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-5 py-4 border-b border-slate-200">
+    <h2 class="font-semibold text-slate-900">Recipients</h2>
+    <p class="text-xs text-slate-500 mt-0.5">
+      Showing the most recent 200 messages.
+      Delivery status updates automatically as networks report back.
+    </p>
+  </div>
+
+  {% if logs %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200 text-left">
+        <tr>
+          <th class="px-5 py-3 font-semibold text-slate-700">Phone</th>
+          <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+          <th class="px-5 py-3 font-semibold text-slate-700">Sent at</th>
+          <th class="px-5 py-3 font-semibold text-slate-700">Delivered at</th>
+          <th class="px-5 py-3 font-semibold text-slate-700">Provider ref</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for m in logs %}
+        <tr class="hover:bg-slate-50/50 transition">
+          <td class="px-5 py-3 font-mono text-xs text-slate-700 whitespace-nowrap">
+            {{ m.phone }}
+          </td>
+          <td class="px-5 py-3">
+            {% if m.status == 'delivered' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+              delivered
+            </span>
+            {% elif m.status == 'delivery_failed' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
+              not delivered
+            </span>
+            {% elif m.status == 'sent' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+              sent
+            </span>
+            {% elif m.status == 'failed' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              failed
+            </span>
+            {% elif m.status == 'cancelled' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+              cancelled
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+              pending
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+            {{ m.sent_at.strftime('%d %b, %H:%M:%S') if m.sent_at else '—' }}
+          </td>
+          <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+            {{ m.delivered_at.strftime('%d %b, %H:%M:%S') if m.delivered_at else '—' }}
+          </td>
+          <td class="px-5 py-3 text-slate-400 text-xs font-mono truncate max-w-[12rem]"
+              title="{{ m.provider_ref or '' }}">
+            {{ m.provider_ref or '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12 px-4">
+    <div class="text-slate-400 text-sm">No messages logged yet.</div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

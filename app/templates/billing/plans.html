@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Plans and pricing — Roman SMS{% endblock %}
+{% block page_header %}Plans and pricing{% endblock %}
+{% block page_header_mobile %}Plans{% endblock %}
+{% block content %}
+
+<div class="max-w-5xl">
+
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold tracking-tight text-slate-900">
+      Simple pay-as-you-go
+    </h2>
+    <p class="text-slate-600 mt-2 max-w-2xl">
+      Pay only for the SMS you send. Larger top-ups get a lower rate per
+      message. Balance never expires. No monthly fees.
+    </p>
+  </div>
+
+  {% if plans %}
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-900 text-white">
+          <tr>
+            <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+              SMS credits per top-up
+            </th>
+            <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+              Cost per SMS
+            </th>
+            <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+              Balance expiry
+            </th>
+            <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+              Sender branding
+            </th>
+            <th class="px-5 py-4 text-left font-semibold whitespace-nowrap">
+              Multiple users
+            </th>
+            <th class="px-5 py-4 text-right font-semibold"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% set starter_rate = plans[0].rate_per_sms if plans else 0 %}
+          {% for p in plans %}
+          {% set saving = (starter_rate - p.rate_per_sms) if p.rate_per_sms else 0 %}
+          <tr class="hover:bg-slate-50/60 transition
+                     {% if p.is_featured %}bg-emerald-50/40{% endif %}">
+            <td class="px-5 py-5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-slate-900">
+                  {{ p.tier_label }}
+                </span>
+                {% if p.is_featured %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full
+                             text-[10px] font-semibold uppercase tracking-wider
+                             bg-emerald-500 text-white">
+                  Best value
+                </span>
+                {% endif %}
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                {{ '{:,}'.format(p.credits) }} SMS per purchase
+              </div>
+            </td>
+            <td class="px-5 py-5">
+              <div class="font-semibold text-slate-900">
+                {% if p.rate_per_sms %}
+                {{ '{:,.0f}'.format(p.rate_per_sms) }} {{ p.currency }}
+                {% else %}
+                —
+                {% endif %}
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                {{ '{:,.0f}'.format(p.price) }} {{ p.currency }} total
+              </div>
+              {% if saving and saving > 0 %}
+              <div class="text-xs text-emerald-600 font-medium mt-1">
+                Save {{ '{:,.0f}'.format(saving) }} {{ p.currency }}/SMS vs Starter
+              </div>
+              {% endif %}
+            </td>
+            <td class="px-5 py-5">
+              <span class="inline-flex items-center gap-1.5 text-slate-700 whitespace-nowrap">
+                <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none"
+                     stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Never expires
+              </span>
+            </td>
+            <td class="px-5 py-5">
+              <span class="inline-flex items-center gap-1.5 text-slate-700 whitespace-nowrap">
+                <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none"
+                     stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Included
+              </span>
+            </td>
+            <td class="px-5 py-5">
+              <span class="inline-flex items-center gap-1.5 text-slate-700 whitespace-nowrap">
+                <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none"
+                     stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Included
+              </span>
+            </td>
+            <td class="px-5 py-5 text-right">
+              <form method="post" action="{{ url_for('billing.buy', pid=p.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="inline-flex items-center gap-2 whitespace-nowrap
+                               {% if p.is_featured %}
+                               bg-emerald-500 hover:bg-emerald-400 text-white font-semibold
+                               {% else %}
+                               bg-slate-900 hover:bg-slate-800 text-white font-medium
+                               {% endif %}
+                               text-sm px-4 py-2 rounded-lg transition shadow-sm">
+                  Buy {{ '{:,.0f}'.format(p.price) }} {{ p.currency }}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600 mb-8">
+    <span class="inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+      No monthly fees
+    </span>
+    <span class="inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+      No forced commitment
+    </span>
+    <span class="inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+      Account balance does not expire
+    </span>
+    <span class="inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+      Prices in UGX
+    </span>
+  </div>
+
+  <div class="bg-sky-50 border border-sky-200 rounded-xl p-5 flex items-start gap-3">
+    <div class="w-8 h-8 rounded-full bg-sky-500 text-white
+                flex items-center justify-center shrink-0 mt-0.5">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="font-semibold text-sky-900">
+        Simple pay-as-you-go pricing
+      </div>
+      <div class="text-sm text-sky-800 mt-1">
+        Pay only for the SMS messages you send and enjoy lower rates as
+        your volume grows. Contact Roman SMS for volume above
+        {{ '{:,}'.format(plans[-1].tier_max or plans[-1].tier_min) }}
+        SMS.
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+    <div class="text-slate-500">Pricing is being finalised.</div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

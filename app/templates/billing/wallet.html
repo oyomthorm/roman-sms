@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Wallet — Roman SMS{% endblock %}
+{% block page_header %}Wallet{% endblock %}
+{% block page_header_mobile %}Wallet{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-slate-500">
+    Your balance, invoices, and transaction history.
+  </p>
+  <a href="{{ url_for('billing.plans') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    Buy more credit
+  </a>
+</div>
+
+{# ---- Balance hero ---- #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+
+  <div class="lg:col-span-1 bg-gradient-to-br from-slate-900 to-indigo-900
+              text-white rounded-xl shadow-lg p-6">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-400">
+      Balance
+    </div>
+    <div class="text-4xl font-bold mt-2 tabular-nums leading-tight">
+      UGX {{ '{:,.0f}'.format(balance_value_ugx) }}
+    </div>
+    <div class="text-sm text-slate-400 mt-2">
+      {{ '{:,}'.format(balance) }} SMS available
+      {% if rate_ugx %}
+      · at {{ '{:,.0f}'.format(rate_ugx) }} UGX per SMS
+      {% endif %}
+    </div>
+
+    <div class="mt-6 pt-5 border-t border-white/10">
+      <div class="text-xs font-medium uppercase tracking-wider text-slate-400">
+        Active plan
+      </div>
+      {% if subscription %}
+      <div class="text-base font-semibold mt-1">{{ subscription.plan.name }}</div>
+      <div class="text-xs text-slate-400 mt-0.5">
+        expires {{ subscription.expires_at.strftime('%d %b %Y') }}
+      </div>
+      {% else %}
+      <div class="text-base font-semibold text-slate-500 mt-1">None</div>
+      <div class="text-xs mt-0.5">
+        <a href="{{ url_for('billing.plans') }}"
+           class="text-emerald-400 hover:underline">Choose a plan →</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-slate-900">Invoices</h2>
+      <span class="text-xs text-slate-500">Last 30</span>
+    </div>
+    {% if invoices %}
+    <div class="overflow-x-auto -mx-6 px-6">
+      <table class="w-full text-sm">
+        <thead class="border-b border-slate-200 text-left">
+          <tr>
+            <th class="pb-2 font-semibold text-slate-500 text-xs uppercase tracking-wider">Number</th>
+            <th class="pb-2 font-semibold text-slate-500 text-xs uppercase tracking-wider">Plan</th>
+            <th class="pb-2 font-semibold text-slate-500 text-xs uppercase tracking-wider text-right">Amount</th>
+            <th class="pb-2 font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</th>
+            <th class="pb-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for i in invoices %}
+          <tr class="hover:bg-slate-50/50 transition">
+            <td class="py-3 font-mono text-xs text-slate-600">{{ i.number }}</td>
+            <td class="py-3 text-slate-700">{{ i.plan_name or '—' }}</td>
+            <td class="py-3 text-right text-slate-900 font-medium tabular-nums">
+              {{ '{:,.0f}'.format(i.amount) }} {{ i.currency }}
+            </td>
+            <td class="py-3">
+              {% if i.status == 'paid' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">paid</span>
+              {% elif i.status == 'cancelled' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">unpaid</span>
+              {% endif %}
+            </td>
+            <td class="py-3 text-right">
+              <a href="{{ url_for('billing.invoice', invoice_id=i.id) }}"
+                 class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">View →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-10">
+      <div class="text-slate-400 text-sm">No invoices yet.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ---- Transactions ---- #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-5 py-4 border-b border-slate-200">
+    <h2 class="font-semibold text-slate-900">Transaction history</h2>
+    <p class="text-xs text-slate-500 mt-0.5">
+      Every top-up and every send, with the shilling value.
+    </p>
+  </div>
+
+  {% if transactions %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Date</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Reason</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Amount</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Balance</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Note</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for t in transactions %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ t.created_at.strftime('%d %b %Y, %H:%M') }}
+        </td>
+        <td class="px-5 py-3">
+          {% if t.reason == 'plan_grant' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">plan purchase</span>
+          {% elif t.reason == 'sms_send' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">campaign send</span>
+          {% elif t.reason == 'refund' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">refund</span>
+          {% elif t.reason == 'manual_topup' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800">top-up</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ t.reason }}</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right font-medium tabular-nums whitespace-nowrap
+                   {% if t.delta > 0 %}text-emerald-600{% else %}text-slate-700{% endif %}">
+          {{ '+' if t.delta > 0 }}UGX {{ '{:,.0f}'.format(t.delta * rate_ugx) }}
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">
+            {{ '+' if t.delta > 0 }}{{ t.delta }} SMS
+          </div>
+        </td>
+        <td class="px-5 py-3 text-right text-slate-500 tabular-nums whitespace-nowrap">
+          UGX {{ '{:,.0f}'.format(t.balance_after * rate_ugx) }}
+          <div class="text-[10px] text-slate-400 mt-0.5">
+            {{ '{:,}'.format(t.balance_after) }} SMS
+          </div>
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs">{{ t.note or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-12 px-4">
+    <div class="text-slate-400 text-sm">No transactions yet.</div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

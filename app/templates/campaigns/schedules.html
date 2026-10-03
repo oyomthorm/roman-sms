@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Schedules — Roman SMS{% endblock %}
+{% block page_header %}Scheduled campaigns{% endblock %}
+{% block page_header_mobile %}Schedules{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-slate-500">
+    Recurring campaigns. Each run debits the wallet and creates a new campaign.
+  </p>
+  <a href="{{ url_for('campaigns.new') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    New schedule
+  </a>
+</div>
+
+{% if schedules %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Recurrence</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Next run</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Runs</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for s in schedules %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3">
+          <a href="{{ url_for('campaigns.schedule_detail', sid=s.id) }}"
+             class="font-medium text-slate-900 hover:text-emerald-600">{{ s.name }}</a>
+          <div class="text-xs text-slate-500 mt-0.5 truncate max-w-xs">
+            {{ s.body[:60] }}{% if s.body|length > 60 %}…{% endif %}
+          </div>
+        </td>
+        <td class="px-5 py-3 text-slate-700 text-xs">
+          <div class="font-medium">{{ s.days_label }}</div>
+          <div class="text-slate-500 mt-0.5">at {{ s.times_label }}</div>
+        </td>
+        <td class="px-5 py-3 text-slate-600 text-xs whitespace-nowrap">
+          {% if s.next_run_at %}
+            {{ s.next_run_at.strftime('%d %b %H:%M') }} UTC
+          {% else %}
+            <span class="text-slate-400">—</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3">
+          {% if s.status == 'active' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+            active
+          </span>
+          {% elif s.status == 'paused' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            paused
+          </span>
+          {% elif s.status == 'completed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            completed
+          </span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            {{ s.status }}
+          </span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+          {{ s.runs_completed or 0 }}
+        </td>
+        <td class="px-5 py-3 text-right">
+          <a href="{{ url_for('campaigns.schedule_detail', sid=s.id) }}"
+             class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+            Open →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
+  <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none"
+       stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>
+  <div class="text-slate-600 font-medium">No schedules yet</div>
+  <div class="text-sm text-slate-400 mt-1 mb-4">
+    Create a schedule to send the same message on a repeating rule.
+  </div>
+  <a href="{{ url_for('campaigns.new') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+    Create schedule
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

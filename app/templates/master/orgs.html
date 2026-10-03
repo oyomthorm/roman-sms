@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Associates — Roman SMS{% endblock %}
+{% block breadcrumb %}Master{% endblock %}
+{% block page_header %}Associates{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-slate-500">
+    Every client organization on the platform.
+  </p>
+  <a href="{{ url_for('master.org_new') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    New associate
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  {% if orgs %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Slug</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Brand prefix</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Balance</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for o in orgs %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 font-medium text-slate-900">{{ o.name }}</td>
+        <td class="px-5 py-3">
+          <span class="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+            {{ o.slug }}
+          </span>
+        </td>
+        <td class="px-5 py-3">
+          <code class="text-xs bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">
+            {{ o.prefix }}
+          </code>
+        </td>
+        <td class="px-5 py-3">
+          {% if o.status == 'active' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            active
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+            {{ o.status }}
+          </span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right whitespace-nowrap">
+          <div class="font-medium text-slate-900 tabular-nums">
+            UGX {{ '{:,.0f}'.format(balances[o.id] * rate_map.get(o.id, 50)) }}
+          </div>
+          <div class="text-[10px] text-slate-400 mt-0.5">
+            {{ '{:,}'.format(balances[o.id]) }} SMS
+          </div>
+        </td>
+        <td class="px-5 py-3 text-right">
+          <a href="{{ url_for('master.org_detail', oid=o.id) }}"
+             class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Manage →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-16 px-4">
+    <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none"
+         stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+    </svg>
+    <div class="text-slate-600 font-medium">No associates yet</div>
+    <div class="text-sm text-slate-400 mt-1 mb-4">Create your first client account.</div>
+    <a href="{{ url_for('master.org_new') }}"
+       class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+      New associate
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

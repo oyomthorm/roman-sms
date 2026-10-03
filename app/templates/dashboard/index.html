@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Roman SMS{% endblock %}
+{% block page_header %}Dashboard{% endblock %}
+{% block page_header_mobile %}Dashboard{% endblock %}
+{% block content %}
+
+{# Alerts #}
+{% if not subscription %}
+<div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+  <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none"
+       stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+  </svg>
+  <div class="flex-1 min-w-0">
+    <div class="text-sm font-semibold text-amber-900">No active plan</div>
+    <div class="text-sm text-amber-800 mt-0.5">
+      You need an active plan to send SMS.
+      <a href="{{ url_for('billing.plans') }}" class="underline font-medium">Choose a plan →</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if subscription and balance < 100 %}
+<div class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+  <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none"
+       stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+  </svg>
+  <div class="flex-1 min-w-0">
+    <div class="text-sm font-semibold text-red-900">Low credit balance</div>
+    <div class="text-sm text-red-800 mt-0.5">
+      Balance: <strong>UGX {{ '{:,.0f}'.format(balance * wallet_rate) }}</strong>
+      ({{ '{:,}'.format(balance) }} SMS).
+      <a href="{{ url_for('billing.plans') }}" class="underline font-medium">Top up now →</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Hero row — Wallet + Delivery                                          #}
+{# ------------------------------------------------------------------ #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+  {# ---- Wallet card ---- #}
+  {% set usage_pct = ((stats.sent_30d * 1.0 / (stats.sent_30d + balance))
+                      * 100) if (stats.sent_30d + balance) > 0 else 0 %}
+  {% set balance_ugx = balance * wallet_rate %}
+  <a href="{{ url_for('billing.wallet') }}"
+     class="group bg-white rounded-xl border border-slate-200 shadow-sm
+            hover:border-emerald-300 hover:shadow-md transition-all p-6 block">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700
+                  flex items-center justify-center shrink-0
+                  group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+        </svg>
+      </div>
+      <div class="text-sm font-semibold text-slate-700">Balance</div>
+      <div class="ml-auto text-xs text-slate-400 group-hover:text-emerald-600 transition-colors">
+        Manage →
+      </div>
+    </div>
+
+    <div class="text-4xl font-bold tracking-tight text-slate-900 tabular-nums">
+      UGX {{ '{:,.0f}'.format(balance_ugx) }}
+    </div>
+    <div class="text-sm text-slate-500 mt-1">
+      {{ '{:,}'.format(balance) }} SMS available
+      {% if wallet_rate %}
+      · at {{ '{:,.0f}'.format(wallet_rate) }} UGX per SMS
+      {% endif %}
+    </div>
+
+    <div class="mt-5">
+      <div class="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+        <span>Credits used vs remaining</span>
+        <span class="tabular-nums">{{ '{:.0f}'.format(usage_pct) }}% used</span>
+      </div>
+      <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+        <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all"
+             style="width: {{ usage_pct }}%"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mt-5 pt-4 border-t border-slate-100">
+      <div>
+        <div class="text-xs text-slate-500">Active plan</div>
+        <div class="text-sm font-semibold text-slate-900 mt-0.5 truncate">
+          {% if subscription %}{{ subscription.plan.name }}{% else %}None{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="text-xs text-slate-500">Expires</div>
+        <div class="text-sm font-semibold text-slate-900 mt-0.5">
+          {% if subscription %}
+            {{ subscription.expires_at.strftime('%d %b %Y') }}
+          {% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+  </a>
+
+  {# ---- Delivery card ---- #}
+  {% set delivery_rate = ((stats.delivered_30d * 100.0 / stats.sent_30d)
+                          if stats.sent_30d else 0) %}
+  {% set circumference = 289.03 %}
+  {% set dash = (delivery_rate / 100.0) * circumference %}
+
+  <a href="{{ url_for('reports.log') }}"
+     class="group bg-white rounded-xl border border-slate-200 shadow-sm
+            hover:border-sky-300 hover:shadow-md transition-all p-6 block">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700
+                  flex items-center justify-center shrink-0
+                  group-hover:bg-sky-500 group-hover:text-white transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="text-sm font-semibold text-slate-700">Delivery</div>
+      <div class="ml-auto text-xs text-slate-400 group-hover:text-sky-600 transition-colors">
+        Reports →
+      </div>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <div class="relative shrink-0">
+        <svg width="120" height="120" viewBox="0 0 120 120" class="-rotate-90">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+          <circle cx="60" cy="60" r="46" fill="none"
+                  stroke="url(#delivery-gradient)" stroke-width="10"
+                  stroke-linecap="round"
+                  stroke-dasharray="{{ '{:.2f}'.format(dash) }} {{ '{:.2f}'.format(circumference) }}"
+                  style="transition: stroke-dasharray 300ms ease-out"/>
+          <defs>
+            <linearGradient id="delivery-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#34d399"/>
+              <stop offset="100%" stop-color="#059669"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-slate-900 tabular-nums leading-none">
+              {% if stats.sent_30d %}
+                {{ '{:.0f}'.format(delivery_rate) }}<span class="text-base">%</span>
+              {% else %}—{% endif %}
+            </div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">
+              Delivered
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0 space-y-2">
+        <div class="text-xs text-slate-500">Last 30 days</div>
+        <div class="text-sm font-semibold text-slate-900 tabular-nums">
+          {{ '{:,}'.format(stats.sent_30d) }} sent
+        </div>
+        <div class="space-y-1.5 pt-1">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            <span class="text-slate-600 flex-1">Delivered</span>
+            <span class="text-slate-900 font-semibold tabular-nums">
+              {{ '{:,}'.format(stats.delivered_30d) }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+            <span class="text-slate-600 flex-1">Failed</span>
+            <span class="text-slate-900 font-semibold tabular-nums">
+              {{ '{:,}'.format(stats.failed_30d) }}
+            </span>
+          </div>
+          {% if stats.pending_30d %}
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+            <span class="text-slate-600 flex-1">Pending</span>
+            <span class="text-slate-900 font-semibold tabular-nums">
+              {{ '{:,}'.format(stats.pending_30d) }}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </a>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Analytics row — trend, burn rate                                      #}
+{# ------------------------------------------------------------------ #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+  <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="font-semibold text-slate-900">Sending trend</h3>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Messages sent per day, last 30 days
+        </p>
+      </div>
+      <div class="text-right">
+        <div class="text-2xl font-bold text-slate-900 tabular-nums">
+          {{ '{:,}'.format(stats.sent_30d) }}
+        </div>
+        <div class="text-xs text-slate-500">total this month</div>
+      </div>
+    </div>
+
+    {% if trend_max > 0 %}
+    <svg viewBox="0 0 300 80" preserveAspectRatio="none"
+         class="w-full h-24" role="img" aria-label="Daily sending trend">
+      <line x1="0" y1="70" x2="300" y2="70" stroke="#e2e8f0" stroke-width="1"/>
+      {% for t in trend %}
+        {% set bar_h = (t.count / trend_max) * 60 %}
+        {% set x = loop.index0 * 10 %}
+        {% if t.count > 0 %}
+        <rect x="{{ x }}" y="{{ 70 - bar_h }}" width="7" height="{{ bar_h }}"
+              rx="1.5" fill="#10b981" opacity="0.85">
+          <title>{{ t.date.strftime('%d %b') }} — {{ t.count }} sent</title>
+        </rect>
+        {% else %}
+        <rect x="{{ x }}" y="69" width="7" height="1" rx="0.5" fill="#e2e8f0">
+          <title>{{ t.date.strftime('%d %b') }} — no sends</title>
+        </rect>
+        {% endif %}
+      {% endfor %}
+    </svg>
+    <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+      <span>30 days ago</span>
+      <span>Today</span>
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+      <div class="text-slate-400 text-sm">No sends in the last 30 days.</div>
+      <a href="{{ url_for('campaigns.new') }}"
+         class="inline-block mt-2 text-xs font-medium text-emerald-600 hover:text-emerald-500">
+        Send your first campaign →
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-700
+                  flex items-center justify-center shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>
+        </svg>
+      </div>
+      <div class="text-sm font-semibold text-slate-700">Credit burn rate</div>
+    </div>
+
+    {% if stats.avg_daily_spend > 0 and stats.days_remaining is not none %}
+      {% set dr = stats.days_remaining %}
+      <div class="text-4xl font-bold tracking-tight tabular-nums
+                  {% if dr < 7 %}text-red-600
+                  {% elif dr < 30 %}text-amber-600
+                  {% else %}text-slate-900{% endif %}">
+        {{ dr }}
+        <span class="text-base font-medium text-slate-500">
+          day{{ '' if dr == 1 else 's' }}
+        </span>
+      </div>
+      <div class="text-sm text-slate-500 mt-1">at current pace</div>
+    {% else %}
+      <div class="text-4xl font-bold tracking-tight text-slate-400">—</div>
+      <div class="text-sm text-slate-500 mt-1">No sending activity yet</div>
+    {% endif %}
+
+    <div class="mt-5 pt-4 border-t border-slate-100 space-y-2 text-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">Spent (30d)</span>
+        <span class="font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+          UGX {{ '{:,.0f}'.format(stats.credits_spent_30d * wallet_rate) }}
+        </span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">Average per day</span>
+        <span class="font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+          UGX {{ '{:,.0f}'.format(stats.avg_daily_spend * wallet_rate) }}
+        </span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">Balance now</span>
+        <span class="font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+          UGX {{ '{:,.0f}'.format(balance * wallet_rate) }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Quick actions                                                         #}
+{# ------------------------------------------------------------------ #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+  <a href="{{ url_for('campaigns.new') }}"
+     class="group bg-white rounded-xl border border-slate-200 shadow-sm
+            hover:border-emerald-300 hover:shadow-md p-4 transition-all
+            flex items-center gap-3">
+    <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700
+                flex items-center justify-center shrink-0
+                group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="text-sm font-semibold text-slate-900">Send a campaign</div>
+      <div class="text-xs text-slate-500 mt-0.5 truncate">
+        Compose and send to a group
+      </div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('contacts.index') }}"
+     class="group bg-white rounded-xl border border-slate-200 shadow-sm
+            hover:border-sky-300 hover:shadow-md p-4 transition-all
+            flex items-center gap-3">
+    <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700
+                flex items-center justify-center shrink-0
+                group-hover:bg-sky-500 group-hover:text-white transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="text-sm font-semibold text-slate-900">
+        {{ stats.contacts }} contact{{ '' if stats.contacts == 1 else 's' }}
+      </div>
+      <div class="text-xs text-slate-500 mt-0.5 truncate">
+        Add, import, or organise
+      </div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('groups.index') }}"
+     class="group bg-white rounded-xl border border-slate-200 shadow-sm
+            hover:border-amber-300 hover:shadow-md p-4 transition-all
+            flex items-center gap-3">
+    <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700
+                flex items-center justify-center shrink-0
+                group-hover:bg-amber-500 group-hover:text-white transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="text-sm font-semibold text-slate-900">
+        {{ stats.groups }} group{{ '' if stats.groups == 1 else 's' }}
+      </div>
+      <div class="text-xs text-slate-500 mt-0.5 truncate">
+        Organise your audience
+      </div>
+    </div>
+  </a>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Recent campaigns                                                     #}
+{# ------------------------------------------------------------------ #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+    <h2 class="font-semibold text-slate-900">Recent campaigns</h2>
+    <a href="{{ url_for('campaigns.index') }}"
+       class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+      View all →
+    </a>
+  </div>
+
+  {% if recent %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Sent</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for c in recent %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3">
+          <a href="{{ url_for('campaigns.detail', cid=c.id) }}"
+             class="font-medium text-slate-900 hover:text-emerald-600">{{ c.name }}</a>
+        </td>
+        <td class="px-5 py-3">
+          {% if c.status == 'complete' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
+          {% elif c.status == 'sending' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+            sending
+          </span>
+          {% elif c.status == 'queued' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+          {% elif c.status == 'cancelled' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-right text-slate-700 tabular-nums">
+          {{ c.sent_count or 0 }}/{{ c.total or 0 }}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+          {{ c.created_at.strftime('%d %b, %H:%M') }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center py-12 px-4">
+    <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none"
+         stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+    </svg>
+    <div class="text-slate-500 font-medium">No campaigns yet</div>
+    <div class="text-sm text-slate-400 mt-1">
+      <a href="{{ url_for('campaigns.new') }}"
+         class="text-emerald-600 hover:underline">Send your first one →</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+{% block title %}New campaign — Roman SMS{% endblock %}
+{% block page_header %}New campaign{% endblock %}
+{% block page_header_mobile %}New campaign{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl">
+  <div class="mb-6">
+    <a href="{{ url_for('campaigns.index') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Campaigns</a>
+    <p class="text-sm text-slate-500 mt-2">
+      Balance: <strong class="text-slate-900">
+        UGX {{ '{:,.0f}'.format(wallet_value_ugx) }}
+      </strong>
+      ({{ '{:,}'.format(wallet_balance) }} SMS
+      {% if wallet_rate %}at {{ '{:,.0f}'.format(wallet_rate) }} UGX per SMS{% endif %})
+    </p>
+  </div>
+
+  <form method="post" id="campaign-form"
+        class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ---- Delivery mode ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-2">Delivery</label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="cursor-pointer">
+          <input type="radio" name="mode" value="now" checked
+                 class="peer sr-only" onchange="toggleMode()">
+          <div class="border-2 border-slate-200 rounded-lg p-3 text-center transition
+                      peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
+            <div class="font-medium text-slate-900 text-sm">Send now</div>
+            <div class="text-xs text-slate-500 mt-0.5">Queue immediately</div>
+          </div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="mode" value="schedule"
+                 class="peer sr-only" onchange="toggleMode()">
+          <div class="border-2 border-slate-200 rounded-lg p-3 text-center transition
+                      peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
+            <div class="font-medium text-slate-900 text-sm">Schedule</div>
+            <div class="text-xs text-slate-500 mt-0.5">Send on a repeating rule</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    {# ---- Name ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Campaign name</label>
+      <input name="name" required placeholder="e.g. Weekly fee reminder"
+             class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    {# ---- Template ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Load from template <span class="text-slate-400 font-normal">(optional)</span>
+      </label>
+      <select id="template_picker" onchange="applyTemplate(this)"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        <option value="">— none —</option>
+        {% for t in templates %}
+        <option value="{{ t.id }}" data-body="{{ t.body|e }}">{{ t.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="template_id" id="template_id">
+    </div>
+
+    {# ---- Body + counter ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Message body</label>
+      <textarea name="body" id="body" rows="5" required
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                       font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"></textarea>
+
+      <div class="flex items-center justify-between text-xs mt-2">
+        <div class="text-slate-500">
+          Placeholders: <code class="bg-slate-100 px-1 rounded">{{ '{{name}}' }}</code>,
+          <code class="bg-slate-100 px-1 rounded">{{ '{{phone}}' }}</code>
+        </div>
+        <div class="tabular-nums">
+          <span id="char-count" class="font-semibold text-slate-900">0</span>
+          <span class="text-slate-500">chars</span>
+          <span class="text-slate-300 mx-1.5">·</span>
+          <span id="seg-count" class="font-semibold text-slate-900">1</span>
+          <span class="text-slate-500">SMS</span>
+          <span class="text-slate-300 mx-1.5">·</span>
+          <span id="cost-ugx" class="font-semibold text-emerald-600">UGX 0</span>
+        </div>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-1">
+        Character count includes the brand prefix
+        <code class="bg-slate-100 px-1 rounded">{{ current_user.organization.prefix }}</code>.
+        Placeholders expand at send time and may add a few characters.
+      </p>
+    </div>
+
+    {# ---- Recipient source ---- #}
+    <div class="border-t border-slate-100 pt-5">
+      <label class="block text-sm font-medium text-slate-700 mb-2">
+        Who receives this?
+      </label>
+      <div class="flex gap-2 mb-3">
+        <label class="cursor-pointer">
+          <input type="radio" name="recipient_source" value="group" checked
+                 class="peer sr-only" onchange="toggleRecipientSource()">
+          <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
+                       peer-checked:bg-emerald-500 peer-checked:text-white
+                       peer-checked:border-emerald-500 transition cursor-pointer">
+            From my contacts
+          </span>
+        </label>
+        <label class="cursor-pointer" id="paste-label">
+          <input type="radio" name="recipient_source" value="paste"
+                 class="peer sr-only" onchange="toggleRecipientSource()">
+          <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
+                       peer-checked:bg-emerald-500 peer-checked:text-white
+                       peer-checked:border-emerald-500 transition cursor-pointer">
+            Paste numbers
+          </span>
+        </label>
+      </div>
+
+      {# -- From contacts -- #}
+      <div id="source-group" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1.5">
+            Group
+          </label>
+          <select name="group_id"
+                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            <option value="">All contacts</option>
+            {% for g, c in groups %}
+            <option value="{{ g.id }}">{{ g.name }} ({{ c }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1.5">
+            District
+          </label>
+          <select name="district_id"
+                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            <option value="">All districts</option>
+            {% for region, districts in districts_by_region %}
+            <optgroup label="{{ region }}">
+              {% for d in districts %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {# -- Paste -- #}
+      <div id="source-paste" class="hidden">
+        <textarea name="pasted_numbers" id="pasted_numbers" rows="6"
+                  placeholder="One number per line, e.g.&#10;0700123456&#10;0752123456&#10;+256772123456"
+                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono
+                         placeholder:text-slate-400
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"></textarea>
+        <div class="flex items-center justify-between text-xs mt-1.5">
+          <span class="text-slate-500">
+            Accepts 0700…, 256700…, +256700…. Up to 500 unique numbers.
+            Duplicates and invalid numbers are skipped.
+          </span>
+          <span class="tabular-nums">
+            <span id="paste-count" class="font-semibold text-slate-900">0</span>
+            <span class="text-slate-500">valid</span>
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">
+          Pasted numbers are not added to your contact list. They are
+          used once for this campaign.
+        </p>
+      </div>
+    </div>
+
+    {# ---- Schedule fields ---- #}
+    <div id="schedule-fields"
+         class="opacity-40 pointer-events-none transition-opacity
+                border-t border-slate-100 pt-5 space-y-5">
+
+      <div>
+        <h3 class="font-semibold text-slate-900 mb-3">Recurrence</h3>
+        <label class="block text-sm font-medium text-slate-700 mb-2">Days of the week</label>
+        <div class="flex flex-wrap gap-2">
+          {% for code, label in [('mon','Mon'),('tue','Tue'),('wed','Wed'),
+                                  ('thu','Thu'),('fri','Fri'),('sat','Sat'),
+                                  ('sun','Sun')] %}
+          <label class="cursor-pointer">
+            <input type="checkbox" name="days" value="{{ code }}"
+                   class="peer sr-only">
+            <span class="inline-flex items-center justify-center px-3.5 py-2 rounded-lg
+                         border border-slate-300 text-sm font-medium text-slate-700
+                         peer-checked:bg-emerald-500 peer-checked:text-white
+                         peer-checked:border-emerald-500 transition cursor-pointer">
+              {{ label }}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          Times of day <span class="text-slate-400 font-normal">(local time)</span>
+        </label>
+        <div id="times-list" class="space-y-2 mb-3"></div>
+        <button type="button" onclick="addTimeRow('09:00')"
+                class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
+                       hover:text-emerald-500 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Add another time
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Starts on</label>
+          <input type="date" name="starts_on" id="starts_on"
+                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            Ends on <span class="text-slate-400 font-normal">(blank = forever)</span>
+          </label>
+          <input type="date" name="ends_on"
+                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        Recipients are resolved fresh at every run — new contacts are
+        included, opt-outs are excluded. Credits are debited per run.
+        If the wallet runs dry, the schedule pauses.
+      </p>
+    </div>
+
+    {# ---- Submit ---- #}
+    <div class="pt-2 flex items-center gap-3 border-t border-slate-100">
+      <button type="submit"
+              class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+        <span id="submit-label">Queue campaign</span>
+      </button>
+      <a href="{{ url_for('campaigns.index') }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+// ---- Server-provided values ----
+var RATE_UGX   = {{ wallet_rate or 50 }};
+var PREFIX     = "{{ current_user.organization.prefix }}";
+var SEGMENT    = 160;
+
+// ---- Character / segment / cost counter ----
+function updateCount() {
+  var raw = document.getElementById('body').value;
+  var full = PREFIX + raw;   // prefix counts toward billing
+  var len = full.length;
+  var segs = Math.max(1, Math.ceil(len / SEGMENT));
+
+  document.getElementById('char-count').textContent = len;
+  document.getElementById('seg-count').textContent = segs;
+  document.getElementById('cost-ugx').textContent =
+    'UGX ' + (segs * RATE_UGX).toLocaleString();
+}
+
+// ---- Paste counter (client-side mirror of parse_pasted_numbers) ----
+function normalizeUG(raw) {
+  var d = String(raw || '').replace(/\D/g, '');
+  if (!d) return null;
+  if (d.startsWith('00')) d = d.slice(2);
+  var isCanonical = function (s) { return /^2567\d{8}$/.test(s); };
+  if (d.length === 12 && d.startsWith('256')) return isCanonical(d) ? d : null;
+  if (d.length === 10 && d.startsWith('0')) {
+    var c1 = '256' + d.slice(1);
+    return isCanonical(c1) ? c1 : null;
+  }
+  if (d.length === 9) {
+    var c2 = '256' + d;
+    return isCanonical(c2) ? c2 : null;
+  }
+  return null;
+}
+
+function updatePasteCount() {
+  var raw = document.getElementById('pasted_numbers').value;
+  var tokens = raw.split(/[\s,;]+/).filter(function (t) { return t.length; });
+  var seen = {};
+  var valid = 0;
+  for (var i = 0; i < tokens.length; i++) {
+    var n = normalizeUG(tokens[i]);
+    if (n && !seen[n]) { seen[n] = true; valid++; }
+  }
+  document.getElementById('paste-count').textContent = valid;
+}
+
+// ---- Delivery mode ----
+function toggleMode() {
+  var mode = document.querySelector('input[name="mode"]:checked').value;
+  var fields = document.getElementById('schedule-fields');
+  var label = document.getElementById('submit-label');
+  var pasteRadio = document.querySelector('input[name="recipient_source"][value="paste"]');
+  var pasteLabel = document.getElementById('paste-label');
+
+  if (mode === 'schedule') {
+    fields.classList.remove('opacity-40', 'pointer-events-none');
+
+    // Schedules require a contact-based source. Disable paste.
+    pasteRadio.disabled = true;
+    pasteLabel.classList.add('opacity-40', 'pointer-events-none');
+    if (pasteRadio.checked) {
+      document.querySelector('input[name="recipient_source"][value="group"]').checked = true;
+      toggleRecipientSource();
+    }
+
+    label.textContent = 'Create schedule';
+    var startInput = document.getElementById('starts_on');
+    if (!startInput.value) {
+      startInput.value = new Date().toISOString().slice(0, 10);
+    }
+  } else {
+    fields.classList.add('opacity-40', 'pointer-events-none');
+    pasteRadio.disabled = false;
+    pasteLabel.classList.remove('opacity-40', 'pointer-events-none');
+    label.textContent = 'Queue campaign';
+  }
+}
+
+// ---- Recipient source ----
+function toggleRecipientSource() {
+  var source = document.querySelector('input[name="recipient_source"]:checked').value;
+  var groupBox = document.getElementById('source-group');
+  var pasteBox = document.getElementById('source-paste');
+
+  if (source === 'paste') {
+    groupBox.classList.add('hidden');
+    pasteBox.classList.remove('hidden');
+  } else {
+    groupBox.classList.remove('hidden');
+    pasteBox.classList.add('hidden');
+  }
+}
+
+// ---- Template loader ----
+function applyTemplate(sel) {
+  var opt = sel.options[sel.selectedIndex];
+  document.getElementById('template_id').value = opt.value || '';
+  if (opt.dataset.body) {
+    document.getElementById('body').value = opt.dataset.body;
+    updateCount();
+  }
+}
+
+// ---- Time rows ----
+function addTimeRow(value) {
+  var wrap = document.getElementById('times-list');
+  var row = document.createElement('div');
+  row.className = 'flex items-center gap-2';
+  row.innerHTML = `
+    <input type="time" name="times" value="${value || '09:00'}"
+           class="rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    <button type="button" onclick="this.parentElement.remove()"
+            class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+            title="Remove">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  `;
+  wrap.appendChild(row);
+}
+
+// ---- Init ----
+document.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('body').addEventListener('input', updateCount);
+  document.getElementById('pasted_numbers').addEventListener('input', updatePasteCount);
+  addTimeRow('09:00');
+  toggleMode();
+  toggleRecipientSource();
+  updateCount();
+  updatePasteCount();
+});
+</script>
+
+{% endblock %}
