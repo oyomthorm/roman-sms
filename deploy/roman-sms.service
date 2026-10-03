@@ -8,11 +8,17 @@ Group=roman
 WorkingDirectory=/opt/roman-sms
 EnvironmentFile=/opt/roman-sms/.env
 ExecStart=/opt/roman-sms/venv/bin/gunicorn \
-  --workers 3 --bind 127.0.0.1:8000 \
-  --access-logfile - --error-logfile - \
+  --workers 3 \
+  --bind 127.0.0.1:8000 \
+  --timeout 120 \
+  --access-logfile - \
+  --error-logfile - \
   wsgi:app
 Restart=always
 RestartSec=3
+StandardOutput=journal
+StandardError=journal
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
