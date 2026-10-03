@@ -39,7 +39,7 @@ def new():
     if request.method == 'POST':
         mode = request.form.get('mode', 'now')   # 'now' or 'schedule'
         recipient_source = (request.form.get('recipient_source')
-                            or 'contacts').strip()
+                            or 'group').strip()
 
         template_id = request.form.get('template_id') or None
 
@@ -89,17 +89,13 @@ def new():
                     district_name = d.name
 
         if mode == 'schedule':
-            days = request.form.getlist('days')
-            times = request.form.getlist('times')
+            scheduled_times = request.form.getlist('scheduled_times')
             try:
                 schedule = schedules_svc.create_schedule(
                     org,
                     name=request.form.get('name', ''),
                     body=request.form.get('body', ''),
-                    days=days,
-                    times=times,
-                    starts_on=request.form.get('starts_on', ''),
-                    ends_on=request.form.get('ends_on') or None,
+                    times=scheduled_times,
                     group_id=group_id,
                     district_id=district_id,
                     template_id=int(template_id) if template_id else None,
@@ -113,7 +109,9 @@ def new():
                     districts_by_region=districts_by_region,
                     balance=get_balance(org.id))
 
-            flash(f'Schedule created. First run: '
+            n = schedule.run_count
+            flash(f'Schedule created with {n} send'
+                  f'{"s" if n != 1 else ""}. First run: '
                   f'{schedule.next_run_at.strftime("%d %b, %H:%M")} UTC.',
                   'success')
             return redirect(url_for('campaigns.schedule_detail',

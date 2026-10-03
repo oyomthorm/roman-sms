@@ -6,7 +6,8 @@
 
 <div class="flex items-center justify-between mb-6">
   <p class="text-sm text-slate-500">
-    Recurring campaigns. Each run debits the wallet and creates a new campaign.
+    Each schedule holds one or more exact send times. Every run debits
+    the wallet and creates a new campaign.
   </p>
   <a href="{{ url_for('campaigns.new') }}"
      class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
@@ -24,7 +25,7 @@
     <thead class="bg-slate-50 border-b border-slate-200 text-left">
       <tr>
         <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
-        <th class="px-5 py-3 font-semibold text-slate-700">Recurrence</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Send times</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Next run</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
         <th class="px-5 py-3 font-semibold text-slate-700 text-right">Runs</th>
@@ -42,8 +43,17 @@
           </div>
         </td>
         <td class="px-5 py-3 text-slate-700 text-xs">
-          <div class="font-medium">{{ s.days_label }}</div>
-          <div class="text-slate-500 mt-0.5">at {{ s.times_label }}</div>
+          {% set count = s.run_count %}
+          {% if count == 0 %}
+            <span class="text-slate-400">no times remaining</span>
+          {% else %}
+            <div class="font-medium">
+              {{ count }} send{{ '' if count == 1 else 's' }} remaining
+            </div>
+            <div class="text-slate-500 mt-0.5 truncate max-w-[20rem]">
+              {{ s.times_display }}
+            </div>
+          {% endif %}
         </td>
         <td class="px-5 py-3 text-slate-600 text-xs whitespace-nowrap">
           {% if s.next_run_at %}
@@ -65,6 +75,10 @@
           {% elif s.status == 'completed' %}
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
             completed
+          </span>
+          {% elif s.status == 'cancelled' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            cancelled
           </span>
           {% else %}
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
@@ -95,7 +109,7 @@
   </svg>
   <div class="text-slate-600 font-medium">No schedules yet</div>
   <div class="text-sm text-slate-400 mt-1 mb-4">
-    Create a schedule to send the same message on a repeating rule.
+    Create a schedule to send the same message at one or more exact times.
   </div>
   <a href="{{ url_for('campaigns.new') }}"
      class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400

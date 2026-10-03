@@ -138,7 +138,14 @@ class Config:
     COMPANY_PHONE = os.environ.get('COMPANY_PHONE', '')
     COMPANY_EMAIL = os.environ.get('COMPANY_EMAIL', '')
     COMPANY_TIN = os.environ.get('COMPANY_TIN', '')
-        
+
+    # ------------------------------------------------------------------
+    # Campaign notifications
+    # ------------------------------------------------------------------
+    # Email the campaign creator + org admins when a campaign finishes.
+    EMAIL_ON_CAMPAIGN_COMPLETE = (
+        os.environ.get('EMAIL_ON_CAMPAIGN_COMPLETE', '1') == '1')
+            
 class TestConfig(Config):
     """
     Used by the test suite. Overrides the DATABASE_URL requirement with

@@ -4,20 +4,17 @@ from app.extensions import db
 
 class CampaignSchedule(db.Model):
     """
-    A recurring campaign rule.
+    A schedule is a list of exact datetimes. Each one fires as its own
+    Campaign with its own wallet debit and its own recipient list
+    resolved fresh from the current contacts.
 
-    The schedule is a template plus a recurrence rule. Each time it
-    fires, services.schedules.materialize_run() creates a normal
-    Campaign (linked back via Campaign.schedule_id) with its own wallet
-    debit and its own recipient list resolved fresh from the current
-    contacts.
+    Datetimes are stored in local time (see SCHEDULER_TZ_OFFSET_HOURS)
+    as ISO 8601 strings without seconds:
 
-    Recurrence:
-      days_of_week  — comma-separated 3-letter codes, e.g. "mon,wed,fri"
-      times_of_day  — JSON array of "HH:MM" strings in local time, e.g.
-                      '["09:00", "14:00"]'
-      starts_on     — first date the schedule may fire
-      ends_on       — last date, or NULL for "runs forever"
+        '["2026-10-15T09:00", "2026-10-20T14:30"]'
+
+    When a time fires, it is removed from the list. When the list is
+    empty, the schedule is marked completed.
     """
     __tablename__ = 'campaign_schedule'
     id = db.Column(db.Integer, primary_key=True)
@@ -47,13 +44,8 @@ class CampaignSchedule(db.Model):
         nullable=True)
     sender_id = db.Column(db.String(60), nullable=False)
 
-    # Recurrence rule
-    days_of_week = db.Column(db.String(30), nullable=False)
-    times_of_day = db.Column(db.Text, nullable=False)  # JSON list of "HH:MM"
-
-    # Active window
-    starts_on = db.Column(db.Date, nullable=False)
-    ends_on = db.Column(db.Date, nullable=True)  # null = forever
+    # JSON list of local datetimes
+    scheduled_times = db.Column(db.Text, nullable=False, default='[]')
 
     # Lifecycle
     status = db.Column(db.String(20), default='active', index=True)
@@ -86,27 +78,29 @@ class CampaignSchedule(db.Model):
     # ------------------------------------------------------------------
 
     @property
-    def days_list(self):
-        return [d for d in (self.days_of_week or '').split(',') if d]
-
-    @property
     def times_list(self):
         import json
         try:
-            return json.loads(self.times_of_day or '[]')
+            return json.loads(self.scheduled_times or '[]')
         except (ValueError, TypeError):
             return []
 
     @property
-    def days_label(self):
-        """Human label, e.g. 'Mon, Wed, Fri'."""
-        names = {'mon': 'Mon', 'tue': 'Tue', 'wed': 'Wed', 'thu': 'Thu',
-                 'fri': 'Fri', 'sat': 'Sat', 'sun': 'Sun'}
-        return ', '.join(names.get(d, d) for d in self.days_list)
+    def times_display(self):
+        """Human label. e.g. '15 Oct 09:00, 20 Oct 14:30'."""
+        out = []
+        for iso in sorted(self.times_list):
+            try:
+                dt = datetime.strptime(iso, '%Y-%m-%dT%H:%M')
+                out.append(dt.strftime('%d %b %H:%M'))
+            except ValueError:
+                continue
+        return ', '.join(out) if out else '—'
 
     @property
-    def times_label(self):
-        return ', '.join(self.times_list)
+    def run_count(self):
+        """Number of datetimes still pending."""
+        return len(self.times_list)
 
     @property
     def is_active(self):

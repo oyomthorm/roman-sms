@@ -270,6 +270,14 @@ def process_job(job_id):
         log.info('Campaign %s complete. sent=%s failed=%s',
                  campaign.id, campaign.sent_count, campaign.failed_count)
 
+        # Fire-and-forget completion email. Never let it break dispatch.
+        try:
+            from app.services import campaign_notifications
+            campaign_notifications.send_completion_email(campaign.id)
+        except Exception as e:
+            log.warning('Completion email failed for campaign %s: %s',
+                        campaign.id, e)
+        
     except Exception as e:
         # Leave the job in 'processing' so requeue_stuck() retries it.
         log.exception('Job %s failed while processing campaign %s',

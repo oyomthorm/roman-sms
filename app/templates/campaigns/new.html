@@ -4,266 +4,356 @@
 {% block page_header_mobile %}New campaign{% endblock %}
 {% block content %}
 
-<div class="max-w-2xl">
-  <div class="mb-6">
+<div class="mb-6 flex items-center justify-between gap-4">
+  <div>
     <a href="{{ url_for('campaigns.index') }}"
        class="text-sm text-slate-500 hover:text-slate-900 transition">← Campaigns</a>
     <p class="text-sm text-slate-500 mt-2">
-      Balance: <strong class="text-slate-900">
-        UGX {{ '{:,.0f}'.format(wallet_value_ugx) }}
-      </strong>
-      ({{ '{:,}'.format(wallet_balance) }} SMS
-      {% if wallet_rate %}at {{ '{:,.0f}'.format(wallet_rate) }} UGX per SMS{% endif %})
+      Balance:
+      <strong class="text-slate-900">UGX {{ '{:,.0f}'.format(wallet_value_ugx) }}</strong>
+      <span class="text-slate-400">·</span>
+      {{ '{:,}'.format(wallet_balance) }} SMS
+      {% if wallet_rate %}
+      <span class="text-slate-400">·</span>
+      at UGX {{ '{:,.0f}'.format(wallet_rate) }} per SMS
+      {% endif %}
     </p>
   </div>
-
-  <form method="post" id="campaign-form"
-        class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    {# ---- Delivery mode ---- #}
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-2">Delivery</label>
-      <div class="grid grid-cols-2 gap-3">
-        <label class="cursor-pointer">
-          <input type="radio" name="mode" value="now" checked
-                 class="peer sr-only" onchange="toggleMode()">
-          <div class="border-2 border-slate-200 rounded-lg p-3 text-center transition
-                      peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
-            <div class="font-medium text-slate-900 text-sm">Send now</div>
-            <div class="text-xs text-slate-500 mt-0.5">Queue immediately</div>
-          </div>
-        </label>
-        <label class="cursor-pointer">
-          <input type="radio" name="mode" value="schedule"
-                 class="peer sr-only" onchange="toggleMode()">
-          <div class="border-2 border-slate-200 rounded-lg p-3 text-center transition
-                      peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
-            <div class="font-medium text-slate-900 text-sm">Schedule</div>
-            <div class="text-xs text-slate-500 mt-0.5">Send on a repeating rule</div>
-          </div>
-        </label>
-      </div>
-    </div>
-
-    {# ---- Name ---- #}
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1.5">Campaign name</label>
-      <input name="name" required placeholder="e.g. Weekly fee reminder"
-             class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-    </div>
-
-    {# ---- Template ---- #}
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1.5">
-        Load from template <span class="text-slate-400 font-normal">(optional)</span>
-      </label>
-      <select id="template_picker" onchange="applyTemplate(this)"
-              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-        <option value="">— none —</option>
-        {% for t in templates %}
-        <option value="{{ t.id }}" data-body="{{ t.body|e }}">{{ t.name }}</option>
-        {% endfor %}
-      </select>
-      <input type="hidden" name="template_id" id="template_id">
-    </div>
-
-    {# ---- Body + counter ---- #}
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1.5">Message body</label>
-      <textarea name="body" id="body" rows="5" required
-                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                       font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"></textarea>
-
-      <div class="flex items-center justify-between text-xs mt-2">
-        <div class="text-slate-500">
-          Placeholders: <code class="bg-slate-100 px-1 rounded">{{ '{{name}}' }}</code>,
-          <code class="bg-slate-100 px-1 rounded">{{ '{{phone}}' }}</code>
-        </div>
-        <div class="tabular-nums">
-          <span id="char-count" class="font-semibold text-slate-900">0</span>
-          <span class="text-slate-500">chars</span>
-          <span class="text-slate-300 mx-1.5">·</span>
-          <span id="seg-count" class="font-semibold text-slate-900">1</span>
-          <span class="text-slate-500">SMS</span>
-          <span class="text-slate-300 mx-1.5">·</span>
-          <span id="cost-ugx" class="font-semibold text-emerald-600">UGX 0</span>
-        </div>
-      </div>
-      <p class="text-[11px] text-slate-400 mt-1">
-        Character count includes the brand prefix
-        <code class="bg-slate-100 px-1 rounded">{{ current_user.organization.prefix }}</code>.
-        Placeholders expand at send time and may add a few characters.
-      </p>
-    </div>
-
-    {# ---- Recipient source ---- #}
-    <div class="border-t border-slate-100 pt-5">
-      <label class="block text-sm font-medium text-slate-700 mb-2">
-        Who receives this?
-      </label>
-      <div class="flex gap-2 mb-3">
-        <label class="cursor-pointer">
-          <input type="radio" name="recipient_source" value="group" checked
-                 class="peer sr-only" onchange="toggleRecipientSource()">
-          <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
-                       peer-checked:bg-emerald-500 peer-checked:text-white
-                       peer-checked:border-emerald-500 transition cursor-pointer">
-            From my contacts
-          </span>
-        </label>
-        <label class="cursor-pointer" id="paste-label">
-          <input type="radio" name="recipient_source" value="paste"
-                 class="peer sr-only" onchange="toggleRecipientSource()">
-          <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
-                       peer-checked:bg-emerald-500 peer-checked:text-white
-                       peer-checked:border-emerald-500 transition cursor-pointer">
-            Paste numbers
-          </span>
-        </label>
-      </div>
-
-      {# -- From contacts -- #}
-      <div id="source-group" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1.5">
-            Group
-          </label>
-          <select name="group_id"
-                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-            <option value="">All contacts</option>
-            {% for g, c in groups %}
-            <option value="{{ g.id }}">{{ g.name }} ({{ c }})</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1.5">
-            District
-          </label>
-          <select name="district_id"
-                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-            <option value="">All districts</option>
-            {% for region, districts in districts_by_region %}
-            <optgroup label="{{ region }}">
-              {% for d in districts %}
-              <option value="{{ d.id }}">{{ d.name }}</option>
-              {% endfor %}
-            </optgroup>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      {# -- Paste -- #}
-      <div id="source-paste" class="hidden">
-        <textarea name="pasted_numbers" id="pasted_numbers" rows="6"
-                  placeholder="One number per line, e.g.&#10;0700123456&#10;0752123456&#10;+256772123456"
-                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono
-                         placeholder:text-slate-400
-                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"></textarea>
-        <div class="flex items-center justify-between text-xs mt-1.5">
-          <span class="text-slate-500">
-            Accepts 0700…, 256700…, +256700…. Up to 500 unique numbers.
-            Duplicates and invalid numbers are skipped.
-          </span>
-          <span class="tabular-nums">
-            <span id="paste-count" class="font-semibold text-slate-900">0</span>
-            <span class="text-slate-500">valid</span>
-          </span>
-        </div>
-        <p class="text-[11px] text-slate-400 mt-2">
-          Pasted numbers are not added to your contact list. They are
-          used once for this campaign.
-        </p>
-      </div>
-    </div>
-
-    {# ---- Schedule fields ---- #}
-    <div id="schedule-fields"
-         class="opacity-40 pointer-events-none transition-opacity
-                border-t border-slate-100 pt-5 space-y-5">
-
-      <div>
-        <h3 class="font-semibold text-slate-900 mb-3">Recurrence</h3>
-        <label class="block text-sm font-medium text-slate-700 mb-2">Days of the week</label>
-        <div class="flex flex-wrap gap-2">
-          {% for code, label in [('mon','Mon'),('tue','Tue'),('wed','Wed'),
-                                  ('thu','Thu'),('fri','Fri'),('sat','Sat'),
-                                  ('sun','Sun')] %}
-          <label class="cursor-pointer">
-            <input type="checkbox" name="days" value="{{ code }}"
-                   class="peer sr-only">
-            <span class="inline-flex items-center justify-center px-3.5 py-2 rounded-lg
-                         border border-slate-300 text-sm font-medium text-slate-700
-                         peer-checked:bg-emerald-500 peer-checked:text-white
-                         peer-checked:border-emerald-500 transition cursor-pointer">
-              {{ label }}
-            </span>
-          </label>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1.5">
-          Times of day <span class="text-slate-400 font-normal">(local time)</span>
-        </label>
-        <div id="times-list" class="space-y-2 mb-3"></div>
-        <button type="button" onclick="addTimeRow('09:00')"
-                class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
-                       hover:text-emerald-500 transition">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
-          Add another time
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Starts on</label>
-          <input type="date" name="starts_on" id="starts_on"
-                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">
-            Ends on <span class="text-slate-400 font-normal">(blank = forever)</span>
-          </label>
-          <input type="date" name="ends_on"
-                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-        </div>
-      </div>
-
-      <p class="text-xs text-slate-500">
-        Recipients are resolved fresh at every run — new contacts are
-        included, opt-outs are excluded. Credits are debited per run.
-        If the wallet runs dry, the schedule pauses.
-      </p>
-    </div>
-
-    {# ---- Submit ---- #}
-    <div class="pt-2 flex items-center gap-3 border-t border-slate-100">
-      <button type="submit"
-              class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-        </svg>
-        <span id="submit-label">Queue campaign</span>
-      </button>
-      <a href="{{ url_for('campaigns.index') }}"
-         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
-    </div>
-  </form>
 </div>
+
+<form method="post" id="campaign-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# ============================================================ #}
+    {# LEFT: the form                                              #}
+    {# ============================================================ #}
+    <div class="lg:col-span-2 space-y-6">
+
+      {# ---- Section: Message ---- #}
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <header class="flex items-center gap-2 mb-5">
+          <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600
+                       flex items-center justify-center text-xs font-semibold">1</span>
+          <h2 class="font-semibold text-slate-900">Message</h2>
+        </header>
+
+        <div class="space-y-5">
+          <div>
+            <label for="name" class="block text-sm font-medium text-slate-700 mb-1.5">
+              Campaign name
+            </label>
+            <input id="name" name="name" required
+                   placeholder="e.g. Weekly fee reminder"
+                   class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                          focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+            <p class="text-xs text-slate-400 mt-1">
+              For your reference only. Recipients never see this.
+            </p>
+          </div>
+
+          <div>
+            <label for="template_picker" class="block text-sm font-medium text-slate-700 mb-1.5">
+              Load from template <span class="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <select id="template_picker" onchange="applyTemplate(this)"
+                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+              <option value="">— none —</option>
+              {% for t in templates %}
+              <option value="{{ t.id }}" data-body="{{ t.body|e }}">{{ t.name }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="template_id" id="template_id">
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="body" class="block text-sm font-medium text-slate-700">
+                Message body
+              </label>
+              <span class="text-xs text-slate-500">
+                Placeholders:
+                <code class="bg-slate-100 px-1 rounded text-[11px]">{{ '{{name}}' }}</code>
+                <code class="bg-slate-100 px-1 rounded text-[11px]">{{ '{{phone}}' }}</code>
+              </span>
+            </div>
+            <textarea id="body" name="body" rows="6" required
+                      placeholder="Hi {{ '{{name}}' }}, your balance is due…"
+                      class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                             font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition
+                             placeholder:font-sans placeholder:text-slate-400"></textarea>
+
+            {# ---- Live SMS counter ---- #}
+            <div id="counter-card"
+                 class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-4 transition-colors">
+              <div class="flex items-center justify-between gap-4 mb-3">
+                <div class="flex items-baseline gap-3">
+                  <div>
+                    <div class="flex items-baseline gap-1.5">
+                      <span id="seg-count"
+                            class="text-2xl font-bold tabular-nums text-slate-900 leading-none">1</span>
+                      <span id="seg-label"
+                            class="text-sm font-medium text-slate-500">SMS</span>
+                    </div>
+                  </div>
+                  <div class="text-xs text-slate-400">·</div>
+                  <div class="text-xs text-slate-500 tabular-nums">
+                    <span id="char-count">0</span> chars
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div id="cost-ugx"
+                       class="text-lg font-bold tabular-nums text-emerald-600 leading-none">
+                    UGX {{ '{:,.0f}'.format(wallet_rate or 50) }}
+                  </div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">per recipient</div>
+                </div>
+              </div>
+
+              {# Segment progress bar #}
+              <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                <div id="segment-bar"
+                     class="h-full rounded-full bg-emerald-500 transition-all"
+                     style="width: 0%"></div>
+              </div>
+
+              <div id="segment-hint"
+                   class="text-[11px] text-slate-500 mt-2 tabular-nums">
+                <span id="chars-to-next">160</span> more characters before the next SMS
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {# ---- Section: Recipients ---- #}
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <header class="flex items-center gap-2 mb-5">
+          <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600
+                       flex items-center justify-center text-xs font-semibold">2</span>
+          <h2 class="font-semibold text-slate-900">Recipients</h2>
+        </header>
+
+        <div class="space-y-5">
+          <div class="flex gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="recipient_source" value="group" checked
+                     class="peer sr-only" onchange="toggleRecipientSource()">
+              <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
+                           peer-checked:bg-emerald-500 peer-checked:text-white
+                           peer-checked:border-emerald-500 transition cursor-pointer">
+                From my contacts
+              </span>
+            </label>
+            <label class="cursor-pointer" id="paste-label">
+              <input type="radio" name="recipient_source" value="paste"
+                     class="peer sr-only" onchange="toggleRecipientSource()">
+              <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
+                           peer-checked:bg-emerald-500 peer-checked:text-white
+                           peer-checked:border-emerald-500 transition cursor-pointer">
+                Paste numbers
+              </span>
+            </label>
+          </div>
+
+          <div id="source-group" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1.5">Group</label>
+              <select name="group_id"
+                      class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                <option value="">All contacts</option>
+                {% for g, c in groups %}
+                <option value="{{ g.id }}">{{ g.name }} ({{ c }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1.5">District</label>
+              <select name="district_id"
+                      class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                <option value="">All districts</option>
+                {% for region, districts in districts_by_region %}
+                <optgroup label="{{ region }}">
+                  {% for d in districts %}
+                  <option value="{{ d.id }}">{{ d.name }}</option>
+                  {% endfor %}
+                </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div id="source-paste" class="hidden">
+            <textarea name="pasted_numbers" id="pasted_numbers" rows="6"
+                      placeholder="One number per line, e.g.&#10;0700123456&#10;0752123456&#10;+256772123456"
+                      class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono
+                             placeholder:text-slate-400 placeholder:font-sans
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"></textarea>
+            <div class="flex items-center justify-between text-xs mt-1.5">
+              <span class="text-slate-500">
+                Accepts 0700…, 256700…, +256700…. Up to 500 unique numbers.
+              </span>
+              <span class="tabular-nums">
+                <span id="paste-count" class="font-semibold text-slate-900">0</span>
+                <span class="text-slate-500">valid</span>
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">
+              Pasted numbers are used once for this campaign and are not
+              added to your contact list.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {# ---- Section: Timing ---- #}
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <header class="flex items-center gap-2 mb-5">
+          <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600
+                       flex items-center justify-center text-xs font-semibold">3</span>
+          <h2 class="font-semibold text-slate-900">Timing</h2>
+        </header>
+
+        <div class="space-y-5">
+          <div class="grid grid-cols-2 gap-3">
+            <label class="cursor-pointer">
+              <input type="radio" name="mode" value="now" checked
+                     class="peer sr-only" onchange="toggleMode()">
+              <div class="border-2 border-slate-200 rounded-lg p-3 text-center transition
+                          peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
+                <div class="font-medium text-slate-900 text-sm">Send now</div>
+                <div class="text-xs text-slate-500 mt-0.5">Queue immediately</div>
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="mode" value="schedule"
+                     class="peer sr-only" onchange="toggleMode()">
+              <div class="border-2 border-slate-200 rounded-lg p-3 text-center transition
+                          peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
+                <div class="font-medium text-slate-900 text-sm">Schedule</div>
+                <div class="text-xs text-slate-500 mt-0.5">Send at specific times</div>
+              </div>
+            </label>
+          </div>
+
+          <div id="schedule-fields"
+               class="opacity-40 pointer-events-none transition-opacity
+                      space-y-4 pt-5 border-t border-slate-100">
+            <div>
+              <h3 class="text-sm font-medium text-slate-700 mb-1">Send times</h3>
+              <p class="text-xs text-slate-500 mb-3">
+                Add one or more exact dates and times. Each fires as its
+                own campaign run with a fresh wallet debit.
+              </p>
+              <div id="times-list" class="space-y-2 mb-3"></div>
+              <button type="button" onclick="addTimeRow()"
+                      class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
+                             hover:text-emerald-500 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add another time
+              </button>
+            </div>
+
+            <p class="text-xs text-slate-500 pt-2">
+              Recipients are resolved fresh at every run. If the wallet
+              runs dry, the schedule pauses.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    {# ============================================================ #}
+    {# RIGHT: sticky preview + cost + submit                       #}
+    {# ============================================================ #}
+    <div class="lg:col-span-1">
+      <div class="lg:sticky lg:top-6 space-y-4">
+
+        {# ---- Live preview ---- #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Preview
+            </h3>
+            <span class="text-[11px] tabular-nums text-slate-500">
+              <span id="preview-header-count">1</span> SMS
+            </span>
+          </div>
+          <div class="p-4 bg-slate-50">
+            <div class="bg-white rounded-2xl border border-slate-200 p-3 shadow-sm">
+              <div class="text-sm text-slate-900 whitespace-pre-wrap break-words font-sans leading-relaxed">
+                <span class="font-medium text-slate-700">{{ current_user.organization.prefix }}</span><span id="preview-body" class="text-slate-400">Your message will appear here…</span>
+              </div>
+              <div class="mt-2 pt-2 border-t border-dashed border-slate-100 text-[11px] text-slate-400">
+                Opt out: {{ (PUBLIC_BASE_URL or 'https://romansms.co.ug') }}/opt-out/…
+              </div>
+            </div>
+          </div>
+          <div class="px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
+            Recipients see the brand prefix
+            <code class="bg-slate-100 px-1 rounded">{{ current_user.organization.prefix }}</code>.
+          </div>
+        </div>
+
+        {# ---- Cost card ---- #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">
+            Cost per recipient
+          </h3>
+          <dl class="space-y-2.5 text-sm">
+            <div class="flex items-center justify-between">
+              <dt class="text-slate-500">SMS segments</dt>
+              <dd class="font-medium text-slate-900 tabular-nums" id="cost-segments">1</dd>
+            </div>
+            <div class="flex items-center justify-between">
+              <dt class="text-slate-500">Rate per SMS</dt>
+              <dd class="font-medium text-slate-900 tabular-nums">
+                UGX {{ '{:,.0f}'.format(wallet_rate or 50) }}
+              </dd>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+              <dt class="font-medium text-slate-700">Total</dt>
+              <dd class="font-bold text-emerald-600 tabular-nums text-base" id="cost-total">
+                UGX {{ '{:,.0f}'.format(wallet_rate or 50) }}
+              </dd>
+            </div>
+          </dl>
+          <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">
+            Final amount depends on the recipient count. Wallet is debited
+            when the campaign is queued.
+          </p>
+        </div>
+
+        {# ---- Submit ---- #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2">
+          <button type="submit"
+                  class="w-full inline-flex items-center justify-center gap-2
+                         bg-emerald-500 hover:bg-emerald-400
+                         text-white font-semibold px-5 py-3 rounded-lg transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            <span id="submit-label">Queue campaign</span>
+          </button>
+          <a href="{{ url_for('campaigns.index') }}"
+             class="block text-center text-sm font-medium text-slate-600 hover:text-slate-900 transition py-2">
+            Cancel
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</form>
 
 <script>
 // ---- Server-provided values ----
@@ -271,20 +361,86 @@ var RATE_UGX   = {{ wallet_rate or 50 }};
 var PREFIX     = "{{ current_user.organization.prefix }}";
 var SEGMENT    = 160;
 
-// ---- Character / segment / cost counter ----
+// ---- Character / segment / cost counter + live preview ----
 function updateCount() {
   var raw = document.getElementById('body').value;
-  var full = PREFIX + raw;   // prefix counts toward billing
+  var full = PREFIX + raw;
   var len = full.length;
   var segs = Math.max(1, Math.ceil(len / SEGMENT));
+  var cost = segs * RATE_UGX;
 
+  // Counter strip
   document.getElementById('char-count').textContent = len;
   document.getElementById('seg-count').textContent = segs;
-  document.getElementById('cost-ugx').textContent =
-    'UGX ' + (segs * RATE_UGX).toLocaleString();
+  document.getElementById('seg-label').textContent =
+    segs === 1 ? 'SMS' : 'SMS';
+
+  var costEl = document.getElementById('cost-ugx');
+  costEl.textContent = 'UGX ' + cost.toLocaleString();
+
+  // Progress within the current segment
+  var charsInCurrentSeg = len % SEGMENT;
+  if (len > 0 && charsInCurrentSeg === 0) charsInCurrentSeg = SEGMENT;
+  var pct = (charsInCurrentSeg / SEGMENT) * 100;
+
+  var bar = document.getElementById('segment-bar');
+  bar.style.width = pct.toFixed(1) + '%';
+
+  // Colour transitions as the boundary nears
+  var hintEl = document.getElementById('segment-hint');
+  var nextEl = document.getElementById('chars-to-next');
+  var nextBoundary = segs * SEGMENT;
+  var remaining = nextBoundary - len;
+
+  // Background tints: green well under, amber near, red past
+  var cardEl = document.getElementById('counter-card');
+  cardEl.classList.remove('bg-amber-50', 'bg-red-50', 'border-amber-200', 'border-red-200');
+
+  if (pct >= 90) {
+    bar.className = 'h-full rounded-full bg-amber-500 transition-all';
+    cardEl.classList.add('bg-amber-50', 'border-amber-200');
+    hintEl.className = 'text-[11px] text-amber-700 mt-2 tabular-nums';
+  } else if (segs > 1) {
+    bar.className = 'h-full rounded-full bg-emerald-500 transition-all';
+    hintEl.className = 'text-[11px] text-slate-500 mt-2 tabular-nums';
+  } else {
+    bar.className = 'h-full rounded-full bg-emerald-500 transition-all';
+    hintEl.className = 'text-[11px] text-slate-500 mt-2 tabular-nums';
+  }
+
+  if (remaining === 0) {
+    nextEl.textContent = SEGMENT;
+    hintEl.childNodes[1].nodeValue =
+      ' more characters and this becomes ' + (segs + 1) + ' SMS';
+  } else {
+    nextEl.textContent = remaining;
+    hintEl.childNodes[1].nodeValue =
+      ' more character' + (remaining === 1 ? '' : 's') +
+      ' before the next SMS (' + (segs + 1) + ' total)';
+  }
+
+  // Preview header
+  document.getElementById('preview-header-count').textContent = segs;
+
+  // Cost card (duplicate values — kept for the sticky sidebar)
+  document.getElementById('cost-segments').textContent = segs;
+  document.getElementById('cost-total').textContent =
+    'UGX ' + cost.toLocaleString();
+
+  // Live preview body
+  var previewBody = document.getElementById('preview-body');
+  if (raw.trim()) {
+    previewBody.textContent = raw;
+    previewBody.classList.remove('text-slate-400');
+    previewBody.classList.add('text-slate-900');
+  } else {
+    previewBody.textContent = 'Your message will appear here…';
+    previewBody.classList.remove('text-slate-900');
+    previewBody.classList.add('text-slate-400');
+  }
 }
 
-// ---- Paste counter (client-side mirror of parse_pasted_numbers) ----
+// ---- Paste counter ----
 function normalizeUG(raw) {
   var d = String(raw || '').replace(/\D/g, '');
   if (!d) return null;
@@ -324,20 +480,13 @@ function toggleMode() {
 
   if (mode === 'schedule') {
     fields.classList.remove('opacity-40', 'pointer-events-none');
-
-    // Schedules require a contact-based source. Disable paste.
     pasteRadio.disabled = true;
     pasteLabel.classList.add('opacity-40', 'pointer-events-none');
     if (pasteRadio.checked) {
       document.querySelector('input[name="recipient_source"][value="group"]').checked = true;
       toggleRecipientSource();
     }
-
     label.textContent = 'Create schedule';
-    var startInput = document.getElementById('starts_on');
-    if (!startInput.value) {
-      startInput.value = new Date().toISOString().slice(0, 10);
-    }
   } else {
     fields.classList.add('opacity-40', 'pointer-events-none');
     pasteRadio.disabled = false;
@@ -351,7 +500,6 @@ function toggleRecipientSource() {
   var source = document.querySelector('input[name="recipient_source"]:checked').value;
   var groupBox = document.getElementById('source-group');
   var pasteBox = document.getElementById('source-paste');
-
   if (source === 'paste') {
     groupBox.classList.add('hidden');
     pasteBox.classList.remove('hidden');
@@ -372,15 +520,25 @@ function applyTemplate(sel) {
 }
 
 // ---- Time rows ----
+function defaultDatetimeLocal() {
+  var d = new Date();
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' +
+         pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' +
+         pad(d.getMinutes());
+}
+
 function addTimeRow(value) {
   var wrap = document.getElementById('times-list');
   var row = document.createElement('div');
   row.className = 'flex items-center gap-2';
   row.innerHTML = `
-    <input type="time" name="times" value="${value || '09:00'}"
-           class="rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+    <input type="datetime-local" name="scheduled_times"
+           value="${value || defaultDatetimeLocal()}"
+           class="flex-1 rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
                   focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-    <button type="button" onclick="this.parentElement.remove()"
+    <button type="button" onclick="removeTimeRow(this)"
             class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
             title="Remove">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -391,11 +549,20 @@ function addTimeRow(value) {
   wrap.appendChild(row);
 }
 
+function removeTimeRow(btn) {
+  var wrap = document.getElementById('times-list');
+  if (wrap.children.length <= 1) {
+    wrap.querySelector('input').value = defaultDatetimeLocal();
+    return;
+  }
+  btn.parentElement.remove();
+}
+
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('body').addEventListener('input', updateCount);
   document.getElementById('pasted_numbers').addEventListener('input', updatePasteCount);
-  addTimeRow('09:00');
+  addTimeRow();
   toggleMode();
   toggleRecipientSource();
   updateCount();

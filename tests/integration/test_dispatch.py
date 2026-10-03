@@ -111,3 +111,36 @@ def test_requeue_stuck_jobs(app, db, subscribed_associate):
     assert requeued == 1
     db.session.refresh(job)
     assert job.status == 'pending'
+    
+    
+@responses.activate
+def test_dispatch_sends_completion_email(app, db, subscribed_associate,
+                                         monkeypatch):
+    """A campaign reaching 'complete' triggers the notification service."""
+    from app.services import campaign_notifications
+
+    responses.add(
+        responses.POST, 'https://comms.egosms.co/api/v1/json/',
+        json={'Status': 'OK', 'Cost': 3, 'MsgFollowUpUniqueCode': 'ABC'},
+        status=200,
+    )
+
+    called = []
+    monkeypatch.setattr(
+        campaign_notifications, 'send_completion_email',
+        lambda cid: called.append(cid) or 0)
+
+    org = subscribed_associate
+    user = UserFactory(org=org)
+    for _ in range(2):
+        ContactFactory(org_id=org.id)
+
+    campaign, _ = c_svc.create_campaign(
+        org, name='T', body='Hi', created_by=user.id)
+
+    ids = dispatch.claim_jobs()
+    dispatch.process_job(ids[0])
+
+    db.session.refresh(campaign)
+    assert campaign.status == 'complete'
+    assert called == [campaign.id]

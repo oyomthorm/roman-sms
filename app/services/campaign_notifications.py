@@ -24,16 +24,18 @@ from app.services import mailer
 log = logging.getLogger('roman.campaign_notifications')
 
 
+# Whitespace trimmed with `-` on the control tags so the `{% if %}` block
+# does not leave blank lines behind when failed_count is zero.
 BODY_TEMPLATE = """\
 Your campaign "{{ campaign.name }}" has finished sending.
 
 Recipients: {{ campaign.total }}
 Sent:       {{ campaign.sent_count }}
 Failed:     {{ campaign.failed_count }}
+{%- if campaign.failed_count %}
 
-{% if campaign.failed_count %}
 Failed sends were refunded to your wallet automatically.
-{% endif %}
+{%- endif %}
 
 View the full report: {{ base_url }}/campaigns/{{ campaign.id }}
 

@@ -9,7 +9,11 @@
     <a href="{{ url_for('campaigns.schedules') }}"
        class="text-sm text-slate-500 hover:text-slate-900 transition">← Schedules</a>
     <p class="text-sm text-slate-500 mt-2">
-      {{ schedule.days_label }} at {{ schedule.times_label }}
+      {{ schedule.run_count }} send{{ '' if schedule.run_count == 1 else 's' }}
+      remaining
+      {% if schedule.group %}· to group <strong class="text-slate-700">{{ schedule.group.name }}</strong>{% endif %}
+      {% if schedule.district %}· in <strong class="text-slate-700">{{ schedule.district.name }}</strong>{% endif %}
+      {% if not schedule.group and not schedule.district %}· to all contacts{% endif %}
     </p>
   </div>
   <div class="flex gap-2 shrink-0">
@@ -78,6 +82,8 @@
       <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">paused</span>
       {% elif schedule.status == 'completed' %}
       <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">completed</span>
+      {% elif schedule.status == 'cancelled' %}
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
       {% else %}
       <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ schedule.status }}</span>
       {% endif %}
@@ -115,39 +121,44 @@
   </div>
 </div>
 
-{# Schedule config #}
+{# Send times #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+      Send times
+    </div>
+    {% set count = schedule.run_count %}
+    <div class="text-xs text-slate-500">
+      {{ count }} remaining · {{ schedule.runs_completed or 0 }} completed
+    </div>
+  </div>
+
+  {% if schedule.times_list %}
+  <ul class="divide-y divide-slate-100 -mx-5">
+    {% for iso in schedule.times_list %}
+    <li class="px-5 py-2.5 flex items-center justify-between text-sm">
+      <span class="font-mono text-slate-900">{{ iso.replace('T', ' ') }}</span>
+      <span class="text-xs text-slate-400">local time</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-sm text-slate-500">All send times have fired.</p>
+  {% endif %}
+
+  <p class="text-xs text-slate-400 mt-4 pt-4 border-t border-slate-100">
+    All times shown are in the schedule's local timezone.
+    Recipients are resolved fresh at every run — new contacts are
+    included, opt-outs are excluded.
+  </p>
+</div>
+
+{# Message body #}
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
   <div class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
     Message body
   </div>
   <pre class="text-sm whitespace-pre-wrap font-mono text-slate-800 bg-slate-50 rounded-lg p-4 border border-slate-100">{{ schedule.body }}</pre>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-100 text-sm">
-    <div>
-      <div class="text-xs text-slate-500">Days</div>
-      <div class="font-medium text-slate-900 mt-0.5">{{ schedule.days_label }}</div>
-    </div>
-    <div>
-      <div class="text-xs text-slate-500">Times</div>
-      <div class="font-medium text-slate-900 mt-0.5">{{ schedule.times_label }}</div>
-    </div>
-    <div>
-      <div class="text-xs text-slate-500">Starts</div>
-      <div class="font-medium text-slate-900 mt-0.5">
-        {{ schedule.starts_on.strftime('%d %b %Y') }}
-      </div>
-    </div>
-    <div>
-      <div class="text-xs text-slate-500">Ends</div>
-      <div class="font-medium text-slate-900 mt-0.5">
-        {% if schedule.ends_on %}
-          {{ schedule.ends_on.strftime('%d %b %Y') }}
-        {% else %}
-          Never
-        {% endif %}
-      </div>
-    </div>
-  </div>
 </div>
 
 {# Run history #}
@@ -215,7 +226,7 @@
       {% if schedule.next_run_at %}
         {{ schedule.next_run_at.strftime('%d %b %H:%M') }} UTC.
       {% else %}
-        the next matching slot.
+        the next scheduled time.
       {% endif %}
     </div>
   </div>

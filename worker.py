@@ -49,35 +49,40 @@ logging.getLogger('roman.dispatch').setLevel(logging.INFO)
 
 def run_scheduler_pass():
     """
-    Materialize every schedule whose next_run_at has passed.
+    Materialize every schedule whose next send time is due.
 
-    Loops until claim_due_schedule() returns None, so a backlog of due
-    schedules (worker was down over the weekend, for instance) is
-    drained in one tick rather than one per poll interval.
+    claim_due_schedule() returns (schedule_id, fired_iso) — the id of
+    the schedule that was claimed plus the local ISO datetime that
+    triggered the run. Each call removes one due time from the
+    schedule's list, so the loop drains a backlog in a single tick
+    rather than one per poll interval.
 
     Returns the number of schedules materialized.
     """
     count = 0
     while True:
         try:
-            sid = schedule_svc.claim_due_schedule()
+            claim = schedule_svc.claim_due_schedule()
         except Exception:
             log.exception('claim_due_schedule failed')
             db.session.rollback()
             break
 
-        if not sid:
+        if not claim:
             break
 
+        schedule_id, fired_iso = claim
+
         try:
-            schedule_svc.materialize_run(sid)
+            schedule_svc.materialize_run(schedule_id, fired_iso=fired_iso)
             count += 1
         except Exception:
-            log.exception('materialize_run failed for schedule %s', sid)
+            log.exception('materialize_run failed for schedule %s '
+                          '(fired %s)', schedule_id, fired_iso)
             db.session.rollback()
-            # The claim already advanced next_run_at, so a failed
-            # materialization skips this slot rather than looping
-            # forever. Move on.
+            # The claim already removed this time from the list, so a
+            # failed materialization skips this slot rather than
+            # looping forever. Move on.
 
     if count:
         log.info('Scheduler: materialized %s schedule(s).', count)
