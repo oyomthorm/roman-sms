@@ -26,12 +26,15 @@ def create_app(config_object=Config):
 
     @app.context_processor
     def _inject_notifications():
-        from flask import g
+        from flask import g, has_request_context
         from flask_login import current_user
         from app.services import notifications
         from app.services import chat as chat_svc
 
-        if not current_user.is_authenticated:
+        # Background jobs (worker, cron) have no request context and no
+        # current_user. Return empty defaults so any template render they
+        # trigger does not crash.
+        if not has_request_context() or not current_user.is_authenticated:
             return {
                 'notifications': [],
                 'unread_count': 0,
@@ -60,14 +63,16 @@ def create_app(config_object=Config):
           wallet_rate       — UGX per credit for the current org
           wallet_value_ugx  — shilling value of the balance
 
-        All None for anonymous users and the master admin.
+        All None for anonymous users, the master admin, and background jobs.
         """
-        from flask import g
+        from flask import g, has_request_context
         from flask_login import current_user
         from app.services.wallet import get_balance
         from app.services.entitlements import current_rate_ugx
 
-        if not current_user.is_authenticated or current_user.is_master:
+        if (not has_request_context()
+                or not current_user.is_authenticated
+                or current_user.is_master):
             return {
                 'wallet_balance': None,
                 'wallet_rate': None,
