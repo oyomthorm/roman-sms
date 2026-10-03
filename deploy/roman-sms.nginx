@@ -5,6 +5,12 @@ server {
 }
 
 server {
+    listen 80;
+    server_name romansms.co.ug www.romansms.co.ug;
+    return 301 https://$host$request_uri;
+}
+
+server {
     listen 443 ssl http2;
     server_name romansms.co.ug www.romansms.co.ug;
 
@@ -20,7 +26,7 @@ server {
 
     # Deny access to sensitive paths
     location ~ /\.(env|git|venv) { deny all; }
-    location ~ ^/(migrations|scripts|tests)/ { deny all; }
+    location ~ ^/(migrations|scripts|tests|venv)/ { deny all; }
 
     location /static/ {
         alias /opt/roman-sms/app/static/;
