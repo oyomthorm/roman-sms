@@ -1,5 +1,5 @@
 from flask import (Blueprint, render_template, redirect, url_for,
-                   flash, current_app)
+                   flash, current_app, Response)
 from flask_login import login_required, current_user
 
 from app.services import billing as billing_svc
@@ -7,6 +7,9 @@ from app.services import plans as plans_svc
 from app.services import subscriptions as subs_svc
 from app.services.wallet import get_balance
 from app.services.entitlements import current_rate_ugx
+from app.services import invoice_pdf
+
+from io import BytesIO  # not needed — we use bytes directly
 
 billing_bp = Blueprint('billing', __name__)
 
@@ -84,4 +87,24 @@ def invoice(invoice_id):
         invoice=inv,
         payment_instructions=current_app.config.get(
             'PAYMENT_INSTRUCTIONS', ''),
+    )
+    
+
+@billing_bp.route('/invoices/<int:invoice_id>.pdf')
+@login_required
+def invoice_pdf_download(invoice_id):
+    """Download an invoice as a PDF. Scoped to the current org."""
+    inv = billing_svc.get_for_org(_org(), invoice_id)
+    if not inv:
+        return render_template('errors/404.html'), 404
+
+    pdf_bytes = invoice_pdf.render_invoice(inv)
+    filename = f'{inv.number}.pdf'
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Length': str(len(pdf_bytes)),
+        },
     )

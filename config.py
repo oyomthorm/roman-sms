@@ -130,7 +130,15 @@ class Config:
     SCHEDULER_TZ_OFFSET_HOURS = int(
         os.environ.get('SCHEDULER_TZ_OFFSET_HOURS', 3))
     
-    
+    # ------------------------------------------------------------------
+    # Company details shown on generated invoices
+    # ------------------------------------------------------------------
+    COMPANY_NAME = os.environ.get('COMPANY_NAME', 'Roman SMS Ltd')
+    COMPANY_ADDRESS = os.environ.get('COMPANY_ADDRESS', '')
+    COMPANY_PHONE = os.environ.get('COMPANY_PHONE', '')
+    COMPANY_EMAIL = os.environ.get('COMPANY_EMAIL', '')
+    COMPANY_TIN = os.environ.get('COMPANY_TIN', '')
+        
 class TestConfig(Config):
     """
     Used by the test suite. Overrides the DATABASE_URL requirement with

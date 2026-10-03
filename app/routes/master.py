@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from flask import (Blueprint, render_template, request, redirect,
-                   url_for, flash)
+                   url_for, flash, Response)
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
@@ -23,7 +23,7 @@ from app.services import ratelimit
 from app.services.entitlements import current_rate_ugx
 from app.services.renderer import with_prefix, segments
 from app.services.audit import log as audit
-
+from app.services import invoice_pdf
 
 master_bp = Blueprint('master', __name__)
 
@@ -936,3 +936,24 @@ def signup_spam(rid):
     else:
         flash('Marked as spam.', 'success')
     return redirect(url_for('master.signups'))
+
+
+@master_bp.route('/invoices/<int:invoice_id>.pdf')
+@login_required
+@master_required
+def invoice_pdf_download(invoice_id):
+    """Download any invoice as a PDF."""
+    inv = billing_svc.get_any(invoice_id)
+    if not inv:
+        return render_template('errors/404.html'), 404
+
+    pdf_bytes = invoice_pdf.render_invoice(inv)
+    filename = f'{inv.number}.pdf'
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Length': str(len(pdf_bytes)),
+        },
+    )

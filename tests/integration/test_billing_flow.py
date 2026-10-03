@@ -93,3 +93,52 @@ def test_associate_cannot_see_other_orgs_invoice(client, app, db,
     _login(client, associate_admin, 'assocpass')
     resp = client.get(f'/billing/invoices/{other_inv.id}')
     assert resp.status_code == 404
+    
+    
+def test_associate_can_download_own_invoice_pdf(client, app, db,
+                                                associate_admin, plan):
+    _login(client, associate_admin, 'assocpass')
+    client.post(f'/billing/plans/{plan.id}/buy')
+
+    inv = Invoice.query.filter_by(org_id=associate_admin.org_id).first()
+    assert inv is not None
+
+    resp = client.get(f'/billing/invoices/{inv.id}.pdf')
+    assert resp.status_code == 200
+    assert resp.mimetype == 'application/pdf'
+    assert resp.data.startswith(b'%PDF-')
+    assert f'{inv.number}.pdf' in resp.headers.get('Content-Disposition', '')
+
+
+def test_associate_cannot_download_other_org_invoice_pdf(client, app, db,
+                                                         associate_admin,
+                                                         second_org, plan):
+    from app.services import billing as svc
+    other_inv, _ = svc.create_invoice(second_org, plan)
+
+    _login(client, associate_admin, 'assocpass')
+    resp = client.get(f'/billing/invoices/{other_inv.id}.pdf')
+    assert resp.status_code == 404
+
+
+def test_master_can_download_any_invoice_pdf(client, app, db, master_admin,
+                                             associate_admin, plan):
+    _login(client, associate_admin, 'assocpass')
+    client.post(f'/billing/plans/{plan.id}/buy')
+    inv = Invoice.query.filter_by(org_id=associate_admin.org_id).first()
+
+    client.get('/logout')
+    _login(client, master_admin, 'masterpass')
+
+    resp = client.get(f'/master/invoices/{inv.id}.pdf')
+    assert resp.status_code == 200
+    assert resp.mimetype == 'application/pdf'
+    assert resp.data.startswith(b'%PDF-')
+
+
+def test_unauthenticated_invoice_pdf_redirects(client, app, db,
+                                                associate_admin, plan):
+    from app.services import billing as svc
+    inv, _ = svc.create_invoice(associate_admin.organization, plan)
+    resp = client.get(f'/billing/invoices/{inv.id}.pdf')
+    assert resp.status_code in (302, 401)
