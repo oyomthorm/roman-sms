@@ -1,22 +1,14 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 
-from app.models import Campaign, Contact, MessageLog
-from app.services.wallet import get_balance
-from app.services.entitlements import active_subscription
-
-from app.models import Campaign, Contact, MessageLog, Group
-
-from datetime import datetime, timedelta
-from flask import Blueprint, render_template, redirect, url_for
-from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import (Campaign, Contact, MessageLog, Group,
+from app.models import (Campaign, Contact, Group, MessageLog,
                         WalletTransaction)
-from app.services.wallet import get_balance
 from app.services.entitlements import active_subscription
+from app.services.wallet import get_balance
+
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -27,23 +19,34 @@ def index():
     if current_user.is_master:
         return redirect(url_for('master.index'))
 
-    from datetime import date, timedelta
-    from app.models import WalletTransaction
-
     org = current_user.organization
     since = datetime.utcnow() - timedelta(days=30)
 
-    # ---- Message stats (last 30d) ----
+    # ---- Message stats (last 30 days) ----
+    #
+    # "sent" here means: reached the network and were accepted by Pahappa.
+    # This is the population we compute delivery rate against. It includes
+    # messages that later became delivered or delivery_failed.
     sent_30d = (MessageLog.query
-                .filter_by(org_id=org.id, status='sent')
+                .filter_by(org_id=org.id)
                 .filter(MessageLog.sent_at >= since)
+                .filter(MessageLog.status.in_(
+                    ['sent', 'delivered', 'delivery_failed']))
                 .count())
 
+    # Subsets of sent_30d — messages the webhook has confirmed delivery for
     delivered_30d = (MessageLog.query
                      .filter_by(org_id=org.id, status='delivered')
                      .filter(MessageLog.delivered_at >= since)
                      .count())
 
+    delivery_failed_30d = (MessageLog.query
+                           .filter_by(org_id=org.id,
+                                      status='delivery_failed')
+                           .filter(MessageLog.delivered_at >= since)
+                           .count())
+
+    # Independent counters (not subsets of sent_30d)
     failed_30d = (MessageLog.query
                   .filter_by(org_id=org.id, status='failed')
                   .filter(MessageLog.created_at >= since)
@@ -97,6 +100,7 @@ def index():
         'campaigns': Campaign.query.filter_by(org_id=org.id).count(),
         'sent_30d': sent_30d,
         'delivered_30d': delivered_30d,
+        'delivery_failed_30d': delivery_failed_30d,
         'failed_30d': failed_30d,
         'pending_30d': pending_30d,
         'credits_spent_30d': credits_spent_30d,
