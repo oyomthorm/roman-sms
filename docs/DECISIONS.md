@@ -4,6 +4,65 @@ One page per decision. Add a new ADR for anything expensive to reverse.
 
 ---
 
+## ADR-017 — Opt-out link removed from outbound messages
+
+**Date:** 2026-10-03 · **Status:** Accepted
+
+**Context.** Every message previously carried a trailing
+`Opt out: <url>` line, appended by `services.renderer.append_optout`.
+The link was the platform's only opt-out channel (ADR-004) because the
+shared Pahappa sender ID does not support inbound SMS and there is no
+shortcode for reply-STOP.
+
+The link cost the associate real money — roughly 76 characters, enough
+to push a short message from one segment into two. It also read as
+spam-adjacent to recipients receiving a personal-seeming message with
+an unfamiliar compliance footer.
+
+**Decision.** Remove the automatic opt-out link. `render()` now
+produces only `prefix + body`.
+
+The `OptOut` table, platform-wide enforcement, the public landing page
+at `/opt-out`, the token-based `/opt-out/<token>` route, and manual
+opt-out marking by associates all remain. No message carries a token
+anymore, but the code that would issue one still exists.
+
+**Consequences.**
+- Message cost drops for short messages that would have tipped into
+  a second segment.
+- Opt-outs are now the associate's responsibility. The associate
+  agreement (see `ONBOARDING.md`) is the sole basis for consent.
+- Compliance with Uganda's Data Protection and Privacy Act 2019
+  shifts entirely to the associate's own practices. The platform no
+  longer provides a per-message opt-out channel.
+- If a client or regulator requires a per-message opt-out, a
+  replacement is needed: a registered sender ID with reply-STOP
+  support, or a per-associate opt-out link.
+
+---
+
+## ADR-016 — Server-side SVG charts, no JS library
+
+**Date:** 2026-10-03 · **Status:** Accepted
+
+**Context.** The dashboard needed usage charts. Chart.js and similar
+libraries add 200 KB+ to every dashboard render, require a CDN or a
+bundled asset, and bring their own upgrade treadmill. The data being
+visualised is small and static per render.
+
+**Decision.** All dashboard charts are rendered server-side as inline
+SVG using Jinja templating. Bar heights, donut dashes, and progress
+widths are computed in the template from the route's data.
+
+**Consequences.**
+- Zero JS dependencies, no external requests, no CDN to trust.
+- Charts degrade gracefully — visible in any browser, no JS required.
+- Visual language is limited to what SVG primitives support. No
+  animations beyond CSS transitions on existing elements.
+- Adding a new chart means writing Jinja, not JavaScript.
+
+---
+
 ## ADR-013 — Character counter counts the brand prefix
 
 **Date:** 2026-10-02 · **Status:** Accepted
@@ -149,7 +208,7 @@ scale they are not justified.
 
 ## ADR-004 — Outbound only
 
-**Date:** 2026-10-01 · **Status:** Accepted
+**Date:** 2026-10-01 · **Status:** Superseded by ADR-017
 
 **Context.** Master sender ID does not support inbound SMS. Customers
 cannot reply STOP to a shortcode because there is no shortcode.
@@ -185,7 +244,7 @@ Enforcement: route decorator + query scoping + service guard.
 
 ## ADR-006 — System org separate from master org
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** The master org was doing two jobs: running the platform
 and sending pool campaigns. Both used the same wallet.
@@ -203,7 +262,7 @@ and sending pool campaigns. Both used the same wallet.
 
 ## ADR-007 — Permission-gated master contact pool
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** Reaching associate customers requires explicit permission.
 
@@ -220,7 +279,7 @@ rows.
 
 ## ADR-008 — Computed notifications with per-user dismissal
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** Notifications must not become a stale inbox.
 
@@ -236,7 +295,7 @@ condition". Keys include changing values.
 
 ## ADR-009 — Delivery status via webhook, not polling
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** Pahappa offers a webhook; polling is also possible.
 
@@ -252,7 +311,7 @@ condition". Keys include changing values.
 
 ## ADR-010 — Gated self-signup
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** Associates must apply without a call, but instant
 activation is unsafe with a shared sender ID.
@@ -268,7 +327,7 @@ Organization. Master approves before provisioning.
 
 ## ADR-011 — Persistent import reporting
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** Silent drops from a CSV import leave the associate unable
 to know what went wrong.
@@ -285,7 +344,7 @@ error CSV.
 
 ## ADR-012 — Snapshot group name on pool contacts
 
-**Date:** 2026-10-08 · **Status:** Accepted
+**Date:** 2026-10-02 · **Status:** Accepted
 
 **Context.** The pool needs a group filter without joining back to the
 source Contact.

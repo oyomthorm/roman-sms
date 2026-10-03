@@ -19,18 +19,16 @@ def with_prefix(org, body):
     return f"{org.prefix}{body}"
 
 
-from app.services.optout_links import optout_url
-
-def append_optout(body, phone):
-    url = optout_url(phone)
-    if not url:
-        return body
-    return f"{body}\n\nOpt out: {url}"
-
-
 def render(org, template_body, contact):
-    body = with_prefix(org, substitute(template_body, contact))
-    return append_optout(body, contact.phone)
+    """
+    Render a message for one recipient.
+
+    The result is the brand prefix plus the substituted body. No
+    opt-out link is appended — see ADR-017. Recipients opt out via
+    the public landing page, or the associate marks them manually.
+    """
+    return with_prefix(org, substitute(template_body, contact))
+
 
 def segments(body):
     size = current_app.config.get('SMS_SEGMENT_CHARS', 160)

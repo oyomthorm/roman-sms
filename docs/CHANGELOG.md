@@ -1,5 +1,28 @@
 # Changelog
-# Changelog
+
+## [0.9.1] — Opt-out link removed from outbound messages
+
+### Changed
+- **Messages no longer carry an automatic opt-out link.** `render()`
+  now produces only `prefix + body`. See ADR-017.
+- Message cost drops for short messages that previously tipped into a
+  second segment because of the ~76-character opt-out line.
+- The client-side character counter on the new-campaign form is now
+  accurate. It previously under-counted by ~76 characters because it
+  did not include the opt-out URL that the server appended.
+
+### Why
+- The link added real cost to every message.
+- Recipients read it as a spam signal.
+- Opt-outs are now the associate's responsibility, documented in the
+  associate agreement.
+
+### Notes
+- The public landing page at `/opt-out` and the `OptOut` table remain
+  in place and are still enforced across every send path.
+- Existing delivered messages keep their opt-out links. Nothing is
+  retroactive.
+- ADR-004 is superseded by ADR-017.
 
 ## [0.9.0] — PDF invoices, completion emails, dashboard charts
 
@@ -49,7 +72,7 @@
   `rate_ugx` after the 0.7.2 shilling-display change.
 - `create_associate` didn't cap `brand_name` at 20 characters, unlike
   `update_associate`.
-  
+
 ## [0.8.1] — Campaign form polish
 ### Added
 - **Character / segment / cost counter** on the new campaign form.
