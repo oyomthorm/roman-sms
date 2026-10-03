@@ -31,7 +31,8 @@ Three lists. Every feature request goes into exactly one.
 **Infrastructure**
 - Worker sends with rate limits per org (minute and day)
 - Failed sends refund automatically
-- Opt-out enforced platform-wide, one-click link in every SMS
+- Opt-out enforced platform-wide; recipients opt out via the public
+  landing page or manual marking by the associate. See ADR-017.
 - Delivery reports via webhook
 - Nightly reconcile, daily backup, audit log
 

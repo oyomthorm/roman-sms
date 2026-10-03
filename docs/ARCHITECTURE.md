@@ -61,8 +61,7 @@ including the prefix, because that is what Pahappa bills for.
 1. Route calls `services.campaigns.create_campaign(org, ...)`.
 2. Service:
    - resolves recipients (org-scoped, not opted out)
-   - renders each message (brand prefix + opt-out link when
-     `PUBLIC_BASE_URL` is set)
+   - renders each message (brand prefix + substituted body; see ADR-017)
    - checks entitlements (status, plan, credits)
    - inserts Campaign, flushes for its id
    - **debits the wallet before dispatch, in the same transaction**

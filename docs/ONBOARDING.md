@@ -72,11 +72,13 @@ associates. After that a written guide is fine.
 8. **Show chat.** The Chat link opens a DM with Roman SMS support and
    a broadcast channel where all associates can talk.
 
-9. **Mention the opt-out link.** Every message carries a one-click
-   unsubscribe link. Recipients who use it are removed from every list
-   on the platform — this is a feature, not a bug. Tell them so they
-   are not surprised when a customer disappears from their list.
-
+9. **Explain opt-outs.** The platform tracks an opt-out list enforced
+   across every org. Recipients can opt out at
+   `https://romansms.co.ug/opt-out`, or you can mark a contact
+   opted-out from their contact page. If a customer asks to stop
+   receiving messages, honour it — the associate agreement requires
+   it, and it's the law under Uganda's Data Protection and Privacy
+   Act.
 10. **Record the permission decision.** If they want to contribute to
     the master pool, walk them through Settings → Enable contact
     sharing. If not, do not push.
