@@ -36,6 +36,10 @@ def _balances(orgs):
     return {o.id: wallet_svc.get_balance(o.id) for o in orgs}
 
 
+def _rate_map(orgs):
+    """UGX per credit for each org, keyed by org id."""
+    return {o.id: current_rate_ugx(o.id) for o in orgs}
+
 def _system_sender_org():
     return Organization.query.filter_by(is_system=True).first()
 
@@ -130,7 +134,9 @@ def index():
 def orgs():
     items = orgs_svc.list_associates()
     return render_template('master/orgs.html',
-                           orgs=items, balances=_balances(items))
+                           orgs=items,
+                           balances=_balances(items),
+                           rate_map=_rate_map(items))
 
 
 @master_bp.route('/orgs/new', methods=['GET', 'POST'])
