@@ -4,7 +4,7 @@
 {% block page_header_mobile %}Schedule{% endblock %}
 {% block content %}
 
-<div class="flex items-start justify-between mb-6 gap-4">
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
   <div class="min-w-0">
     <a href="{{ url_for('campaigns.schedules') }}"
        class="text-sm text-slate-500 hover:text-slate-900 transition">← Schedules</a>
@@ -18,17 +18,21 @@
   </div>
   <div class="flex gap-2 shrink-0">
     {% if schedule.status == 'active' %}
-    <form method="post" action="{{ url_for('campaigns.schedule_pause', sid=schedule.id) }}">
+    <form method="post" action="{{ url_for('campaigns.schedule_pause', sid=schedule.id) }}"
+          class="flex-1 sm:flex-none">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
+      <button class="w-full sm:w-auto inline-flex items-center justify-center gap-2
+                     border border-slate-300 hover:bg-slate-50
                      text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
         Pause
       </button>
     </form>
     {% elif schedule.status == 'paused' %}
-    <form method="post" action="{{ url_for('campaigns.schedule_resume', sid=schedule.id) }}">
+    <form method="post" action="{{ url_for('campaigns.schedule_resume', sid=schedule.id) }}"
+          class="flex-1 sm:flex-none">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+      <button class="w-full sm:w-auto inline-flex items-center justify-center gap-2
+                     bg-emerald-500 hover:bg-emerald-400
                      text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
         Resume
       </button>
@@ -36,9 +40,11 @@
     {% endif %}
     {% if schedule.status not in ('cancelled', 'completed') %}
     <form method="post" action="{{ url_for('campaigns.schedule_cancel', sid=schedule.id) }}"
-          onsubmit="return confirm('Cancel this schedule? Pending runs will stop.')">
+          onsubmit="return confirm('Cancel this schedule? Pending runs will stop.')"
+          class="flex-1 sm:flex-none">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="inline-flex items-center gap-2 border border-red-300 text-red-700
+      <button class="w-full sm:w-auto inline-flex items-center justify-center gap-2
+                     border border-red-300 text-red-700
                      hover:bg-red-50 text-sm font-medium px-4 py-2 rounded-lg transition">
         Cancel
       </button>
@@ -55,9 +61,9 @@
     <path stroke-linecap="round" stroke-linejoin="round"
           d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
   </svg>
-  <div class="flex-1">
+  <div class="flex-1 min-w-0">
     <div class="font-semibold text-amber-900">Paused</div>
-    <div class="text-sm text-amber-800 mt-0.5">{{ schedule.pause_reason }}</div>
+    <div class="text-sm text-amber-800 mt-0.5 break-words">{{ schedule.pause_reason }}</div>
     {% if 'Insufficient' in schedule.pause_reason %}
     <a href="{{ url_for('billing.plans') }}"
        class="inline-block mt-2 text-sm font-medium text-amber-900 underline">
@@ -69,8 +75,8 @@
 {% endif %}
 
 {# Stats row #}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
     <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Status</div>
     <div class="mt-2">
       {% if schedule.status == 'active' %}
@@ -90,9 +96,9 @@
     </div>
   </div>
 
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
     <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Next run</div>
-    <div class="text-lg font-semibold text-slate-900 mt-1 tabular-nums">
+    <div class="text-base sm:text-lg font-semibold text-slate-900 mt-1 tabular-nums">
       {% if schedule.next_run_at %}
         {{ schedule.next_run_at.strftime('%d %b %H:%M') }}
       {% else %}—{% endif %}
@@ -100,21 +106,21 @@
     <div class="text-xs text-slate-500 mt-0.5">UTC</div>
   </div>
 
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
     <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Completed runs</div>
-    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+    <div class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 tabular-nums">
       {{ schedule.runs_completed or 0 }}
     </div>
     {% if schedule.runs_skipped %}
     <div class="text-xs text-amber-600 mt-0.5">
-      {{ schedule.runs_skipped }} skipped (empty list)
+      {{ schedule.runs_skipped }} skipped
     </div>
     {% endif %}
   </div>
 
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
     <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Total sent</div>
-    <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+    <div class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 tabular-nums">
       {{ '{:,}'.format(schedule.total_sent or 0) }}
     </div>
     <div class="text-xs text-slate-500 mt-0.5">across all runs</div>
@@ -123,7 +129,7 @@
 
 {# Send times #}
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
-  <div class="flex items-center justify-between mb-3">
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
     <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
       Send times
     </div>
@@ -136,9 +142,9 @@
   {% if schedule.times_list %}
   <ul class="divide-y divide-slate-100 -mx-5">
     {% for iso in schedule.times_list %}
-    <li class="px-5 py-2.5 flex items-center justify-between text-sm">
-      <span class="font-mono text-slate-900">{{ iso.replace('T', ' ') }}</span>
-      <span class="text-xs text-slate-400">local time</span>
+    <li class="px-5 py-2.5 flex items-center justify-between gap-3 text-sm">
+      <span class="font-mono text-slate-900 min-w-0 truncate">{{ iso.replace('T', ' ') }}</span>
+      <span class="text-xs text-slate-400 shrink-0">local</span>
     </li>
     {% endfor %}
   </ul>
@@ -158,7 +164,7 @@
   <div class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
     Message body
   </div>
-  <pre class="text-sm whitespace-pre-wrap font-mono text-slate-800 bg-slate-50 rounded-lg p-4 border border-slate-100">{{ schedule.body }}</pre>
+  <pre class="text-sm whitespace-pre-wrap break-words font-mono text-slate-800 bg-slate-50 rounded-lg p-4 border border-slate-100">{{ schedule.body }}</pre>
 </div>
 
 {# Run history #}
@@ -171,53 +177,94 @@
   </div>
 
   {% if runs %}
-  <table class="w-full text-sm">
-    <thead class="bg-slate-50 border-b border-slate-200 text-left">
-      <tr>
-        <th class="px-5 py-3 font-semibold text-slate-700">Run at</th>
-        <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
-        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Sent</th>
-        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Failed</th>
-        <th class="px-5 py-3 font-semibold text-slate-700 text-right">Credits</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-slate-100">
-      {% for c in runs %}
-      <tr class="hover:bg-slate-50/50 transition">
-        <td class="px-5 py-3">
-          <a href="{{ url_for('campaigns.detail', cid=c.id) }}"
-             class="font-medium text-slate-900 hover:text-emerald-600">
-            {{ c.created_at.strftime('%d %b %Y, %H:%M') }}
-          </a>
-        </td>
-        <td class="px-5 py-3">
-          {% if c.status == 'complete' %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
-          {% elif c.status == 'sending' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
-            <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
-            sending
-          </span>
-          {% elif c.status == 'queued' %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
-          {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+
+  {# ---- Desktop table ---- #}
+  <div class="hidden md:block">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200 text-left">
+        <tr>
+          <th class="px-5 py-3 font-semibold text-slate-700">Run at</th>
+          <th class="px-5 py-3 font-semibold text-slate-700">Status</th>
+          <th class="px-5 py-3 font-semibold text-slate-700 text-right">Sent</th>
+          <th class="px-5 py-3 font-semibold text-slate-700 text-right">Failed</th>
+          <th class="px-5 py-3 font-semibold text-slate-700 text-right">Credits</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for c in runs %}
+        <tr class="hover:bg-slate-50/50 transition">
+          <td class="px-5 py-3">
+            <a href="{{ url_for('campaigns.detail', cid=c.id) }}"
+               class="font-medium text-slate-900 hover:text-emerald-600">
+              {{ c.created_at.strftime('%d %b %Y, %H:%M') }}
+            </a>
+          </td>
+          <td class="px-5 py-3">
+            {% if c.status == 'complete' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
+            {% elif c.status == 'sending' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+              sending
+            </span>
+            {% elif c.status == 'queued' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+            {{ c.sent_count or 0 }}/{{ c.total or 0 }}
+          </td>
+          <td class="px-5 py-3 text-right tabular-nums
+                     {% if c.failed_count %}text-red-600{% else %}text-slate-500{% endif %}">
+            {{ c.failed_count or 0 }}
+          </td>
+          <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+            {{ c.credits_debited or 0 }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ---- Mobile cards ---- #}
+  <div class="md:hidden divide-y divide-slate-100">
+    {% for c in runs %}
+    <a href="{{ url_for('campaigns.detail', cid=c.id) }}"
+       class="block p-4 active:bg-slate-50 transition">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div class="font-medium text-slate-900 text-sm min-w-0">
+          {{ c.created_at.strftime('%d %b %Y, %H:%M') }}
+        </div>
+        {% if c.status == 'complete' %}
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
+        {% elif c.status == 'sending' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+          sending
+        </span>
+        {% elif c.status == 'queued' %}
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+        {% else %}
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+        {% endif %}
+      </div>
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <div class="tabular-nums">
+          {{ c.sent_count or 0 }}/{{ c.total or 0 }} sent
+          {% if c.failed_count %}
+          <span class="text-slate-400">·</span>
+          <span class="text-red-600">{{ c.failed_count }} failed</span>
           {% endif %}
-        </td>
-        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
-          {{ c.sent_count or 0 }}/{{ c.total or 0 }}
-        </td>
-        <td class="px-5 py-3 text-right tabular-nums
-                   {% if c.failed_count %}text-red-600{% else %}text-slate-500{% endif %}">
-          {{ c.failed_count or 0 }}
-        </td>
-        <td class="px-5 py-3 text-right tabular-nums text-slate-700">
-          {{ c.credits_debited or 0 }}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </div>
+        <div class="tabular-nums">{{ c.credits_debited or 0 }} credits</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
   {% else %}
   <div class="text-center py-12 px-4">
     <div class="text-slate-400 text-sm">No runs yet.</div>

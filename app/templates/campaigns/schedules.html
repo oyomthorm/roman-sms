@@ -4,14 +4,15 @@
 {% block page_header_mobile %}Schedules{% endblock %}
 {% block content %}
 
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
   <p class="text-sm text-slate-500">
     Each schedule holds one or more exact send times. Every run debits
     the wallet and creates a new campaign.
   </p>
   <a href="{{ url_for('campaigns.new') }}"
-     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-            text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+     class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition shadow-sm
+            w-full sm:w-auto shrink-0">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
     </svg>
@@ -20,7 +21,9 @@
 </div>
 
 {% if schedules %}
-<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+{# ---- Desktop table ---- #}
+<div class="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-slate-50 border-b border-slate-200 text-left">
       <tr>
@@ -69,21 +72,13 @@
             active
           </span>
           {% elif s.status == 'paused' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-            paused
-          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">paused</span>
           {% elif s.status == 'completed' %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-            completed
-          </span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">completed</span>
           {% elif s.status == 'cancelled' %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-            cancelled
-          </span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
           {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-            {{ s.status }}
-          </span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ s.status }}</span>
           {% endif %}
         </td>
         <td class="px-5 py-3 text-right tabular-nums text-slate-700">
@@ -100,6 +95,56 @@
     </tbody>
   </table>
 </div>
+
+{# ---- Mobile cards ---- #}
+<div class="md:hidden space-y-3">
+  {% for s in schedules %}
+  <a href="{{ url_for('campaigns.schedule_detail', sid=s.id) }}"
+     class="block bg-white rounded-xl border border-slate-200 shadow-sm p-4
+            active:bg-slate-50 transition">
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <div class="font-semibold text-slate-900 min-w-0 truncate">{{ s.name }}</div>
+      {% if s.status == 'active' %}
+      <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+        active
+      </span>
+      {% elif s.status == 'paused' %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">paused</span>
+      {% elif s.status == 'completed' %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">completed</span>
+      {% elif s.status == 'cancelled' %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+      {% else %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ s.status }}</span>
+      {% endif %}
+    </div>
+
+    {% set count = s.run_count %}
+    <div class="text-sm text-slate-600 mb-2">
+      {% if count == 0 %}
+        <span class="text-slate-400">No times remaining</span>
+      {% else %}
+        {{ count }} send{{ '' if count == 1 else 's' }} remaining
+      {% endif %}
+    </div>
+
+    <div class="flex items-center justify-between text-xs text-slate-500">
+      <div>
+        {% if s.next_run_at %}
+          Next: {{ s.next_run_at.strftime('%d %b %H:%M') }} UTC
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="tabular-nums">
+        {{ s.runs_completed or 0 }} run{{ '' if (s.runs_completed or 0) == 1 else 's' }}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
 {% else %}
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
   <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none"

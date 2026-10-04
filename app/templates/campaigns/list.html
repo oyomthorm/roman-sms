@@ -2,14 +2,15 @@
 {% block title %}Campaigns — Roman SMS{% endblock %}
 {% block content %}
 
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
   <div>
     <h1 class="text-2xl font-bold tracking-tight text-slate-900">Campaigns</h1>
     <p class="text-sm text-slate-500 mt-1">Every batch of SMS you have sent or queued.</p>
   </div>
   <a href="{{ url_for('campaigns.new') }}"
-     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-            text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+     class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition shadow-sm
+            w-full sm:w-auto">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
     </svg>
@@ -17,8 +18,10 @@
   </a>
 </div>
 
-<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-  {% if campaigns %}
+{% if campaigns %}
+
+{# ---- Desktop table ---- #}
+<div class="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-slate-50 border-b border-slate-200 text-left">
       <tr>
@@ -65,21 +68,61 @@
       {% endfor %}
     </tbody>
   </table>
-  {% else %}
-  <div class="text-center py-16 px-4">
-    <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-    </svg>
-    <div class="text-slate-600 font-medium">No campaigns yet</div>
-    <div class="text-sm text-slate-400 mt-1 mb-4">Your campaigns will appear here once you send one.</div>
-    <a href="{{ url_for('campaigns.new') }}"
-       class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-              text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-      Send your first campaign
-    </a>
-  </div>
-  {% endif %}
 </div>
+
+{# ---- Mobile cards ---- #}
+<div class="md:hidden space-y-3">
+  {% for c in campaigns %}
+  <a href="{{ url_for('campaigns.detail', cid=c.id) }}"
+     class="block bg-white rounded-xl border border-slate-200 shadow-sm p-4
+            active:bg-slate-50 transition">
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <div class="font-semibold text-slate-900 min-w-0 truncate">{{ c.name }}</div>
+      {% if c.status == 'complete' %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">complete</span>
+      {% elif c.status == 'sending' %}
+      <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+        <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+        sending
+      </span>
+      {% elif c.status == 'queued' %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">queued</span>
+      {% elif c.status == 'cancelled' %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">cancelled</span>
+      {% else %}
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ c.status }}</span>
+      {% endif %}
+    </div>
+    <div class="flex items-center justify-between text-sm">
+      <div class="text-slate-600 tabular-nums">
+        {{ c.sent_count or 0 }}/{{ c.total or 0 }} sent
+        {% if c.failed_count %}
+        <span class="text-slate-400">·</span>
+        <span class="text-red-600">{{ c.failed_count }} failed</span>
+        {% endif %}
+      </div>
+      <div class="text-xs text-slate-400 whitespace-nowrap">
+        {{ c.created_at.strftime('%d %b') }}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
+  <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+  </svg>
+  <div class="text-slate-600 font-medium">No campaigns yet</div>
+  <div class="text-sm text-slate-400 mt-1 mb-4">Your campaigns will appear here once you send one.</div>
+  <a href="{{ url_for('campaigns.new') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+    Send your first campaign
+  </a>
+</div>
+{% endif %}
 
 {% endblock %}
