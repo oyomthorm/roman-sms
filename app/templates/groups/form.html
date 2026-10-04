@@ -11,7 +11,7 @@
     </h1>
   </div>
 
-  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-5">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div>
@@ -36,13 +36,17 @@
                     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
     </div>
 
-    <div class="flex items-center gap-3 pt-2">
-      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
+      <button class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm
+                     w-full sm:w-auto order-2 sm:order-1">
         {{ 'Save changes' if group else 'Create group' }}
       </button>
       <a href="{{ url_for('groups.index') }}"
-         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition
+                text-center sm:text-left order-1 sm:order-2">
+        Cancel
+      </a>
     </div>
   </form>
 </div>
