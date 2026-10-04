@@ -10,6 +10,10 @@ Idempotent — safe to re-run. Nothing is duplicated or overwritten.
 
 Run once after `flask db upgrade`:
     python scripts/seed.py
+
+For an existing deployment whose plans need repricing, use
+`scripts/update_prices_2026_10.py` instead — it deactivates old plans
+and inserts new ones without disturbing existing subscribers.
 """
 import os
 import sys
@@ -31,26 +35,42 @@ SYSTEM_ORG_NAME = 'Roman SMS Platform'
 SYSTEM_ORG_SLUG = 'roman-platform'
 SYSTEM_BRAND = 'ROMANSMS'
 
-MASTER_OPENING_CREDITS = 100000
-SYSTEM_OPENING_CREDITS = 100000
+MASTER_OPENING_CREDITS = 0
+SYSTEM_OPENING_CREDITS = 0
+
+
+# Sentinel for "credits never expire". Any validity_days >= this value
+# is rendered as "No expiry" in the UI. 100 years in days.
+PERPETUAL_DAYS = 36500
 
 
 # ----------------------------------------------------------------------
-# Tier plans.
+# Tier plans (October 2026 schedule).
 #
-# Rate per SMS decreases as the top-up grows. Wholesale from Pahappa is
-# 35 / 30 / 25 / 20 UGX depending on volume — retail rates below sit
-# above those with margin built in.
+# Every tier earns a flat UGX 10 margin per SMS against Pahappa's
+# wholesale band for that volume. Retail bands match wholesale bands.
+# Bundle sizes are fixed at the lower edge of each band, rounded to a
+# practical number.
+#
+#   Starter   1,000 cr @ UGX 45/SMS = UGX 45,000   (wholesale 35, margin 10)
+#   Growth   10,000 cr @ UGX 40/SMS = UGX 400,000  (wholesale 30, margin 10)
+#   Business 100,000 cr @ UGX 35/SMS = UGX 3.5M    (wholesale 25, margin 10)
+#   Scale    300,000 cr @ UGX 30/SMS = UGX 9.0M    (wholesale 20, margin 10)
+#
+# Enterprise (600,000+) has no Plan row — the master quotes it manually.
+#
+# Credits never expire: validity_days is set to PERPETUAL_DAYS so a
+# subscription granted from any of these plans effectively never lapses.
 # ----------------------------------------------------------------------
 STARTER_PLANS = [
     dict(
         name='Starter',
         sort_order=10,
         tier_min=1,
-        tier_max=1_000,
-        price=50_000,
+        tier_max=10_000,
+        price=45_000,
         credits=1_000,
-        max_contacts=1_000,
+        max_contacts=5_000,
         max_per_minute=30,
         max_per_day=2_000,
         is_featured=False,
@@ -58,40 +78,41 @@ STARTER_PLANS = [
     dict(
         name='Growth',
         sort_order=20,
-        tier_min=1_001,
-        tier_max=10_000,
-        price=450_000,
+        tier_min=10_001,
+        tier_max=100_000,
+        price=400_000,
         credits=10_000,
-        max_contacts=10_000,
+        max_contacts=50_000,
         max_per_minute=60,
-        max_per_day=10_000,
+        max_per_day=5_000,
         is_featured=True,
     ),
     dict(
         name='Business',
         sort_order=30,
-        tier_min=10_001,
-        tier_max=50_000,
-        price=2_000_000,
-        credits=50_000,
-        max_contacts=50_000,
+        tier_min=100_001,
+        tier_max=300_000,
+        price=3_500_000,
+        credits=100_000,
+        max_contacts=500_000,
         max_per_minute=120,
-        max_per_day=30_000,
+        max_per_day=10_000,
         is_featured=False,
     ),
     dict(
         name='Scale',
         sort_order=40,
-        tier_min=50_001,
-        tier_max=200_000,
-        price=7_000_000,
-        credits=200_000,
-        max_contacts=200_000,
+        tier_min=300_001,
+        tier_max=600_000,
+        price=9_000_000,
+        credits=300_000,
+        max_contacts=None,   # unlimited
         max_per_minute=240,
-        max_per_day=100_000,
+        max_per_day=20_000,
         is_featured=False,
     ),
 ]
+
 
 def main():
     app = create_app()
@@ -203,11 +224,28 @@ def main():
                     max_per_day=spec['max_per_day'],
                     is_featured=spec['is_featured'],
                     is_active=True,
-                    validity_days=None,   # no expiry
+                    validity_days=PERPETUAL_DAYS,
                 ))
             print(f'Seeded {len(STARTER_PLANS)} tier plans.')
+
+            # Print the price table for confirmation.
+            print()
+            print('  ' + '-' * 70)
+            print(f'  {"Plan":<10} {"Bundle":>10} {"Band":>20} '
+                  f'{"Rate":>6} {"Price":>14}')
+            print('  ' + '-' * 70)
+            for spec in STARTER_PLANS:
+                rate = spec['price'] // spec['credits']
+                band = f'{spec["tier_min"]:,}–{spec["tier_max"]:,}'
+                print(f'  {spec["name"]:<10} '
+                      f'{spec["credits"]:>10,} '
+                      f'{band:>20} '
+                      f'UGX {rate:>3} '
+                      f'{spec["price"]:>14,}')
+            print('  ' + '-' * 70)
         else:
-            print('Plans already present.')
+            print('Plans already present. Run '
+                  'scripts/update_prices_2026_10.py to reprice.')
 
         db.session.commit()
 
