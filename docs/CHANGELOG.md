@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.10.0] — Plan pricing revision; credits never expire
+
+### Changed
+- **Retail rates lowered across every tier.** Starter 50→45,
+  Growth 45→40, Business 40→35, Scale 35→30. Margin is now a flat
+  UGX 10 per SMS on every tier (previously 15 on Starter, 10 elsewhere).
+- **Plans are one-time purchases with no expiry.** `Plan.validity_days`
+  is set to `36500` (100 years) as a perpetual sentinel. The display
+  layer renders "No expiry" for any value at or above that.
+- **Existing plans deactivated, new plans inserted.** Per the
+  grandfathering rule in `docs/PRICING.md`. Existing subscribers keep
+  the prior rate until renewal.
+
+### Added
+- `scripts/update_prices_2026_10.py` — one-shot migration script.
+  Dry-run by default, requires `--apply` to commit. Idempotent.
+
+### Why
+- The 0.7.1 increase took a 5 UGX buffer per SMS to cover wholesale
+  variance. Flat 10 UGX per tier achieves the same buffer with a
+  cleaner structure.
+- Retail bands now align with Pahappa's wholesale bands, so the
+  advertised band matches the plan's actual pricing tier.
+- Credits never expiring simplifies the associate's mental model: buy
+  once, use whenever.
+
+### Notes
+- Enterprise tier (600,000+ credits) is quoted manually by the master.
+  Not represented as a `Plan` row.
+- The public pricing page shows four tiers (Starter, Growth, Business,
+  Scale).
+- Balance display: unchanged. Credits are still UGX-priced in the UI,
+  using the org's plan rate.
+  
 ## [0.9.1] — Opt-out link removed from outbound messages
 
 ### Changed

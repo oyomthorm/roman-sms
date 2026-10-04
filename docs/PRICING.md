@@ -12,32 +12,48 @@ see on the plans page.
   - UGX 20 for 300,001 – 600,000
   - Contact sales for 600,000+
 - **Segment multiplier.** Messages over 160 characters cost more per
-  segment. Opt-out link adds roughly 60 characters. A 100-char body
-  stays one segment; a 140-char body becomes two.
+  segment. A 100-char body stays one segment; a 140-char body becomes
+  two.
 - **Failure rate buffer.** Assume 2–5% of sends fail and are refunded.
   Lost revenue but not lost wholesale — Pahappa does not bill failed
   sends.
 
-## Retail tiers (current — after the 0.7.1 increase)
+## Retail tiers (current — October 2026)
 
-| Plan | Credits | Price (UGX) | Rate/SMS | Wholesale | Margin |
-|---|---|---|---|---|---|
-| Starter | 1,000 | 50,000 | 50 | 35 | 15 |
-| Growth | 10,000 | 450,000 | 45 | 35 | 10 |
-| Business | 50,000 | 2,000,000 | 40 | 30 | 10 |
-| Scale | 200,000 | 7,000,000 | 35 | 25 | 10 |
+| Plan | Bundle | Advertised band | Rate/SMS | Price (UGX) | Wholesale | Margin |
+|---|---|---|---|---|---|---|
+| Starter | 1,000 | 1 – 10,000 | 45 | 45,000 | 35 | 10 |
+| Growth | 10,000 | 10,001 – 100,000 | 40 | 400,000 | 30 | 10 |
+| Business | 100,000 | 100,001 – 300,000 | 35 | 3,500,000 | 25 | 10 |
+| Scale | 300,000 | 300,001 – 600,000 | 30 | 9,000,000 | 20 | 10 |
+| Enterprise | quoted | 600,000+ | quoted | quoted | quoted | quoted |
 
-Every tier's rate sits above the wholesale rate for that volume band.
-The Starter tier carries the largest absolute margin and serves as an
-entry point.
+Every published tier earns a **flat UGX 10 margin per SMS**. This is a
+change from the prior schedule, where Starter carried 15 and the other
+tiers carried 10.
 
-> **History.** The 0.7.1 release raised every tier by UGX 5 per SMS
-> (Starter 45→50, Growth 40→45, Business 35→40, Scale 30→35) after two
-> consecutive test sends came back at UGX 35 and UGX 20 wholesale. The
-> 5 UGX buffer covers the worst-case wholesale rate on every tier.
-> Applied via `scripts/update_prices_2026_10.py`. Invoices created
-> before the change are unaffected — prices are snapshotted at invoice
-> creation.
+Each plan advertises a volume band (matching Pahappa's wholesale bands),
+but the plan itself is a fixed bundle at the lower edge of the band.
+Buying more than the advertised band requires a custom quote via the
+master (Enterprise).
+
+**Enterprise (600,000+):** no fixed plan. The master quotes manually.
+The pricing page does not show an Enterprise tier.
+
+**Credits never expire.** A plan is a one-time purchase. Credits land
+in the append-only wallet and remain usable indefinitely. There is no
+monthly subscription cycle. The internal `validity_days` field is set
+to `36500` (100 years) as a perpetual sentinel; the display layer
+renders "No expiry" for anything >= that value.
+
+> **History.** The 0.7.1 release (Oct 2026) raised every tier by UGX 5
+> per SMS after two consecutive test sends came back at UGX 35 and
+> UGX 20 wholesale. The October 2026 revision reverses that increase
+> and takes a flat 10 UGX margin on every tier, aligning each tier's
+> retail rate to its wholesale band. Applied via
+> `scripts/update_prices_2026_10.py`. Old plan rows are deactivated,
+> not edited. Invoices created before the change are unaffected —
+> prices are snapshotted at invoice creation.
 
 ## Free credit grants
 
@@ -65,6 +81,9 @@ entry point.
 - Review pricing quarterly. If wholesale cost changes, existing plans
   are grandfathered for the current subscription period but new plans
   reflect the new cost.
+- To change prices again, write a new dated script following the
+  pattern in `scripts/update_prices_2026_10.py`. Never edit a live
+  plan's price directly — always deactivate and insert.
 
 ## Competitor notes
 

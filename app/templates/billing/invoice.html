@@ -35,7 +35,13 @@
       </div>
       <div>
         <div class="text-xs uppercase text-slate-500">Validity</div>
-        <div class="font-medium">{{ invoice.validity_days }} days</div>
+        <div class="font-medium">
+          {% if not invoice.validity_days or invoice.validity_days >= 36500 %}
+            No expiry
+          {% else %}
+            {{ invoice.validity_days }} days
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>

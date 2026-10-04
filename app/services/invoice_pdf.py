@@ -103,6 +103,15 @@ def render_invoice(invoice) -> bytes:
 # Sections
 # ---------------------------------------------------------------------------
 
+PERPETUAL_DAYS = 36500
+
+
+def _validity_label(days):
+    """Human label for the invoice validity column."""
+    if not days or days >= PERPETUAL_DAYS:
+        return 'No expiry'
+    return f'{days} days'
+
 def _meta_and_billto(invoice):
     """Return a two-column table: invoice meta | bill-to block."""
     meta = [
@@ -169,7 +178,7 @@ def _line_items(invoice):
     rows.append([
         invoice.plan_name or 'Plan',
         f'{invoice.credits:,}',
-        f'{invoice.validity_days} days',
+        _validity_label(invoice.validity_days),
         f'{invoice.currency} {float(invoice.amount):,.0f}',
     ])
     t = Table(rows, colWidths=[85 * mm, 30 * mm, 30 * mm, 30 * mm])
