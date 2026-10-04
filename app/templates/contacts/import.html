@@ -5,7 +5,7 @@
 {% block content %}
 
 <div class="max-w-4xl">
-  <div class="mb-6 flex items-start justify-between gap-4">
+  <div class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
     <div>
       <a href="{{ url_for('contacts.index') }}"
          class="text-sm text-slate-500 hover:text-slate-900 transition">← Contacts</a>
@@ -22,8 +22,7 @@
   {# ---------------------------------------------------------------- #}
   {# Step 1 — Format guidance                                          #}
   {# ---------------------------------------------------------------- #}
-
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 mb-6">
     <h2 class="font-semibold text-slate-900 mb-2">1. Prepare your file</h2>
     <p class="text-sm text-slate-600 mb-3">
       Your CSV must have a header row with a phone number column.
@@ -66,11 +65,11 @@
     {# ---------------------------------------------------------------- #}
     {# Step 2 — File + options                                           #}
     {# ---------------------------------------------------------------- #}
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 mb-6">
       <h2 class="font-semibold text-slate-900 mb-3">2. Choose your file</h2>
 
       <label for="file"
-             class="block border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition">
+             class="block border-2 border-dashed border-slate-300 rounded-xl p-6 sm:p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition">
         <input type="file" name="file" id="file" accept=".csv,text/csv"
                class="hidden">
         <div class="text-slate-600">
@@ -142,7 +141,7 @@
     {# ---------------------------------------------------------------- #}
     {# Step 3 — Preview                                                  #}
     {# ---------------------------------------------------------------- #}
-    <div id="preview-wrap" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+    <div id="preview-wrap" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="font-semibold text-slate-900">3. Review</h2>
         <button type="button" id="clear-btn"
@@ -154,23 +153,23 @@
       <div id="summary" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         <div class="bg-slate-50 rounded-lg p-3">
           <div class="text-xs font-medium uppercase text-slate-500">Total rows</div>
-          <div class="text-xl font-semibold text-slate-900" id="s-total">0</div>
+          <div class="text-xl font-semibold text-slate-900 tabular-nums" id="s-total">0</div>
         </div>
         <div class="bg-emerald-50 rounded-lg p-3">
           <div class="text-xs font-medium uppercase text-emerald-700">Will add</div>
-          <div class="text-xl font-semibold text-emerald-700" id="s-add">0</div>
+          <div class="text-xl font-semibold text-emerald-700 tabular-nums" id="s-add">0</div>
         </div>
         <div class="bg-amber-50 rounded-lg p-3">
           <div class="text-xs font-medium uppercase text-amber-700">Duplicates</div>
-          <div class="text-xl font-semibold text-amber-700" id="s-dup">0</div>
+          <div class="text-xl font-semibold text-amber-700 tabular-nums" id="s-dup">0</div>
         </div>
         <div class="bg-slate-100 rounded-lg p-3">
           <div class="text-xs font-medium uppercase text-slate-600">Opted out</div>
-          <div class="text-xl font-semibold text-slate-600" id="s-opt">0</div>
+          <div class="text-xl font-semibold text-slate-600 tabular-nums" id="s-opt">0</div>
         </div>
         <div class="bg-red-50 rounded-lg p-3">
           <div class="text-xs font-medium uppercase text-red-700">Invalid</div>
-          <div class="text-xl font-semibold text-red-700" id="s-invalid">0</div>
+          <div class="text-xl font-semibold text-red-700 tabular-nums" id="s-invalid">0</div>
         </div>
       </div>
 
@@ -178,8 +177,10 @@
                              rounded-lg p-4 mb-4 text-sm"></div>
 
       <div class="max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-left sticky top-0">
+
+        {# ---- Desktop table ---- #}
+        <table class="hidden md:table w-full text-sm">
+          <thead class="bg-slate-50 text-left sticky top-0 z-10">
             <tr>
               <th class="p-2 w-14 font-semibold text-slate-700">Row</th>
               <th class="p-2 font-semibold text-slate-700">Phone (input)</th>
@@ -192,21 +193,28 @@
           </thead>
           <tbody id="preview-body" class="divide-y divide-slate-100"></tbody>
         </table>
+
+        {# ---- Mobile cards (JS-populated) ---- #}
+        <div id="preview-cards" class="md:hidden divide-y divide-slate-100"></div>
+
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
       <button type="submit" id="submit-btn" disabled
-              class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
                      disabled:opacity-40 disabled:cursor-not-allowed
-                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm
+                     w-full sm:w-auto">
         Import contacts
       </button>
-      <span id="submit-hint" class="text-sm text-slate-500">
+      <span id="submit-hint" class="text-sm text-slate-500 text-center sm:text-left">
         Select a file to continue.
       </span>
       <a href="{{ url_for('contacts.index') }}"
-         class="text-slate-600 text-sm ml-auto">Cancel</a>
+         class="text-slate-600 text-sm text-center sm:text-left sm:ml-auto py-2.5 sm:py-0">
+        Cancel
+      </a>
     </div>
   </form>
 </div>
@@ -217,13 +225,13 @@
   const existingPhones = new Set({{ existing_phones | tojson }});
   const optOutPhones   = new Set({{ opt_out_phones | tojson }});
 
-  // Cache the on_duplicate select so we can react to changes.
   const onDupSelect = document.querySelector('select[name="on_duplicate"]');
 
   const fileInput = document.getElementById('file');
   const fileLabel = document.getElementById('file-label');
   const previewWrap = document.getElementById('preview-wrap');
   const previewBody = document.getElementById('preview-body');
+  const previewCards = document.getElementById('preview-cards');
   const fatalBox = document.getElementById('fatal');
   const submitBtn = document.getElementById('submit-btn');
   const submitHint = document.getElementById('submit-hint');
@@ -235,8 +243,6 @@
   const sOpt = document.getElementById('s-opt');
   const sInvalid = document.getElementById('s-invalid');
 
-  // Mirror of services/phones.normalize_ug. Keep in sync.
-  // The server is authoritative; this is only for preview.
   function normalizeUG(raw) {
     const d = String(raw || '').replace(/\D/g, '');
     if (!d) return { canonical: null, reason: 'empty' };
@@ -279,7 +285,6 @@
     })[c]);
   }
 
-  // Cache the parsed rows so we can re-render on strategy change.
   let cachedRows = null;
 
   function reset() {
@@ -287,6 +292,7 @@
     fatalBox.classList.add('hidden');
     fatalBox.textContent = '';
     previewBody.innerHTML = '';
+    previewCards.innerHTML = '';
     submitBtn.disabled = true;
     submitHint.textContent = 'Select a file to continue.';
     fileLabel.textContent = 'Click to select a CSV file';
@@ -314,6 +320,16 @@
       'invalid':   'text-red-700',
     }[status] || 'text-slate-700';
 
+    const bgCls = {
+      'new':       'bg-emerald-100 text-emerald-800',
+      'update':    'bg-sky-100 text-sky-800',
+      'dup_file':  'bg-amber-100 text-amber-800',
+      'dup_db':    'bg-amber-100 text-amber-800',
+      'optout':    'bg-slate-100 text-slate-700',
+      'invalid':   'bg-red-100 text-red-800',
+    }[status] || 'bg-slate-100 text-slate-700';
+
+    // Desktop: table row
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="p-2 text-slate-400 text-xs">${index}</td>
@@ -327,6 +343,31 @@
       <td class="p-2 text-xs font-medium ${cls}">${label}</td>
     `;
     previewBody.appendChild(tr);
+
+    // Mobile: card
+    const card = document.createElement('div');
+    card.className = 'p-3';
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-3 mb-1">
+        <div class="font-mono text-xs text-slate-600 min-w-0 truncate">
+          ${escapeHtml(row.raw_phone) || '—'}
+        </div>
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${bgCls}">
+          ${label}
+        </span>
+      </div>
+      ${row.canonical
+        ? `<div class="font-mono text-xs text-slate-900 mb-1">→ ${escapeHtml(row.canonical)}</div>`
+        : `<div class="text-xs text-red-600 mb-1">${escapeHtml(row.reason || 'invalid')}</div>`}
+      ${(row.name || row.group || row.district) ? `
+      <div class="flex flex-wrap gap-1 mt-1.5">
+        ${row.name ? `<span class="text-[11px] text-slate-700">${escapeHtml(row.name)}</span>` : ''}
+        ${row.group ? `<span class="text-[11px] text-slate-500">· ${escapeHtml(row.group)}</span>` : ''}
+        ${row.district ? `<span class="text-[11px] text-slate-500">· ${escapeHtml(row.district)}</span>` : ''}
+      </div>` : ''}
+      <div class="text-[10px] text-slate-400 mt-1">row ${index}</div>
+    `;
+    previewCards.appendChild(card);
   }
 
   function renderPreview() {
@@ -335,9 +376,10 @@
     const onDup = onDupSelect ? onDupSelect.value : 'skip';
 
     previewBody.innerHTML = '';
+    previewCards.innerHTML = '';
     let add = 0, dup = 0, opt = 0, inv = 0, upd = 0;
 
-    cachedRows.forEach(function (row, i) {
+    cachedRows.forEach(function (row) {
       const idx = row.row_num;
 
       if (!row.canonical) {
@@ -374,7 +416,7 @@
     });
 
     sTotal.textContent = cachedRows.length;
-    sAdd.textContent = add + upd;   // "Will add" bucket includes updates
+    sAdd.textContent = add + upd;
     sDup.textContent = dup;
     sOpt.textContent = opt;
     sInvalid.textContent = inv;
@@ -421,12 +463,10 @@
       );
     }
 
-    // Find the actual header key for phone (case-insensitive).
     const headerKeys = Object.keys(rows[0]);
     const phoneKey = headerKeys.find(k =>
       acceptedPhoneFields.includes(k.toLowerCase().trim()));
 
-    // Normalize every row.
     const seenInFile = new Set();
     const normalized = rows.map(function (raw, i) {
       const lower = {};
@@ -437,8 +477,6 @@
       const rawPhone = (raw[phoneKey] || '').trim();
       const { canonical, reason } = normalizeUG(rawPhone);
 
-      // Track in-file duplicates only for canonical numbers we have not
-      // seen before.
       let inFileDup = false;
       if (canonical) {
         if (seenInFile.has(canonical)) {
@@ -449,7 +487,7 @@
       }
 
       return {
-        row_num: i + 2,               // +2 for header + 1-based index
+        row_num: i + 2,
         raw_phone: rawPhone,
         canonical: canonical,
         reason: reason,
@@ -491,7 +529,6 @@
     previewFile(f);
   });
 
-  // Re-render when the user changes the on_duplicate strategy.
   if (onDupSelect) {
     onDupSelect.addEventListener('change', renderPreview);
   }

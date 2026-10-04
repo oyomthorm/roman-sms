@@ -10,7 +10,7 @@
        class="text-sm text-slate-500 hover:text-slate-900 transition">← Contacts</a>
   </div>
 
-  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-5">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div>
@@ -18,6 +18,7 @@
       <input name="phone" required
              value="{{ contact.phone if contact else '' }}"
              {% if contact %}readonly{% endif %}
+             inputmode="tel" autocomplete="tel"
              placeholder="0700123456"
              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-mono
                     placeholder:text-slate-400
@@ -35,6 +36,7 @@
         Name <span class="text-slate-400 font-normal">(optional)</span>
       </label>
       <input name="name" value="{{ contact.name or '' if contact else '' }}"
+             autocomplete="name"
              placeholder="e.g. Alice Mukasa"
              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
                     placeholder:text-slate-400
@@ -92,16 +94,20 @@
       </p>
     </div>
 
-    <div class="flex items-center gap-3 pt-2">
-      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
+      <button class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm
+                     w-full sm:w-auto">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
         </svg>
         Save contact
       </button>
       <a href="{{ url_for('contacts.index') }}"
-         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">Cancel</a>
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition
+                text-center sm:text-left py-2.5 sm:py-0">
+        Cancel
+      </a>
     </div>
   </form>
 </div>

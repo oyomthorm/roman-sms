@@ -4,30 +4,33 @@
 {% block page_header_mobile %}Contacts{% endblock %}
 {% block content %}
 
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
   <div>
     <p class="text-sm text-slate-500">Your customer list, in one place.</p>
   </div>
-  <div class="flex gap-2">
+  <div class="flex flex-col sm:flex-row gap-2">
     <a href="{{ url_for('contacts.import_page') }}"
-       class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
-              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+       class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
+              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition
+              w-full sm:w-auto order-2 sm:order-1">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
       </svg>
       Import
     </a>
     <a href="{{ url_for('contacts.export') }}"
-       class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
-              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+       class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
+              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition
+              w-full sm:w-auto order-3 sm:order-2">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/>
       </svg>
       Export
     </a>
     <a href="{{ url_for('contacts.new') }}"
-       class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-              text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+       class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm
+              w-full sm:w-auto order-1 sm:order-3">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -36,7 +39,7 @@
   </div>
 </div>
 
-<form method="get" class="flex flex-col lg:flex-row gap-2 mb-4">
+<form method="get" class="space-y-2 sm:space-y-0 sm:flex sm:flex-col lg:flex-row sm:gap-2 mb-4">
   <div class="relative flex-1">
     <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
          fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -50,7 +53,7 @@
   </div>
 
   <select name="group_id"
-          class="rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+          class="w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
     <option value="">All groups</option>
     {% for g, c in groups %}
@@ -61,7 +64,7 @@
   </select>
 
   <select name="district_id"
-          class="rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+          class="w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
     <option value="">All districts</option>
     {% for region, districts in districts_by_region %}
@@ -74,12 +77,16 @@
     {% endfor %}
   </select>
 
-  <button class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium
-                 px-5 py-2.5 rounded-lg transition">Filter</button>
+  <button class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium
+                 px-5 py-2.5 rounded-lg transition">
+    Filter
+  </button>
 </form>
 
-<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-  {% if contacts %}
+{% if contacts %}
+
+{# ---- Desktop table ---- #}
+<div class="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-slate-50 border-b border-slate-200 text-left">
       <tr>
@@ -154,28 +161,83 @@
       {% endfor %}
     </tbody>
   </table>
-  {% else %}
-  <div class="text-center py-16 px-4">
-    <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round"
-            d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/>
-    </svg>
-    <div class="text-slate-600 font-medium">No contacts yet</div>
-    <div class="text-sm text-slate-400 mt-1 mb-4">Add one manually or import from CSV.</div>
-    <div class="flex gap-2 justify-center">
-      <a href="{{ url_for('contacts.new') }}"
-         class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
-                text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-        Add contact
+</div>
+
+{# ---- Mobile cards ---- #}
+<div class="md:hidden space-y-3">
+  {% for c in contacts %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-4">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div class="min-w-0">
+          <div class="font-semibold text-slate-900 truncate">{{ c.name or 'No name' }}</div>
+          <div class="font-mono text-xs text-slate-500 mt-0.5">{{ c.phone }}</div>
+        </div>
+        {% if c.opted_out %}
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">opted out</span>
+        {% else %}
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">active</span>
+        {% endif %}
+      </div>
+      <div class="flex flex-wrap gap-1.5 mt-3">
+        {% if c.group %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+          {{ c.group.name }}
+        </span>
+        {% endif %}
+        {% if c.district %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+          {{ c.district.name }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="border-t border-slate-100 flex divide-x divide-slate-100">
+      <a href="{{ url_for('contacts.edit', cid=c.id) }}"
+         class="flex-1 text-center text-sm font-medium text-slate-600 hover:bg-slate-50 py-2.5 transition">
+        Edit
       </a>
-      <a href="{{ url_for('contacts.import_page') }}"
-         class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
-                text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
-        Import CSV
-      </a>
+      {% if not c.opted_out %}
+      <form method="post" action="{{ url_for('contacts.optout', cid=c.id) }}" class="flex-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="w-full text-center text-sm font-medium text-amber-600 hover:bg-amber-50 py-2.5 transition">
+          Opt out
+        </button>
+      </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('contacts.delete', cid=c.id) }}" class="flex-1"
+            onsubmit="return confirm('Delete this contact?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="w-full text-center text-sm font-medium text-red-600 hover:bg-red-50 py-2.5 transition">
+          Delete
+        </button>
+      </form>
     </div>
   </div>
-  {% endif %}
+  {% endfor %}
 </div>
+
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
+  <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/>
+  </svg>
+  <div class="text-slate-600 font-medium">No contacts yet</div>
+  <div class="text-sm text-slate-400 mt-1 mb-4">Add one manually or import from CSV.</div>
+  <div class="flex flex-col sm:flex-row gap-2 justify-center">
+    <a href="{{ url_for('contacts.new') }}"
+       class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+              text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+      Add contact
+    </a>
+    <a href="{{ url_for('contacts.import_page') }}"
+       class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
+              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+      Import CSV
+    </a>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}

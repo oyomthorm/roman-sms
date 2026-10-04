@@ -10,12 +10,12 @@
   <div class="mb-6">
     <a href="{{ url_for('contacts.index') }}"
        class="text-sm text-slate-500 hover:text-slate-900 transition">← Contacts</a>
-    <div class="flex items-start justify-between mt-2 gap-4 flex-wrap">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mt-2 gap-4">
       <div class="min-w-0">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">
           Import #{{ job.id }}
         </h1>
-        <p class="text-sm text-slate-500 mt-1 truncate">
+        <p class="text-sm text-slate-500 mt-1 break-words">
           {{ job.filename or 'file.csv' }}
           · {{ job.created_at.strftime('%d %b %Y, %H:%M') }}
           {% if job.user %}
@@ -24,21 +24,23 @@
           · strategy: {{ job.on_duplicate }}
         </p>
       </div>
-      <div class="flex gap-2 shrink-0">
+      <div class="flex flex-col sm:flex-row gap-2 shrink-0">
         {% if job.has_issues %}
         <a href="{{ url_for('contacts.import_issues_csv', job_id=job.id) }}"
-           class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
-                  text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+           class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
+                  text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition
+                  w-full sm:w-auto">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round"
                   d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/>
           </svg>
-          Download skipped rows
+          Download skipped
         </a>
         {% endif %}
         <a href="{{ url_for('contacts.import_history') }}"
-           class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
-                  text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+           class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
+                  text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition
+                  w-full sm:w-auto">
           All imports
         </a>
       </div>
@@ -53,7 +55,7 @@
       <path stroke-linecap="round" stroke-linejoin="round"
             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
-    <div>
+    <div class="min-w-0">
       <div class="font-semibold text-emerald-900">
         {{ job.effective_rows }} contact{{ '' if job.effective_rows == 1 else 's' }}
         imported
@@ -78,7 +80,7 @@
       <path stroke-linecap="round" stroke-linejoin="round"
             d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
     </svg>
-    <div>
+    <div class="min-w-0">
       <div class="font-semibold text-amber-900">
         Stopped at your plan contact limit
       </div>
@@ -91,36 +93,36 @@
   {% endif %}
 
   {# Counts grid #}
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
       <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
         Total rows
       </div>
-      <div class="text-2xl font-bold text-slate-900 mt-1">
+      <div class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 tabular-nums">
         {{ '{:,}'.format(job.total_rows or 0) }}
       </div>
     </div>
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
       <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
         Added
       </div>
-      <div class="text-2xl font-bold text-emerald-600 mt-1">
+      <div class="text-xl sm:text-2xl font-bold text-emerald-600 mt-1 tabular-nums">
         {{ '{:,}'.format(job.added or 0) }}
       </div>
     </div>
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
       <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
         Updated
       </div>
-      <div class="text-2xl font-bold text-sky-600 mt-1">
+      <div class="text-xl sm:text-2xl font-bold text-sky-600 mt-1 tabular-nums">
         {{ '{:,}'.format(job.updated or 0) }}
       </div>
     </div>
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
       <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
         Skipped
       </div>
-      <div class="text-2xl font-bold text-amber-600 mt-1">
+      <div class="text-xl sm:text-2xl font-bold text-amber-600 mt-1 tabular-nums">
         {{ '{:,}'.format((job.skipped_duplicate or 0)
                          + (job.skipped_in_file or 0)
                          + (job.skipped_opt_out or 0)
@@ -135,19 +137,21 @@
     <div class="px-5 py-4 border-b border-slate-200">
       <h2 class="font-semibold text-slate-900">Rows that were not imported</h2>
       <p class="text-xs text-slate-500 mt-0.5">
-        Click a category to filter. Download the CSV at the top to fix
+        Tap a category to filter. Download the CSV at the top to fix
         and re-upload these rows.
       </p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-100
+    {% set cats = [
+      ('invalid',        'Invalid phone',     'red'),
+      ('duplicate_db',   'Already in list',   'amber'),
+      ('duplicate_file', 'Duplicate in file', 'amber'),
+      ('opted_out',      'Opted out',         'slate')
+    ] %}
+
+    {# Desktop: 4 columns, single row #}
+    <div class="hidden md:grid md:grid-cols-4 divide-x divide-slate-100
                 border-b border-slate-100">
-      {% set cats = [
-        ('invalid',        'Invalid phone',     'red'),
-        ('duplicate_db',   'Already in list',   'amber'),
-        ('duplicate_file', 'Duplicate in file', 'amber'),
-        ('opted_out',      'Opted out',         'slate')
-      ] %}
       {% for key, label, colour in cats %}
       <a href="{{ url_for('contacts.import_report', job_id=job.id,
                            status=('' if active_status == key else key)) }}"
@@ -155,7 +159,26 @@
                 {% if active_status == key %}bg-slate-100{% endif %}">
         <div class="text-xs font-medium uppercase tracking-wider
                     text-{{ colour }}-600">{{ label }}</div>
-        <div class="text-2xl font-bold text-slate-900 mt-1">
+        <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+          {{ counts[key] }}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    {# Mobile: 2x2 grid #}
+    <div class="md:hidden grid grid-cols-2 border-b border-slate-100">
+      {% for key, label, colour in cats %}
+      <a href="{{ url_for('contacts.import_report', job_id=job.id,
+                           status=('' if active_status == key else key)) }}"
+         class="p-4 border-slate-100
+                {% if loop.index <= 2 %}border-b{% endif %}
+                {% if loop.index is odd %}border-r{% endif %}
+                {% if active_status == key %}bg-slate-100{% else %}hover:bg-slate-50{% endif %}
+                transition">
+        <div class="text-[10px] font-medium uppercase tracking-wider
+                    text-{{ colour }}-600">{{ label }}</div>
+        <div class="text-xl font-bold text-slate-900 mt-1 tabular-nums">
           {{ counts[key] }}
         </div>
       </a>
@@ -163,34 +186,61 @@
     </div>
 
     {% if issues %}
-    <table class="w-full text-sm">
-      <thead class="bg-slate-50 border-b border-slate-200 text-left">
-        <tr>
-          <th class="px-5 py-3 font-semibold text-slate-700 w-16">Row</th>
-          <th class="px-5 py-3 font-semibold text-slate-700">Phone</th>
-          <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
-          <th class="px-5 py-3 font-semibold text-slate-700">Reason</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100">
-        {% for r in issues %}
-        <tr class="hover:bg-slate-50/50 transition">
-          <td class="px-5 py-3 text-slate-400 text-xs">{{ r.row_num }}</td>
-          <td class="px-5 py-3 font-mono text-xs text-slate-700">
-            {{ r.raw_phone or '—' }}
-          </td>
-            <td class="px-5 py-3 text-slate-700">
-            {% if r.name %}
-                {{ r.name }}
-            {% else %}
-                <span class="text-slate-400 italic">no name</span>
-            {% endif %}
+
+    {# ---- Desktop table ---- #}
+    <div class="hidden md:block">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200 text-left">
+          <tr>
+            <th class="px-5 py-3 font-semibold text-slate-700 w-16">Row</th>
+            <th class="px-5 py-3 font-semibold text-slate-700">Phone</th>
+            <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+            <th class="px-5 py-3 font-semibold text-slate-700">Reason</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in issues %}
+          <tr class="hover:bg-slate-50/50 transition">
+            <td class="px-5 py-3 text-slate-400 text-xs">{{ r.row_num }}</td>
+            <td class="px-5 py-3 font-mono text-xs text-slate-700">
+              {{ r.raw_phone or '—' }}
             </td>
-          <td class="px-5 py-3 text-slate-600 text-xs">{{ r.reason or '' }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            <td class="px-5 py-3 text-slate-700">
+              {% if r.name %}
+                  {{ r.name }}
+              {% else %}
+                  <span class="text-slate-400 italic">no name</span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-slate-600 text-xs">{{ r.reason or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ---- Mobile cards ---- #}
+    <div class="md:hidden divide-y divide-slate-100">
+      {% for r in issues %}
+      <div class="p-4">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <div class="font-mono text-xs text-slate-700 min-w-0 truncate">
+            {{ r.raw_phone or '—' }}
+          </div>
+          <div class="shrink-0 text-[10px] text-slate-400 font-mono">
+            row {{ r.row_num }}
+          </div>
+        </div>
+        {% if r.name %}
+        <div class="text-sm text-slate-900 truncate">{{ r.name }}</div>
+        {% else %}
+        <div class="text-sm text-slate-400 italic">no name</div>
+        {% endif %}
+        <div class="text-xs text-slate-500 mt-1.5">{{ r.reason or '' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
     {% else %}
     <div class="text-center py-12 text-slate-400 text-sm">
       Nothing in this category.
