@@ -11,27 +11,25 @@ Security:
 """
 import logging
 from datetime import datetime, timezone
-
 from flask import Blueprint, request, jsonify, current_app
-
 from app.extensions import db, csrf
 from app.models import MessageLog
 
 
 log = logging.getLogger('roman.webhooks')
-
 webhooks_bp = Blueprint('webhooks', __name__)
 
 
 def _parse_iso8601(value):
     """
-    Parse the deliveryDate field. Pahappa uses ISO 8601 with a Z suffix
-    (example: "2026-08-05T08:58:23.679Z"). Returns a naive UTC datetime
-    or None.
+    Parse the deliveryDate field. Pahappa sends ISO 8601 with a Z
+    suffix (e.g. "2026-08-05T08:58:23.679Z"). Returns a naive UTC
+    datetime or None.
 
-    Every DateTime in the schema is naive UTC (set from datetime.utcnow),
-    so we normalise the offset away here rather than storing a
-    server-local wall time.
+    Every DateTime column in the schema is naive UTC — set from
+    datetime.utcnow(). Converting to server-local time here would
+    make delivered_at the only column that isn't UTC, breaking
+    dashboard filters that compare it against utcnow().
     """
     if not value or not isinstance(value, str):
         return None
@@ -45,7 +43,7 @@ def _parse_iso8601(value):
     except (ValueError, TypeError):
         log.warning('Could not parse deliveryDate %r', value)
         return None
-
+    
 
 @webhooks_bp.route('/transaction-status/<token>', methods=['POST'])
 @csrf.exempt

@@ -168,25 +168,55 @@ def register_cli(app):
     @with_appcontext
     def fund_platform(amount, note):
         """
-        Add credits to the system org's sending wallet.
+        Allocate credits from the master wallet to the system org.
+
+        Atomic: debits master, credits platform, in one transaction.
+        The two wallets together represent the operator's Pahappa
+        balance, so the sum must not change.
 
         Example:
-            flask fund-platform 50000 --note "Pool sending budget"
+            flask fund-platform 500 --note "Pool sending budget"
         """
         if amount <= 0:
             raise click.ClickException('Amount must be positive.')
+
+        master = Organization.query.filter_by(is_master=True).first()
+        if not master:
+            raise click.ClickException('Master org not found. Run seed.')
 
         platform = Organization.query.filter_by(is_system=True).first()
         if not platform:
             raise click.ClickException(
                 'System org not found. Run seed.')
 
-        wallet_svc.credit(platform.id, amount,
-                          reason='master_topup', note=note)
-        db.session.commit()
-        click.echo(f'Added {amount} credits. '
-                   f'Platform balance: '
-                   f'{wallet_svc.get_balance(platform.id)}.')
+        master_balance = wallet_svc.get_balance(master.id)
+        if master_balance < amount:
+            raise click.ClickException(
+                f'Master wallet has {master_balance:,} credits, '
+                f'cannot allocate {amount:,}.'
+            )
+
+        try:
+            wallet_svc.debit(
+                master.id, amount,
+                reason='platform_allocation',
+                note=f'Allocated to platform: {note}',
+            )
+            wallet_svc.credit(
+                platform.id, amount,
+                reason='platform_allocation',
+                note=note,
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
+
+        click.echo(
+            f'Allocated {amount:,} credits.\n'
+            f'  Master:   {wallet_svc.get_balance(master.id):,}\n'
+            f'  Platform: {wallet_svc.get_balance(platform.id):,}'
+        )
 
     # ==================================================================
     # Organizations and users

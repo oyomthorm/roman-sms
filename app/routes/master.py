@@ -25,6 +25,8 @@ from app.services.renderer import with_prefix, segments
 from app.services.audit import log as audit
 from app.services import invoice_pdf
 
+from app.services import pahappa_balance
+
 master_bp = Blueprint('master', __name__)
 
 
@@ -107,6 +109,16 @@ def index():
                     .order_by(AuditLog.id.desc())
                     .limit(15).all())
 
+    # Master org's own wallet — the operator's internal balance
+    master_org = Organization.query.filter_by(is_master=True).first()
+    master_wallet = wallet_svc.get_balance(master_org.id) if master_org else 0
+
+    # Live Pahappa balance
+    pahappa = pahappa_balance.current()
+    drift = None
+    if pahappa['balance'] is not None:
+        drift = master_wallet - pahappa['balance']
+
     return render_template(
         'master/index.html',
         orgs=orgs,
@@ -121,8 +133,10 @@ def index():
             'queued': queued,
         },
         recent_audit=recent_audit,
+        master_wallet=master_wallet,
+        pahappa=pahappa,
+        drift=drift,
     )
-
 
 # ----------------------------------------------------------------------
 # Organizations
@@ -963,3 +977,66 @@ def invoice_pdf_download(invoice_id):
             'Content-Length': str(len(pdf_bytes)),
         },
     )
+    
+    
+@master_bp.route('/platform/sync-pahappa', methods=['POST'])
+@login_required
+@master_required
+def platform_sync_pahappa():
+    """
+    Bring the master wallet in line with Pahappa's live balance.
+
+    Writes a single compensating ledger row (credit or debit) so the
+    wallet equals Pahappa. Append-only — no rows are edited.
+    """
+    master_org = Organization.query.filter_by(is_master=True).first()
+    if not master_org:
+        flash('Master org missing. Run seed.', 'danger')
+        return redirect(url_for('master.index'))
+
+    # Force a fresh fetch — do not use the cached value for a sync
+    pahappa_balance.invalidate()
+    pahappa = pahappa_balance.current()
+
+    if pahappa['balance'] is None:
+        flash(f'Could not reach Pahappa: {pahappa["error"]}', 'danger')
+        return redirect(url_for('master.index'))
+
+    wallet = wallet_svc.get_balance(master_org.id)
+    delta = pahappa['balance'] - wallet
+
+    if delta == 0:
+        flash('Master wallet already matches Pahappa.', 'info')
+        return redirect(url_for('master.index'))
+
+    try:
+        if delta > 0:
+            wallet_svc.credit(
+                master_org.id, delta,
+                reason='pahappa_sync',
+                note=f'Sync to Pahappa balance ({pahappa["balance"]:,})',
+                actor_id=current_user.id,
+            )
+        else:
+            wallet_svc.debit(
+                master_org.id, -delta,
+                reason='pahappa_sync',
+                note=f'Sync to Pahappa balance ({pahappa["balance"]:,})',
+                actor_id=current_user.id,
+            )
+        db.session.commit()
+
+        audit('pahappa_sync',
+              f'master wallet {wallet:,} -> {pahappa["balance"]:,} '
+              f'(delta {delta:+,})',
+              org_id=master_org.id, actor_id=current_user.id)
+
+        flash(f'Master wallet synced. '
+              f'{"+" if delta > 0 else ""}{delta:,} credits.', 'success')
+
+    except wallet_svc.InsufficientCredits:
+        db.session.rollback()
+        flash('Sync failed: wallet has less than needed for the debit.',
+              'danger')
+
+    return redirect(url_for('master.index'))

@@ -5,6 +5,103 @@
 {% block page_header_mobile %}Master{% endblock %}
 {% block content %}
 
+{# ============================================================ #}
+{# PLATFORM CREDITS — master wallet vs Pahappa                  #}
+{# ============================================================ #}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+    <div>
+      <h2 class="font-semibold text-slate-900">Platform credits</h2>
+      <p class="text-xs text-slate-500 mt-0.5">
+        Your internal wallet compared to Pahappa's live wholesale balance.
+      </p>
+    </div>
+
+    {% if drift is not none and drift != 0 %}
+    <form method="post" action="{{ url_for('master.platform_sync_pahappa') }}"
+          class="shrink-0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="inline-flex items-center gap-2
+                     bg-slate-900 hover:bg-slate-800
+                     text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Sync to Pahappa
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+    {# Internal wallet #}
+    <div class="bg-slate-50 rounded-xl p-5">
+      <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+        Master wallet
+      </div>
+      <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+        {{ '{:,}'.format(master_wallet) }}
+      </div>
+      <div class="text-xs text-slate-500 mt-0.5">internal ledger</div>
+    </div>
+
+    {# Pahappa balance #}
+    <div class="bg-slate-50 rounded-xl p-5">
+      <div class="text-xs font-medium uppercase tracking-wider text-slate-500">
+        Pahappa balance
+      </div>
+      {% if pahappa.balance is not none %}
+      <div class="text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+        {{ '{:,}'.format(pahappa.balance) }}
+      </div>
+      <div class="text-xs text-slate-500 mt-0.5">
+        {% if pahappa.cached %}cached{% else %}fetched now{% endif %}
+        · {{ pahappa.fetched_at|int|datetimeformat if False else '' }}
+      </div>
+      {% else %}
+      <div class="text-2xl font-bold text-slate-400 mt-1">—</div>
+      <div class="text-xs text-red-600 mt-0.5 truncate" title="{{ pahappa.error }}">
+        {{ pahappa.error or 'unavailable' }}
+      </div>
+      {% endif %}
+    </div>
+
+    {# Drift #}
+    <div class="rounded-xl p-5
+                {% if drift is none %}bg-slate-50
+                {% elif drift == 0 %}bg-emerald-50
+                {% else %}bg-amber-50{% endif %}">
+      <div class="text-xs font-medium uppercase tracking-wider
+                  {% if drift is none %}text-slate-500
+                  {% elif drift == 0 %}text-emerald-700
+                  {% else %}text-amber-700{% endif %}">
+        Difference
+      </div>
+      {% if drift is none %}
+      <div class="text-2xl font-bold text-slate-400 mt-1">—</div>
+      <div class="text-xs text-slate-500 mt-0.5">cannot compute</div>
+      {% elif drift == 0 %}
+      <div class="text-2xl font-bold text-emerald-700 mt-1 tabular-nums">
+        In sync
+      </div>
+      <div class="text-xs text-emerald-700 mt-0.5">
+        wallet matches Pahappa
+      </div>
+      {% else %}
+      <div class="text-2xl font-bold text-amber-700 mt-1 tabular-nums">
+        {{ '{:+,}'.format(drift) }}
+      </div>
+      <div class="text-xs text-amber-700 mt-0.5">
+        {% if drift > 0 %}wallet overstates Pahappa{% else %}wallet understates Pahappa{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
 {# Stats grid #}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
