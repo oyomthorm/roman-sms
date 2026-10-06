@@ -32,7 +32,7 @@ def test_insufficient_credits_blocks_send(app, db, associate_org, plan):
         expires_at=datetime.utcnow() + timedelta(days=30),
         status='active',
     ))
-    wallet_svc.credit(associate_org.id, 5, reason='plan_grant')
+    wallet_svc.credit(associate_org.id, 5, reason='adjustment')
     db.session.commit()
     with pytest.raises(EntitlementError, match='Insufficient'):
         check_can_send(associate_org, 10)
@@ -45,7 +45,7 @@ def test_sufficient_credits_passes(app, db, associate_org, plan):
         expires_at=datetime.utcnow() + timedelta(days=30),
         status='active',
     ))
-    wallet_svc.credit(associate_org.id, 100, reason='plan_grant')
+    wallet_svc.credit(associate_org.id, 100, reason='adjustment')
     db.session.commit()
     sub = check_can_send(associate_org, 50)
     assert sub is not None

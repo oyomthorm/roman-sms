@@ -82,6 +82,13 @@ def master_org(db):
         status='active', is_master=True,
     )
     db.session.add(org)
+    db.session.flush()
+
+    # Fund the master reserve. Mirrors a Pahappa top-up at seed
+    # time. Every internal credit in the app debits this wallet,
+    # so tests that trigger grants need it non-empty.
+    wallet_svc.credit(org.id, 100_000, reason='master_opening_balance')
+
     db.session.commit()
     return org
 
@@ -170,7 +177,7 @@ def active_subscription(db, associate_org, plan):
 
 
 @pytest.fixture
-def subscribed_associate(db, associate_org, plan):
+def subscribed_associate(db, associate_org, master_org, plan):
     """Associate with an active subscription and a funded wallet."""
     sub = Subscription(
         org_id=associate_org.id, plan_id=plan.id,
@@ -179,7 +186,13 @@ def subscribed_associate(db, associate_org, plan):
         status='active', credits_granted=plan.credits,
     )
     db.session.add(sub)
-    wallet_svc.credit(associate_org.id, 500, reason='plan_grant')
+
+    # Transfer from the master reserve. `master_org` funds itself in
+    # its own fixture, so this never runs short.
+    wallet_svc.transfer(
+        master_org.id, associate_org.id, 500,
+        reason='plan_grant',
+    )
     db.session.commit()
     return associate_org
 
