@@ -5,12 +5,6 @@ server {
 }
 
 server {
-    listen 80;
-    server_name romansms.co.ug www.romansms.co.ug;
-    return 301 https://$host$request_uri;
-}
-
-server {
     listen 443 ssl http2;
     server_name romansms.co.ug www.romansms.co.ug;
 
@@ -27,6 +21,26 @@ server {
     # Deny access to sensitive paths
     location ~ /\.(env|git|venv) { deny all; }
     location ~ ^/(migrations|scripts|tests|venv)/ { deny all; }
+
+    # -----------------------------------------------------------------
+    # Webhook — must come BEFORE the general `location /` so it wins.
+    #
+    # access_log is OFF because the token lives in the URL path.
+    # Logging the request would write the secret to disk in plaintext,
+    # where any log reader could extract it.
+    # -----------------------------------------------------------------
+    location /api/webhooks/ {
+        access_log off;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 5s;
+    }
 
     location /static/ {
         alias /opt/roman-sms/app/static/;
