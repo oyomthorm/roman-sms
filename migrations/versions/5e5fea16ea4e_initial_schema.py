@@ -1,8 +1,8 @@
-"""initial postgres schema
+"""initial schema
 
-Revision ID: c0083793461a
+Revision ID: 5e5fea16ea4e
 Revises: 
-Create Date: 2026-10-01 20:37:18.005790
+Create Date: 2026-10-07 07:19:56.035649
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c0083793461a'
+revision = '5e5fea16ea4e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -47,14 +47,22 @@ def upgrade():
     sa.Column('price', sa.Numeric(precision=12, scale=2), nullable=False),
     sa.Column('currency', sa.String(length=3), nullable=True),
     sa.Column('credits', sa.Integer(), nullable=False),
-    sa.Column('validity_days', sa.Integer(), nullable=True),
+    sa.Column('tier_min', sa.Integer(), nullable=True),
+    sa.Column('tier_max', sa.Integer(), nullable=True),
+    sa.Column('sort_order', sa.Integer(), nullable=True),
+    sa.Column('is_featured', sa.Boolean(), nullable=True),
     sa.Column('max_contacts', sa.Integer(), nullable=True),
     sa.Column('max_per_minute', sa.Integer(), nullable=True),
     sa.Column('max_per_day', sa.Integer(), nullable=True),
+    sa.Column('validity_days', sa.Integer(), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('plan', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_plan_is_active'), ['is_active'], unique=False)
+        batch_op.create_index(batch_op.f('ix_plan_sort_order'), ['sort_order'], unique=False)
+
     op.create_table('organization',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=150), nullable=False),
@@ -125,6 +133,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('phone', sa.String(length=20), nullable=False),
     sa.Column('name', sa.String(length=120), nullable=True),
+    sa.Column('group_name', sa.String(length=80), nullable=True),
     sa.Column('district_id', sa.Integer(), nullable=True),
     sa.Column('source_org_id', sa.Integer(), nullable=False),
     sa.Column('source_contact_id', sa.Integer(), nullable=True),
@@ -138,6 +147,7 @@ def upgrade():
     )
     with op.batch_alter_table('pool_contact', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_pool_contact_district_id'), ['district_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_pool_contact_group_name'), ['group_name'], unique=False)
         batch_op.create_index(batch_op.f('ix_pool_contact_opted_out'), ['opted_out'], unique=False)
         batch_op.create_index(batch_op.f('ix_pool_contact_phone'), ['phone'], unique=False)
         batch_op.create_index(batch_op.f('ix_pool_contact_source_org_id'), ['source_org_id'], unique=False)
@@ -192,32 +202,38 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_audit_log_created_at'), ['created_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_audit_log_org_id'), ['org_id'], unique=False)
 
-    op.create_table('campaign',
+    op.create_table('campaign_schedule',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('org_id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=150), nullable=False),
-    sa.Column('template_id', sa.Integer(), nullable=True),
-    sa.Column('body', sa.Text(), nullable=False),
-    sa.Column('sender_id', sa.String(length=11), nullable=False),
-    sa.Column('group_filter', sa.String(length=80), nullable=True),
-    sa.Column('district_filter', sa.String(length=80), nullable=True),
-    sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('total', sa.Integer(), nullable=True),
-    sa.Column('sent_count', sa.Integer(), nullable=True),
-    sa.Column('failed_count', sa.Integer(), nullable=True),
-    sa.Column('credits_debited', sa.Integer(), nullable=True),
-    sa.Column('scheduled_at', sa.DateTime(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('name', sa.String(length=150), nullable=False),
+    sa.Column('body', sa.Text(), nullable=False),
+    sa.Column('template_id', sa.Integer(), nullable=True),
+    sa.Column('group_id', sa.Integer(), nullable=True),
+    sa.Column('district_id', sa.Integer(), nullable=True),
+    sa.Column('sender_id', sa.String(length=60), nullable=False),
+    sa.Column('scheduled_times', sa.Text(), nullable=False),
+    sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('pause_reason', sa.String(length=255), nullable=True),
+    sa.Column('next_run_at', sa.DateTime(), nullable=True),
+    sa.Column('last_run_at', sa.DateTime(), nullable=True),
+    sa.Column('runs_completed', sa.Integer(), nullable=True),
+    sa.Column('runs_skipped', sa.Integer(), nullable=True),
+    sa.Column('total_sent', sa.Integer(), nullable=True),
+    sa.Column('total_failed', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('completed_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['created_by'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['org_id'], ['organization.id'], ),
-    sa.ForeignKeyConstraint(['template_id'], ['message_template.id'], ),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['user.id'], name='fk_schedule_creator'),
+    sa.ForeignKeyConstraint(['district_id'], ['district.id'], name='fk_schedule_district'),
+    sa.ForeignKeyConstraint(['group_id'], ['contact_group.id'], name='fk_schedule_group'),
+    sa.ForeignKeyConstraint(['org_id'], ['organization.id'], name='fk_schedule_org'),
+    sa.ForeignKeyConstraint(['template_id'], ['message_template.id'], name='fk_schedule_template'),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('campaign', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_campaign_org_id'), ['org_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_campaign_status'), ['status'], unique=False)
+    with op.batch_alter_table('campaign_schedule', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_campaign_schedule_next_run_at'), ['next_run_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_campaign_schedule_org_id'), ['org_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_campaign_schedule_status'), ['status'], unique=False)
 
     op.create_table('chat_message',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -271,6 +287,36 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_contact_group_id'), ['group_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_contact_org_id'), ['org_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_contact_phone'), ['phone'], unique=False)
+
+    op.create_table('contact_import',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('org_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('filename', sa.String(length=255), nullable=True),
+    sa.Column('file_size', sa.Integer(), nullable=True),
+    sa.Column('on_duplicate', sa.String(length=10), nullable=True),
+    sa.Column('default_group', sa.String(length=80), nullable=True),
+    sa.Column('default_district_id', sa.Integer(), nullable=True),
+    sa.Column('total_rows', sa.Integer(), nullable=True),
+    sa.Column('added', sa.Integer(), nullable=True),
+    sa.Column('updated', sa.Integer(), nullable=True),
+    sa.Column('skipped_duplicate', sa.Integer(), nullable=True),
+    sa.Column('skipped_in_file', sa.Integer(), nullable=True),
+    sa.Column('skipped_opt_out', sa.Integer(), nullable=True),
+    sa.Column('invalid', sa.Integer(), nullable=True),
+    sa.Column('groups_created', sa.Integer(), nullable=True),
+    sa.Column('districts_matched', sa.Integer(), nullable=True),
+    sa.Column('districts_unmatched', sa.Integer(), nullable=True),
+    sa.Column('cap_hit', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['default_district_id'], ['district.id'], name='fk_contact_import_district'),
+    sa.ForeignKeyConstraint(['org_id'], ['organization.id'], name='fk_contact_import_org'),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], name='fk_contact_import_user'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('contact_import', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_contact_import_created_at'), ['created_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_contact_import_org_id'), ['org_id'], unique=False)
 
     op.create_table('invoice',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -339,6 +385,43 @@ def upgrade():
         batch_op.create_index('ix_pool_permission_org_status', ['org_id', 'status'], unique=False)
         batch_op.create_index(batch_op.f('ix_pool_permission_status'), ['status'], unique=False)
 
+    op.create_table('signup_request',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('company_name', sa.String(length=150), nullable=False),
+    sa.Column('desired_slug', sa.String(length=60), nullable=False),
+    sa.Column('brand_name', sa.String(length=60), nullable=False),
+    sa.Column('district_id', sa.Integer(), nullable=True),
+    sa.Column('contact_name', sa.String(length=120), nullable=False),
+    sa.Column('contact_email', sa.String(length=150), nullable=False),
+    sa.Column('contact_phone', sa.String(length=20), nullable=True),
+    sa.Column('plan_id', sa.Integer(), nullable=True),
+    sa.Column('expected_volume', sa.String(length=40), nullable=True),
+    sa.Column('message', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('reviewed_by', sa.Integer(), nullable=True),
+    sa.Column('reviewed_at', sa.DateTime(), nullable=True),
+    sa.Column('rejection_reason', sa.String(length=255), nullable=True),
+    sa.Column('created_org_id', sa.Integer(), nullable=True),
+    sa.Column('created_user_id', sa.Integer(), nullable=True),
+    sa.Column('ip_address', sa.String(length=45), nullable=True),
+    sa.Column('user_agent', sa.String(length=255), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['created_org_id'], ['organization.id'], name='fk_signup_org'),
+    sa.ForeignKeyConstraint(['created_user_id'], ['user.id'], name='fk_signup_user'),
+    sa.ForeignKeyConstraint(['district_id'], ['district.id'], name='fk_signup_district'),
+    sa.ForeignKeyConstraint(['plan_id'], ['plan.id'], name='fk_signup_plan'),
+    sa.ForeignKeyConstraint(['reviewed_by'], ['user.id'], name='fk_signup_reviewer'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('signup_request', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_signup_request_contact_email'), ['contact_email'], unique=False)
+        batch_op.create_index(batch_op.f('ix_signup_request_created_at'), ['created_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_signup_request_desired_slug'), ['desired_slug'], unique=False)
+        batch_op.create_index(batch_op.f('ix_signup_request_district_id'), ['district_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_signup_request_status'), ['status'], unique=False)
+        batch_op.create_index('ix_signup_status_created', ['status', 'created_at'], unique=False)
+
     op.create_table('wallet_transaction',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('org_id', sa.Integer(), nullable=False),
@@ -348,15 +431,68 @@ def upgrade():
     sa.Column('balance_after', sa.Integer(), nullable=False),
     sa.Column('note', sa.String(length=255), nullable=True),
     sa.Column('actor_id', sa.Integer(), nullable=True),
+    sa.Column('source_org_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['actor_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['org_id'], ['organization.id'], ),
+    sa.ForeignKeyConstraint(['source_org_id'], ['organization.id'], name='fk_wallet_source_org'),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('wallet_transaction', schema=None) as batch_op:
         batch_op.create_index('ix_wallet_org_created', ['org_id', 'created_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_wallet_transaction_created_at'), ['created_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_wallet_transaction_org_id'), ['org_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_wallet_transaction_source_org_id'), ['source_org_id'], unique=False)
+
+    op.create_table('campaign',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('org_id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=150), nullable=False),
+    sa.Column('template_id', sa.Integer(), nullable=True),
+    sa.Column('body', sa.Text(), nullable=False),
+    sa.Column('sender_id', sa.String(length=60), nullable=False),
+    sa.Column('group_filter', sa.String(length=80), nullable=True),
+    sa.Column('district_filter', sa.String(length=80), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('total', sa.Integer(), nullable=True),
+    sa.Column('sent_count', sa.Integer(), nullable=True),
+    sa.Column('failed_count', sa.Integer(), nullable=True),
+    sa.Column('credits_debited', sa.Integer(), nullable=True),
+    sa.Column('scheduled_at', sa.DateTime(), nullable=True),
+    sa.Column('schedule_id', sa.Integer(), nullable=True),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('completed_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['org_id'], ['organization.id'], ),
+    sa.ForeignKeyConstraint(['schedule_id'], ['campaign_schedule.id'], name='fk_campaign_schedule'),
+    sa.ForeignKeyConstraint(['template_id'], ['message_template.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('campaign', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_campaign_org_id'), ['org_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_campaign_schedule_id'), ['schedule_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_campaign_status'), ['status'], unique=False)
+
+    op.create_table('contact_import_issue',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('import_id', sa.Integer(), nullable=False),
+    sa.Column('row_num', sa.Integer(), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=False),
+    sa.Column('reason', sa.String(length=255), nullable=True),
+    sa.Column('raw_phone', sa.String(length=60), nullable=True),
+    sa.Column('canonical', sa.String(length=20), nullable=True),
+    sa.Column('name', sa.String(length=120), nullable=True),
+    sa.Column('group_name', sa.String(length=80), nullable=True),
+    sa.Column('district_name', sa.String(length=80), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['import_id'], ['contact_import.id'], name='fk_contact_import_issue_import'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('contact_import_issue', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_contact_import_issue_import_id'), ['import_id'], unique=False)
+        batch_op.create_index('ix_contact_import_issue_import_status', ['import_id', 'status'], unique=False)
+        batch_op.create_index(batch_op.f('ix_contact_import_issue_status'), ['status'], unique=False)
 
     op.create_table('message_log',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -424,12 +560,34 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_message_log_campaign_id'))
 
     op.drop_table('message_log')
+    with op.batch_alter_table('contact_import_issue', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_contact_import_issue_status'))
+        batch_op.drop_index('ix_contact_import_issue_import_status')
+        batch_op.drop_index(batch_op.f('ix_contact_import_issue_import_id'))
+
+    op.drop_table('contact_import_issue')
+    with op.batch_alter_table('campaign', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_campaign_status'))
+        batch_op.drop_index(batch_op.f('ix_campaign_schedule_id'))
+        batch_op.drop_index(batch_op.f('ix_campaign_org_id'))
+
+    op.drop_table('campaign')
     with op.batch_alter_table('wallet_transaction', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_wallet_transaction_source_org_id'))
         batch_op.drop_index(batch_op.f('ix_wallet_transaction_org_id'))
         batch_op.drop_index(batch_op.f('ix_wallet_transaction_created_at'))
         batch_op.drop_index('ix_wallet_org_created')
 
     op.drop_table('wallet_transaction')
+    with op.batch_alter_table('signup_request', schema=None) as batch_op:
+        batch_op.drop_index('ix_signup_status_created')
+        batch_op.drop_index(batch_op.f('ix_signup_request_status'))
+        batch_op.drop_index(batch_op.f('ix_signup_request_district_id'))
+        batch_op.drop_index(batch_op.f('ix_signup_request_desired_slug'))
+        batch_op.drop_index(batch_op.f('ix_signup_request_created_at'))
+        batch_op.drop_index(batch_op.f('ix_signup_request_contact_email'))
+
+    op.drop_table('signup_request')
     with op.batch_alter_table('pool_permission', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_pool_permission_status'))
         batch_op.drop_index('ix_pool_permission_org_status')
@@ -448,6 +606,11 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_invoice_issued_at'))
 
     op.drop_table('invoice')
+    with op.batch_alter_table('contact_import', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_contact_import_org_id'))
+        batch_op.drop_index(batch_op.f('ix_contact_import_created_at'))
+
+    op.drop_table('contact_import')
     with op.batch_alter_table('contact', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_contact_phone'))
         batch_op.drop_index(batch_op.f('ix_contact_org_id'))
@@ -468,11 +631,12 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_chat_message_author_id'))
 
     op.drop_table('chat_message')
-    with op.batch_alter_table('campaign', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_campaign_status'))
-        batch_op.drop_index(batch_op.f('ix_campaign_org_id'))
+    with op.batch_alter_table('campaign_schedule', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_campaign_schedule_status'))
+        batch_op.drop_index(batch_op.f('ix_campaign_schedule_org_id'))
+        batch_op.drop_index(batch_op.f('ix_campaign_schedule_next_run_at'))
 
-    op.drop_table('campaign')
+    op.drop_table('campaign_schedule')
     with op.batch_alter_table('audit_log', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_audit_log_org_id'))
         batch_op.drop_index(batch_op.f('ix_audit_log_created_at'))
@@ -493,6 +657,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_pool_contact_source_org_id'))
         batch_op.drop_index(batch_op.f('ix_pool_contact_phone'))
         batch_op.drop_index(batch_op.f('ix_pool_contact_opted_out'))
+        batch_op.drop_index(batch_op.f('ix_pool_contact_group_name'))
         batch_op.drop_index(batch_op.f('ix_pool_contact_district_id'))
 
     op.drop_table('pool_contact')
@@ -517,6 +682,10 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_organization_district_id'))
 
     op.drop_table('organization')
+    with op.batch_alter_table('plan', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_plan_sort_order'))
+        batch_op.drop_index(batch_op.f('ix_plan_is_active'))
+
     op.drop_table('plan')
     with op.batch_alter_table('opt_out', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_opt_out_phone'))
