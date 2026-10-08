@@ -113,7 +113,7 @@ def register_cli(app):
     @with_appcontext
     def grant(org_slug, amount, note):
         """
-        Grant credits to an associate.
+        Grant credits to an associate from the master reserve.
 
         Example:
             flask grant kampalafit 500 --note "welcome credits"
@@ -129,11 +129,25 @@ def register_cli(app):
         if amount <= 0:
             raise click.ClickException('Amount must be positive.')
 
-        wallet_svc.credit(org.id, amount,
-                          reason='manual_topup', note=note)
-        db.session.commit()
-        click.echo(f'Granted {amount} to {org.name}. '
-                   f'Balance: {wallet_svc.get_balance(org.id)}')
+        try:
+            master_id = wallet_svc.master_org_id()
+            wallet_svc.transfer(
+                master_id, org.id, amount,
+                reason='manual_topup',
+                note=note or 'Granted by CLI',
+            )
+            db.session.commit()
+        except wallet_svc.InsufficientCredits as e:
+            db.session.rollback()
+            raise click.ClickException(
+                f'Master wallet has insufficient credits: {e}')
+        except wallet_svc.WalletError as e:
+            db.session.rollback()
+            raise click.ClickException(str(e))
+
+        click.echo(f'Granted {amount} to {org.name}.')
+        click.echo(f'  {org.name}: {wallet_svc.get_balance(org.id):,}')
+        click.echo(f'  Master:     {wallet_svc.get_balance(master_id):,}')
         audit('wallet_grant_cli',
               f'org={org.slug} amount={amount}',
               org_id=org.id)
@@ -168,11 +182,9 @@ def register_cli(app):
     @with_appcontext
     def fund_platform(amount, note):
         """
-        Allocate credits from the master wallet to the system org.
+        Allocate credits from the master reserve to the system org.
 
-        Atomic: debits master, credits platform, in one transaction.
-        The two wallets together represent the operator's Pahappa
-        balance, so the sum must not change.
+        Atomic: debits master, credits platform.
 
         Example:
             flask fund-platform 500 --note "Pool sending budget"
@@ -180,43 +192,31 @@ def register_cli(app):
         if amount <= 0:
             raise click.ClickException('Amount must be positive.')
 
-        master = Organization.query.filter_by(is_master=True).first()
-        if not master:
-            raise click.ClickException('Master org not found. Run seed.')
-
-        platform = Organization.query.filter_by(is_system=True).first()
-        if not platform:
-            raise click.ClickException(
-                'System org not found. Run seed.')
-
-        master_balance = wallet_svc.get_balance(master.id)
-        if master_balance < amount:
-            raise click.ClickException(
-                f'Master wallet has {master_balance:,} credits, '
-                f'cannot allocate {amount:,}.'
-            )
-
         try:
-            wallet_svc.debit(
-                master.id, amount,
-                reason='platform_allocation',
-                note=f'Allocated to platform: {note}',
-            )
-            wallet_svc.credit(
-                platform.id, amount,
+            master_id = wallet_svc.master_org_id()
+            platform = Organization.query.filter_by(is_system=True).first()
+            if not platform:
+                raise click.ClickException('System org not found. Run seed.')
+
+            wallet_svc.transfer(
+                master_id, platform.id, amount,
                 reason='platform_allocation',
                 note=note,
             )
             db.session.commit()
-        except Exception:
+        except wallet_svc.InsufficientCredits as e:
             db.session.rollback()
-            raise
+            raise click.ClickException(
+                f'Master wallet has insufficient credits: {e}')
+        except wallet_svc.WalletError as e:
+            db.session.rollback()
+            raise click.ClickException(str(e))
 
-        click.echo(
-            f'Allocated {amount:,} credits.\n'
-            f'  Master:   {wallet_svc.get_balance(master.id):,}\n'
-            f'  Platform: {wallet_svc.get_balance(platform.id):,}'
-        )
+        click.echo(f'Allocated {amount:,} credits.')
+        click.echo(f'  Master:   '
+                   f'{wallet_svc.get_balance(master_id):,}')
+        click.echo(f'  Platform: '
+                   f'{wallet_svc.get_balance(platform.id):,}')        
 
     # ==================================================================
     # Organizations and users
@@ -429,40 +429,23 @@ def register_cli(app):
     @with_appcontext
     def reconcile():
         """
-        Verify wallet ledgers. Exits non-zero on drift.
+        Verify wallet ledgers and credit sources.
 
-        For every org: SUM(delta) must equal the cached balance_after on
-        the latest WalletTransaction row.
-
-        Example:
-            flask reconcile
+        Delegates to scripts/reconcile.py so the logic lives in one
+        place. Exits non-zero on any failure.
         """
-        from app.models import WalletTransaction
+        import subprocess
+        import sys
+        from pathlib import Path
 
-        drift = 0
-        checked = 0
-
-        for org in Organization.query.order_by(Organization.id).all():
-            checked += 1
-            total = (db.session.query(
-                        db.func.coalesce(
-                            db.func.sum(WalletTransaction.delta), 0))
-                     .filter_by(org_id=org.id).scalar()) or 0
-            last = (WalletTransaction.query
-                    .filter_by(org_id=org.id)
-                    .order_by(WalletTransaction.id.desc()).first())
-            cached = last.balance_after if last else 0
-
-            if int(total) != int(cached):
-                drift += 1
-                click.echo(f'DRIFT org={org.id} name={org.name!r} '
-                           f'sum={int(total)} cached={int(cached)}')
-
-        if drift:
-            click.echo(f'{drift} org(s) with drift.')
+        project_root = Path(__file__).resolve().parent.parent
+        result = subprocess.run(
+            [sys.executable,
+             str(project_root / 'scripts' / 'reconcile.py')],
+            cwd=str(project_root),
+        )
+        if result.returncode != 0:
             raise click.ClickException('Reconciliation failed.')
-        click.echo(f'Reconciliation complete. {checked} org(s) checked, '
-                   f'0 with drift.')
 
     @app.cli.command('expire-subs')
     @with_appcontext

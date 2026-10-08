@@ -13,6 +13,12 @@ class WalletTransaction(db.Model):
     balance_after = db.Column(db.Integer, nullable=False)
     note = db.Column(db.String(255))
     actor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    source_org_id = db.Column(
+        db.Integer,
+        db.ForeignKey('organization.id',
+                      name='fk_wallet_source_org'),
+        nullable=True,
+        index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     __table_args__ = (

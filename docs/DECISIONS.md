@@ -4,6 +4,55 @@ One page per decision. Add a new ADR for anything expensive to reverse.
 
 ---
 
+## ADR-018 — Every credit must have a source
+
+**Date:** 2026-10-06 · **Status:** Accepted
+
+**Context.** The wallet ledger is append-only, but nothing stopped a
+service from writing a positive delta that came from nowhere. Every
+`flask grant`, every `mark_paid`, every subscription grant, every
+starter credit silently created new credits in the internal ledger.
+The invariant
+
+    SUM(all wallet deltas) == credits held on the platform
+
+held only by accident, and only because nobody had granted anything
+yet. As soon as one associate received 500 credits, the sum would
+have overstated reality by 500.
+
+**Decision.** `wallet_svc.credit()` now requires either an explicit
+`source_org_id` or a reason from `EXTERNAL_CREDIT_REASONS`. When a
+source is given, the source wallet is debited in the same
+transaction, and the credit row records `source_org_id` for audit.
+
+The whitelist of legitimate external sources:
+
+- `master_opening_balance` — seed time, mirrors Pahappa
+- `master_topup` — manual top-up from Pahappa
+- `pahappa_sync` — reconciliation with the live Pahappa balance
+- `refund` — reversal of a failed send
+- `adjustment` — dev / test correction
+
+Every other internal movement goes through `transfer(from, to, ...)`
+or `credit(..., source_org_id=...)`.
+
+`scripts/reconcile.py` verifies the invariant: every credit that
+isn't tagged as external must have `source_org_id` set, and that
+org must have a matching debit with the same reference.
+
+**Consequences.**
+- Cannot accidentally invent credits. A call site that tries raises
+  `WalletError` at the moment of the call, not silently weeks later.
+- Ledger is auditable: any credit's lineage is one hop away.
+- Requires `source_org_id` on `WalletTransaction` — a new column,
+  part of the baseline migration.
+- Refunds are the one exception, but they are reversals, not new
+  credits, and the whitelist makes that explicit.
+- `pahappa_sync` remains the mechanism for reconciling the master
+  wallet with Pahappa, and it too is whitelisted.
+
+---
+
 ## ADR-017 — Opt-out link removed from outbound messages
 
 **Date:** 2026-10-03 · **Status:** Accepted

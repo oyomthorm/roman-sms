@@ -256,9 +256,10 @@ def approve(req, *, actor, starter_credits=None):
     starter_credits = int(starter_credits or 0)
 
     if starter_credits > 0:
-        wallet_svc.credit(
-            org.id, starter_credits,
-            reason='plan_grant',
+        master_id = wallet_svc.master_org_id()
+        wallet_svc.transfer(
+            master_id, org.id, starter_credits,
+            reason='welcome_credit',
             reference=f'signup:{req.id}',
             note='Welcome credits',
             actor_id=actor.id,

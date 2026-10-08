@@ -174,8 +174,9 @@ def mark_paid(invoice, *, actor_id,
 
     # 3. Credit the wallet with the invoice's snapshot credits.
     if invoice.credits > 0:
-        wallet_svc.credit(
-            org.id, invoice.credits,
+        master_id = wallet_svc.master_org_id()
+        wallet_svc.transfer(
+            master_id, org.id, invoice.credits,
             reason='plan_grant',
             reference=f'invoice:{invoice.number}',
             note=note or f'{invoice.plan_name} ({method} {reference})',

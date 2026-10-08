@@ -64,8 +64,9 @@ def grant(org, plan, *, duration_days=None, actor_id=None,
     db.session.flush()
 
     if credit_wallet and plan.credits > 0:
-        wallet_svc.credit(
-            org.id, plan.credits,
+        master_id = wallet_svc.master_org_id()
+        wallet_svc.transfer(
+            master_id, org.id, plan.credits,
             reason='plan_grant',
             reference=f'subscription:{sub.id}',
             note=note or f'{plan.name} plan ({duration} days)',

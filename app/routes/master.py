@@ -20,12 +20,12 @@ from app.services import pool as pool_svc
 from app.services import geo as geo_svc
 from app.services import signups as signup_svc
 from app.services import ratelimit
+from app.services import pahappa_balance
+from app.services import invoice_pdf
 from app.services.entitlements import current_rate_ugx
 from app.services.renderer import with_prefix, segments
 from app.services.audit import log as audit
-from app.services import invoice_pdf
 
-from app.services import pahappa_balance
 
 master_bp = Blueprint('master', __name__)
 
@@ -42,8 +42,13 @@ def _rate_map(orgs):
     """UGX per credit for each org, keyed by org id."""
     return {o.id: current_rate_ugx(o.id) for o in orgs}
 
+
 def _system_sender_org():
     return Organization.query.filter_by(is_system=True).first()
+
+
+def _master_org():
+    return Organization.query.filter_by(is_master=True).first()
 
 
 def _compute_margin(org_id, active_sub, days=30):
@@ -110,10 +115,11 @@ def index():
                     .limit(15).all())
 
     # Master org's own wallet — the operator's internal balance
-    master_org = Organization.query.filter_by(is_master=True).first()
-    master_wallet = wallet_svc.get_balance(master_org.id) if master_org else 0
+    master_org = _master_org()
+    master_wallet = (wallet_svc.get_balance(master_org.id)
+                     if master_org else 0)
 
-    # Live Pahappa balance
+    # Live Pahappa balance (cached for 5 minutes)
     pahappa = pahappa_balance.current()
     drift = None
     if pahappa['balance'] is not None:
@@ -137,6 +143,7 @@ def index():
         pahappa=pahappa,
         drift=drift,
     )
+
 
 # ----------------------------------------------------------------------
 # Organizations
@@ -306,9 +313,26 @@ def org_grant(oid):
         flash('Amount must be a positive integer.', 'danger')
         return redirect(url_for('master.org_detail', oid=org.id))
 
-    wallet_svc.credit(org.id, amount, reason='manual_topup',
-                      note=note or None, actor_id=current_user.id)
-    db.session.commit()
+    # Transfer from the master reserve. Credits never appear from
+    # nowhere — see ADR-018.
+    try:
+        master_id = wallet_svc.master_org_id()
+        wallet_svc.transfer(
+            master_id, org.id, amount,
+            reason='manual_topup',
+            note=note or None,
+            actor_id=current_user.id,
+        )
+        db.session.commit()
+    except wallet_svc.InsufficientCredits as e:
+        db.session.rollback()
+        flash(f'Master wallet has insufficient credits: {e}', 'danger')
+        return redirect(url_for('master.org_detail', oid=org.id))
+    except wallet_svc.WalletError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+        return redirect(url_for('master.org_detail', oid=org.id))
+
     audit('wallet_grant', f'org={org.slug} amount={amount}',
           org_id=org.id, actor_id=current_user.id)
     flash(f'Granted {amount} SMS. Balance: '
@@ -348,6 +372,12 @@ def org_assign_plan(oid):
             actor_id=current_user.id,
             credit_wallet=credit_wallet,
         )
+    except wallet_svc.InsufficientCredits as e:
+        flash(f'Master wallet has insufficient credits: {e}', 'danger')
+        return redirect(url_for('master.org_detail', oid=org.id))
+    except wallet_svc.WalletError as e:
+        flash(str(e), 'danger')
+        return redirect(url_for('master.org_detail', oid=org.id))
     except subs_svc.SubscriptionError as e:
         flash(str(e), 'danger')
         return redirect(url_for('master.org_detail', oid=org.id))
@@ -514,6 +544,27 @@ def invoice_detail(invoice_id):
                            cancelled_by=cancelled_by)
 
 
+@master_bp.route('/invoices/<int:invoice_id>.pdf')
+@login_required
+@master_required
+def invoice_pdf_download(invoice_id):
+    """Download any invoice as a PDF."""
+    inv = billing_svc.get_any(invoice_id)
+    if not inv:
+        return render_template('errors/404.html'), 404
+
+    pdf_bytes = invoice_pdf.render_invoice(inv)
+    filename = f'{inv.number}.pdf'
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Length': str(len(pdf_bytes)),
+        },
+    )
+
+
 @master_bp.route('/invoices/<int:invoice_id>/mark-paid',
                  methods=['POST'])
 @login_required
@@ -542,6 +593,14 @@ def invoice_mark_paid(invoice_id):
             duration_days=duration,
             note=note or None,
         )
+    except wallet_svc.InsufficientCredits as e:
+        flash(f'Master wallet has insufficient credits: {e}', 'danger')
+        return redirect(url_for('master.invoice_detail',
+                                invoice_id=inv.id))
+    except wallet_svc.WalletError as e:
+        flash(str(e), 'danger')
+        return redirect(url_for('master.invoice_detail',
+                                invoice_id=inv.id))
     except billing_svc.BillingError as e:
         flash(str(e), 'danger')
         return redirect(url_for('master.invoice_detail',
@@ -818,9 +877,14 @@ def platform():
                         >= datetime.utcnow() - timedelta(days=30))
                 .count())
 
+    master_org = _master_org()
+    master_wallet = (wallet_svc.get_balance(master_org.id)
+                     if master_org else 0)
+
     return render_template('master/platform.html',
                            org=org,
                            balance=wallet_svc.get_balance(org.id),
+                           master_wallet=master_wallet,
                            ledger=ledger,
                            campaigns=campaigns,
                            sent_total=sent_total,
@@ -845,16 +909,93 @@ def platform_topup():
         flash('Amount must be positive.', 'danger')
         return redirect(url_for('master.platform'))
 
-    wallet_svc.credit(org.id, amount,
-                      reason='master_topup',
-                      note=request.form.get('note', '').strip() or None,
-                      actor_id=current_user.id)
-    db.session.commit()
+    # Transfer from the master reserve. See ADR-018.
+    try:
+        master_id = wallet_svc.master_org_id()
+        wallet_svc.transfer(
+            master_id, org.id, amount,
+            reason='platform_allocation',
+            note=request.form.get('note', '').strip() or None,
+            actor_id=current_user.id,
+        )
+        db.session.commit()
+    except wallet_svc.InsufficientCredits as e:
+        db.session.rollback()
+        flash(f'Master wallet has insufficient credits: {e}', 'danger')
+        return redirect(url_for('master.platform'))
+    except wallet_svc.WalletError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+        return redirect(url_for('master.platform'))
+
     audit('platform_topup', f'amount={amount}', actor_id=current_user.id)
 
     flash(f'Added {amount} SMS. Balance: '
           f'{wallet_svc.get_balance(org.id)}.', 'success')
     return redirect(url_for('master.platform'))
+
+
+@master_bp.route('/platform/sync-pahappa', methods=['POST'])
+@login_required
+@master_required
+def platform_sync_pahappa():
+    """
+    Bring the master wallet in line with Pahappa's live balance.
+
+    Writes a single compensating ledger row (credit or debit) so the
+    wallet equals Pahappa. Append-only — no rows are edited.
+    """
+    master_org = _master_org()
+    if not master_org:
+        flash('Master org missing. Run seed.', 'danger')
+        return redirect(url_for('master.index'))
+
+    # Force a fresh fetch — do not use the cached value for a sync
+    pahappa_balance.invalidate()
+    pahappa = pahappa_balance.current()
+
+    if pahappa['balance'] is None:
+        flash(f'Could not reach Pahappa: {pahappa["error"]}', 'danger')
+        return redirect(url_for('master.index'))
+
+    wallet = wallet_svc.get_balance(master_org.id)
+    delta = pahappa['balance'] - wallet
+
+    if delta == 0:
+        flash('Master wallet already matches Pahappa.', 'info')
+        return redirect(url_for('master.index'))
+
+    try:
+        if delta > 0:
+            wallet_svc.credit(
+                master_org.id, delta,
+                reason='pahappa_sync',
+                note=f'Sync to Pahappa balance ({pahappa["balance"]:,})',
+                actor_id=current_user.id,
+            )
+        else:
+            wallet_svc.debit(
+                master_org.id, -delta,
+                reason='pahappa_sync',
+                note=f'Sync to Pahappa balance ({pahappa["balance"]:,})',
+                actor_id=current_user.id,
+            )
+        db.session.commit()
+
+        audit('pahappa_sync',
+              f'master wallet {wallet:,} -> {pahappa["balance"]:,} '
+              f'(delta {delta:+,})',
+              org_id=master_org.id, actor_id=current_user.id)
+
+        flash(f'Master wallet synced. '
+              f'{"+" if delta > 0 else ""}{delta:,} credits.', 'success')
+
+    except wallet_svc.InsufficientCredits:
+        db.session.rollback()
+        flash('Sync failed: wallet has less than needed for the debit.',
+              'danger')
+
+    return redirect(url_for('master.index'))
 
 
 # ----------------------------------------------------------------------
@@ -914,6 +1055,12 @@ def signup_approve(rid):
     try:
         org, user, granted = signup_svc.approve(
             req, actor=current_user, starter_credits=credits)
+    except wallet_svc.InsufficientCredits as e:
+        flash(f'Master wallet has insufficient credits: {e}', 'danger')
+        return redirect(url_for('master.signup_detail', rid=rid))
+    except wallet_svc.WalletError as e:
+        flash(str(e), 'danger')
+        return redirect(url_for('master.signup_detail', rid=rid))
     except signup_svc.SignupError as e:
         flash(str(e), 'danger')
         return redirect(url_for('master.signup_detail', rid=rid))
@@ -956,87 +1103,3 @@ def signup_spam(rid):
     else:
         flash('Marked as spam.', 'success')
     return redirect(url_for('master.signups'))
-
-
-@master_bp.route('/invoices/<int:invoice_id>.pdf')
-@login_required
-@master_required
-def invoice_pdf_download(invoice_id):
-    """Download any invoice as a PDF."""
-    inv = billing_svc.get_any(invoice_id)
-    if not inv:
-        return render_template('errors/404.html'), 404
-
-    pdf_bytes = invoice_pdf.render_invoice(inv)
-    filename = f'{inv.number}.pdf'
-    return Response(
-        pdf_bytes,
-        mimetype='application/pdf',
-        headers={
-            'Content-Disposition': f'attachment; filename="{filename}"',
-            'Content-Length': str(len(pdf_bytes)),
-        },
-    )
-    
-    
-@master_bp.route('/platform/sync-pahappa', methods=['POST'])
-@login_required
-@master_required
-def platform_sync_pahappa():
-    """
-    Bring the master wallet in line with Pahappa's live balance.
-
-    Writes a single compensating ledger row (credit or debit) so the
-    wallet equals Pahappa. Append-only — no rows are edited.
-    """
-    master_org = Organization.query.filter_by(is_master=True).first()
-    if not master_org:
-        flash('Master org missing. Run seed.', 'danger')
-        return redirect(url_for('master.index'))
-
-    # Force a fresh fetch — do not use the cached value for a sync
-    pahappa_balance.invalidate()
-    pahappa = pahappa_balance.current()
-
-    if pahappa['balance'] is None:
-        flash(f'Could not reach Pahappa: {pahappa["error"]}', 'danger')
-        return redirect(url_for('master.index'))
-
-    wallet = wallet_svc.get_balance(master_org.id)
-    delta = pahappa['balance'] - wallet
-
-    if delta == 0:
-        flash('Master wallet already matches Pahappa.', 'info')
-        return redirect(url_for('master.index'))
-
-    try:
-        if delta > 0:
-            wallet_svc.credit(
-                master_org.id, delta,
-                reason='pahappa_sync',
-                note=f'Sync to Pahappa balance ({pahappa["balance"]:,})',
-                actor_id=current_user.id,
-            )
-        else:
-            wallet_svc.debit(
-                master_org.id, -delta,
-                reason='pahappa_sync',
-                note=f'Sync to Pahappa balance ({pahappa["balance"]:,})',
-                actor_id=current_user.id,
-            )
-        db.session.commit()
-
-        audit('pahappa_sync',
-              f'master wallet {wallet:,} -> {pahappa["balance"]:,} '
-              f'(delta {delta:+,})',
-              org_id=master_org.id, actor_id=current_user.id)
-
-        flash(f'Master wallet synced. '
-              f'{"+" if delta > 0 else ""}{delta:,} credits.', 'success')
-
-    except wallet_svc.InsufficientCredits:
-        db.session.rollback()
-        flash('Sync failed: wallet has less than needed for the debit.',
-              'danger')
-
-    return redirect(url_for('master.index'))
