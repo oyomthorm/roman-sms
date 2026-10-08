@@ -23,22 +23,6 @@ def _require(name):
     return value
 
 
-def _with_sslmode(url: str) -> str:
-    """
-    Append ``?sslmode=require`` to Postgres URLs unless it is already set.
-
-    Render (and most managed Postgres providers) require SSL. Without this
-    the driver may negotiate SSL and then have the connection dropped,
-    producing ``SSL connection has been closed unexpectedly``.
-    """
-    if not url or not url.startswith(('postgres://', 'postgresql://', 'postgresql+')):
-        return url
-    if 'sslmode=' in url:
-        return url
-    sep = '&' if '?' in url else '?'
-    return f'{url}{sep}sslmode=require'
-
-
 class Config:
     # ------------------------------------------------------------------
     # Core
@@ -47,9 +31,20 @@ class Config:
 
     # Postgres is the only supported production backend. The wallet relies
     # on SELECT ... FOR UPDATE, which SQLite silently ignores.
-    SQLALCHEMY_DATABASE_URI = _with_sslmode(_require('DATABASE_URL'))
+    #
+    # NOTE: Do NOT append ?sslmode=require to the URL. Flask-SQLAlchemy's
+    # engine_from_config does not reliably forward URL query params to the
+    # psycopg3 dialect, which causes the connection to negotiate SSL and
+    # then get dropped ("SSL connection has been closed unexpectedly").
+    # SSL is configured via SQLALCHEMY_ENGINE_OPTIONS['connect_args'] below.
+    SQLALCHEMY_DATABASE_URI = _require('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
     SQLALCHEMY_ENGINE_OPTIONS = {
+        # Pass sslmode directly to psycopg3, not via the URL.
+        'connect_args': {
+            'sslmode': 'require',
+        },
         # Verify a pooled connection is still alive before using it.
         'pool_pre_ping': True,
         # Recycle connections more aggressively than Render's idle reaper.
