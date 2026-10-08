@@ -48,7 +48,7 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         'poolclass': NullPool,
         'connect_args': {
-            'sslmode': 'require',
+            'sslmode': 'disable',
         },
     }
 
