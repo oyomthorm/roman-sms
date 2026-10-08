@@ -33,22 +33,19 @@ class Config:
     # Postgres is the only supported production backend. The wallet relies
     # on SELECT ... FOR UPDATE, which SQLite silently ignores.
     #
-    # NOTES:
-    # - SSL is required by Render's managed Postgres. We enable it via
-    #   SQLALCHEMY_ENGINE_OPTIONS['connect_args'] = {'sslmode': 'require'}.
-    #   Putting ?sslmode=require in the URL is not reliable with
-    #   Flask-SQLAlchemy + psycopg3.
-    # - NullPool avoids the "SSL connection has been closed unexpectedly"
-    #   error caused by Render killing idle pooled connections at the OS
-    #   level. Every request opens a fresh connection and closes it.
+    # SSL / pooling notes for Render:
+    # - SSL is enabled by appending "?sslmode=require" to DATABASE_URL
+    #   in Render's environment. psycopg3 parses the URL query string
+    #   reliably; passing sslmode via SQLALCHEMY_ENGINE_OPTIONS.connect_args
+    #   does not work consistently with Flask-SQLAlchemy on Python 3.14.
+    # - NullPool avoids "SSL connection has been closed unexpectedly"
+    #   caused by Render killing idle pooled connections at the OS level.
+    #   Every request opens a fresh connection and closes it.
     SQLALCHEMY_DATABASE_URI = _require('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SQLALCHEMY_ENGINE_OPTIONS = {
         'poolclass': NullPool,
-        'connect_args': {
-            'sslmode': 'require',
-        },
     }
 
     # ------------------------------------------------------------------
