@@ -9,22 +9,30 @@ from .logging_config import configure_logging
 
 def _normalize_db_url(url: str) -> str:
     """
-    Ensure the DATABASE_URL uses the psycopg (v3) driver.
-
-    Render and Heroku hand out URLs like ``postgres://...`` or
-    ``postgresql://...`` which SQLAlchemy maps to the psycopg2 dialect
-    by default. We use psycopg v3, so force ``postgresql+psycopg://``.
+    Ensure the DATABASE_URL uses the psycopg (v3) driver and has the
+    postgresql dialect prefix. Handles all the ways a URL can be mangled
+    when copy-pasted between Render, local .env files, and docs.
     """
     if not url:
         return url
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql+psycopg://", 1)
-    elif url.startswith("postgresql+postgresql://"):
-        url = url.replace("postgresql+postgresql://", "postgresql+psycopg://", 1)
-    elif url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
-    return url
 
+    # Strip a stray `postgres://` and `postgresql+<junk>://` variants.
+    if url.startswith("postgres://"):
+        url = "postgresql+psycopg://" + url[len("postgres://"):]
+    elif url.startswith("psycopg://"):
+        # User pasted `psycopg://...` — the driver prefix without the dialect.
+        url = "postgresql+psycopg://" + url[len("psycopg://"):]
+    elif url.startswith("postgresql+psycopg2://"):
+        # Wrong driver — swap to psycopg v3.
+        url = "postgresql+psycopg://" + url[len("postgresql+psycopg2://"):]
+    elif url.startswith("postgresql+postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql+postgresql://"):]
+    elif url.startswith("postgresql+psycopg://"):
+        # Already correct.
+        pass
+    elif url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    return url
 
 def create_app(config_object=Config):
     app = Flask(__name__)
