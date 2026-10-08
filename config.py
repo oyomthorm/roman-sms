@@ -34,21 +34,20 @@ class Config:
     # on SELECT ... FOR UPDATE, which SQLite silently ignores.
     #
     # NOTES:
-    # - Do NOT append ?sslmode=require to the URL. Flask-SQLAlchemy does
-    #   not reliably forward URL query params to the psycopg3 dialect.
-    #   SSL is configured via SQLALCHEMY_ENGINE_OPTIONS['connect_args'].
-    # - Do NOT use the default QueuePool on Render. Render kills idle
-    #   connections at the OS level, which produces
-    #   "SSL connection has been closed unexpectedly" when the pool
-    #   hands out a dead connection. NullPool opens a fresh connection
-    #   per request and closes it immediately, avoiding the problem.
+    # - SSL is required by Render's managed Postgres. We enable it via
+    #   SQLALCHEMY_ENGINE_OPTIONS['connect_args'] = {'sslmode': 'require'}.
+    #   Putting ?sslmode=require in the URL is not reliable with
+    #   Flask-SQLAlchemy + psycopg3.
+    # - NullPool avoids the "SSL connection has been closed unexpectedly"
+    #   error caused by Render killing idle pooled connections at the OS
+    #   level. Every request opens a fresh connection and closes it.
     SQLALCHEMY_DATABASE_URI = _require('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SQLALCHEMY_ENGINE_OPTIONS = {
         'poolclass': NullPool,
         'connect_args': {
-            'sslmode': 'disable',
+            'sslmode': 'require',
         },
     }
 
