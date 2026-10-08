@@ -8,6 +8,7 @@ DATABASE_URL at the docker-compose.yml Postgres instance.
 import os
 
 from dotenv import load_dotenv
+from sqlalchemy.pool import NullPool
 
 load_dotenv()
 
@@ -32,28 +33,23 @@ class Config:
     # Postgres is the only supported production backend. The wallet relies
     # on SELECT ... FOR UPDATE, which SQLite silently ignores.
     #
-    # NOTE: Do NOT append ?sslmode=require to the URL. Flask-SQLAlchemy's
-    # engine_from_config does not reliably forward URL query params to the
-    # psycopg3 dialect, which causes the connection to negotiate SSL and
-    # then get dropped ("SSL connection has been closed unexpectedly").
-    # SSL is configured via SQLALCHEMY_ENGINE_OPTIONS['connect_args'] below.
+    # NOTES:
+    # - Do NOT append ?sslmode=require to the URL. Flask-SQLAlchemy does
+    #   not reliably forward URL query params to the psycopg3 dialect.
+    #   SSL is configured via SQLALCHEMY_ENGINE_OPTIONS['connect_args'].
+    # - Do NOT use the default QueuePool on Render. Render kills idle
+    #   connections at the OS level, which produces
+    #   "SSL connection has been closed unexpectedly" when the pool
+    #   hands out a dead connection. NullPool opens a fresh connection
+    #   per request and closes it immediately, avoiding the problem.
     SQLALCHEMY_DATABASE_URI = _require('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SQLALCHEMY_ENGINE_OPTIONS = {
-        # Pass sslmode directly to psycopg3, not via the URL.
+        'poolclass': NullPool,
         'connect_args': {
             'sslmode': 'require',
         },
-        # Verify a pooled connection is still alive before using it.
-        'pool_pre_ping': True,
-        # Recycle connections more aggressively than Render's idle reaper.
-        'pool_recycle': 300,
-        # Conservative pool for small instances.
-        'pool_size': 5,
-        'max_overflow': 10,
-        # Fail fast if the database is unreachable on connect.
-        'pool_timeout': 30,
     }
 
     # ------------------------------------------------------------------

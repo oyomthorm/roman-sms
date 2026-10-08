@@ -9,56 +9,57 @@ from .logging_config import configure_logging
 
 def _normalize_db_url(url: str) -> str:
     """
-    Ensure the DATABASE_URL uses the psycopg (v3) driver and has the
-    postgresql dialect prefix. Handles all the ways a URL can be mangled
-    when copy-pasted between Render, local .env files, and docs.
+    Ensure the DATABASE_URL uses the psycopg (v3) driver and the
+    postgresql dialect prefix.
+
+    Handles every URL shape that tends to come out of Render, local .env
+    files, and copy-paste accidents:
+        postgres://...                     -> postgresql+psycopg://...
+        psycopg://...                      -> postgresql+psycopg://...
+        postgresql://...                   -> postgresql+psycopg://...
+        postgresql+psycopg2://...          -> postgresql+psycopg://...
+        postgresql+postgresql://...        -> postgresql+psycopg://...
+        postgresql+psycopg://...           -> (unchanged)
     """
     if not url:
         return url
 
-    # Strip a stray `postgres://` and `postgresql+<junk>://` variants.
     if url.startswith("postgres://"):
         url = "postgresql+psycopg://" + url[len("postgres://"):]
     elif url.startswith("psycopg://"):
-        # User pasted `psycopg://...` — the driver prefix without the dialect.
         url = "postgresql+psycopg://" + url[len("psycopg://"):]
     elif url.startswith("postgresql+psycopg2://"):
-        # Wrong driver — swap to psycopg v3.
         url = "postgresql+psycopg://" + url[len("postgresql+psycopg2://"):]
     elif url.startswith("postgresql+postgresql://"):
         url = "postgresql+psycopg://" + url[len("postgresql+postgresql://"):]
     elif url.startswith("postgresql+psycopg://"):
-        # Already correct.
-        pass
+        pass  # already correct
     elif url.startswith("postgresql://"):
         url = "postgresql+psycopg://" + url[len("postgresql://"):]
+
     return url
+
 
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
     # ------------------------------------------------------------------
-    # Database URL + engine options
+    # Database URL — normalize the driver scheme.
     # ------------------------------------------------------------------
-    # 1) Normalise the driver scheme so Render's `postgresql://...`
-    #    is turned into `postgresql+psycopg://...` automatically.
-    raw_db_url = app.config.get("SQLALCHEMY_DATABASE_URI") or os.environ.get("DATABASE_URL")
+    raw_db_url = (
+        app.config.get("SQLALCHEMY_DATABASE_URI")
+        or os.environ.get("DATABASE_URL")
+    )
     if raw_db_url:
         app.config["SQLALCHEMY_DATABASE_URI"] = _normalize_db_url(raw_db_url)
-
-    # 2) Pool settings that survive Render's idle-connection reaper.
-    #    - pool_pre_ping: issues SELECT 1 before reusing a pooled conn.
-    #    - pool_recycle:  recycles connections older than 5 minutes.
-    app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {})
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"].update({
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-    })
 
     # ------------------------------------------------------------------
     # Extensions
     # ------------------------------------------------------------------
+    # Note: engine options (NullPool, connect_args={'sslmode': 'require'})
+    # are set in config.py via SQLALCHEMY_ENGINE_OPTIONS. We do NOT modify
+    # them here — NullPool doesn't use pool_size / pool_pre_ping etc.
     db.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
