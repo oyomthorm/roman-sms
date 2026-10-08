@@ -23,6 +23,22 @@ def _require(name):
     return value
 
 
+def _with_sslmode(url: str) -> str:
+    """
+    Append ``?sslmode=require`` to Postgres URLs unless it is already set.
+
+    Render (and most managed Postgres providers) require SSL. Without this
+    the driver may negotiate SSL and then have the connection dropped,
+    producing ``SSL connection has been closed unexpectedly``.
+    """
+    if not url or not url.startswith(('postgres://', 'postgresql://', 'postgresql+')):
+        return url
+    if 'sslmode=' in url:
+        return url
+    sep = '&' if '?' in url else '?'
+    return f'{url}{sep}sslmode=require'
+
+
 class Config:
     # ------------------------------------------------------------------
     # Core
@@ -31,13 +47,18 @@ class Config:
 
     # Postgres is the only supported production backend. The wallet relies
     # on SELECT ... FOR UPDATE, which SQLite silently ignores.
-    SQLALCHEMY_DATABASE_URI = _require('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = _with_sslmode(_require('DATABASE_URL'))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
+        # Verify a pooled connection is still alive before using it.
         'pool_pre_ping': True,
-        'pool_size': 10,
-        'max_overflow': 20,
-        'pool_recycle': 3600,
+        # Recycle connections more aggressively than Render's idle reaper.
+        'pool_recycle': 300,
+        # Conservative pool for small instances.
+        'pool_size': 5,
+        'max_overflow': 10,
+        # Fail fast if the database is unreachable on connect.
+        'pool_timeout': 30,
     }
 
     # ------------------------------------------------------------------
@@ -118,18 +139,16 @@ class Config:
     MASTER_EMAIL = os.environ.get('MASTER_EMAIL', 'admin@romansms.local')
     MASTER_PASSWORD = os.environ.get('MASTER_PASSWORD', 'ChangeMe123!')
 
-
     # Self-signup
     SIGNUP_ENABLED = os.environ.get('SIGNUP_ENABLED', '1') == '1'
     SIGNUP_STARTER_CREDITS = int(
         os.environ.get('SIGNUP_STARTER_CREDITS', 100))
-    
 
     # Scheduler timezone offset in hours from UTC.
     # Uganda is UTC+3 year-round, no DST.
     SCHEDULER_TZ_OFFSET_HOURS = int(
         os.environ.get('SCHEDULER_TZ_OFFSET_HOURS', 3))
-    
+
     # ------------------------------------------------------------------
     # Company details shown on generated invoices
     # ------------------------------------------------------------------
@@ -145,7 +164,8 @@ class Config:
     # Email the campaign creator + org admins when a campaign finishes.
     EMAIL_ON_CAMPAIGN_COMPLETE = (
         os.environ.get('EMAIL_ON_CAMPAIGN_COMPLETE', '1') == '1')
-            
+
+
 class TestConfig(Config):
     """
     Used by the test suite. Overrides the DATABASE_URL requirement with

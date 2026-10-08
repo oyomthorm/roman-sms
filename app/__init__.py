@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from config import Config
 from .extensions import db, login_manager, csrf, migrate, limiter
@@ -5,10 +7,50 @@ from .errors import register_error_handlers
 from .logging_config import configure_logging
 
 
+def _normalize_db_url(url: str) -> str:
+    """
+    Ensure the DATABASE_URL uses the psycopg (v3) driver.
+
+    Render and Heroku hand out URLs like ``postgres://...`` or
+    ``postgresql://...`` which SQLAlchemy maps to the psycopg2 dialect
+    by default. We use psycopg v3, so force ``postgresql+psycopg://``.
+    """
+    if not url:
+        return url
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif url.startswith("postgresql+postgresql://"):
+        url = url.replace("postgresql+postgresql://", "postgresql+psycopg://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
+    # ------------------------------------------------------------------
+    # Database URL + engine options
+    # ------------------------------------------------------------------
+    # 1) Normalise the driver scheme so Render's `postgresql://...`
+    #    is turned into `postgresql+psycopg://...` automatically.
+    raw_db_url = app.config.get("SQLALCHEMY_DATABASE_URI") or os.environ.get("DATABASE_URL")
+    if raw_db_url:
+        app.config["SQLALCHEMY_DATABASE_URI"] = _normalize_db_url(raw_db_url)
+
+    # 2) Pool settings that survive Render's idle-connection reaper.
+    #    - pool_pre_ping: issues SELECT 1 before reusing a pooled conn.
+    #    - pool_recycle:  recycles connections older than 5 minutes.
+    app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {})
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"].update({
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    })
+
+    # ------------------------------------------------------------------
+    # Extensions
+    # ------------------------------------------------------------------
     db.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
