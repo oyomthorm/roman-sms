@@ -1,4 +1,7 @@
 from flask import Blueprint
+
+from app.extensions import csrf
+
 from .auth import bp as auth_bp
 from .wallet import bp as wallet_bp
 from .campaigns import bp as campaigns_bp
@@ -7,11 +10,30 @@ from .plans import bp as plans_bp
 from .chat import bp as chat_bp
 from .notifications import bp as notif_bp
 
+
+# The mobile API authenticates with Bearer tokens (see install_api_auth in
+# app/api/v1/utils.py); it does not use session cookies, so Flask-WTF's
+# CSRF protection does not apply. Exempt each leaf blueprint here, before
+# registering it on the parent blueprint, so that:
+#   - the exemption uses only Flask-WTF's public csrf.exempt(blueprint) API
+#   - adding a new child blueprint below automatically requires thinking
+#     about whether it should also be exempted (it is added to this tuple)
+#   - create_app() stays focused on wiring, not on per-blueprint CSRF rules
+#
+# HTML blueprints registered elsewhere in create_app() are NOT in this list
+# and remain CSRF-protected.
 api_v1_bp = Blueprint("api_v1", __name__)
-api_v1_bp.register_blueprint(auth_bp)
-api_v1_bp.register_blueprint(wallet_bp)
-api_v1_bp.register_blueprint(campaigns_bp)
-api_v1_bp.register_blueprint(contacts_bp)
-api_v1_bp.register_blueprint(plans_bp)
-api_v1_bp.register_blueprint(chat_bp)
-api_v1_bp.register_blueprint(notif_bp)
+
+_CHILDREN = (
+    auth_bp,
+    wallet_bp,
+    campaigns_bp,
+    contacts_bp,
+    plans_bp,
+    chat_bp,
+    notif_bp,
+)
+
+for _child in _CHILDREN:
+    csrf.exempt(_child)
+    api_v1_bp.register_blueprint(_child)
