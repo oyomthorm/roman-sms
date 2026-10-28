@@ -1,4 +1,3 @@
-from flask_cors import CORS
 from app.api.v1 import api_v1_bp
 from app.api.v1.utils import install_api_errors, install_api_auth
 import os
@@ -65,16 +64,6 @@ def create_app(config_object=Config):
     # them here â€” NullPool doesn't use pool_size / pool_pre_ping etc.
     db.init_app(app)
     migrate.init_app(app, db)
-    # --- API CSRF bypass (must run before init_app to register patched handler) ---
-    _original_csrf_protect = csrf.protect
-    def _patched_csrf_protect():
-        from flask import request as _req
-        if _req.path.startswith('/api/'):
-            return None
-        return _original_csrf_protect()
-    csrf.protect = _patched_csrf_protect
-    # --- End patch ---
-
     csrf.init_app(app)
     limiter.init_app(app)
     login_manager.init_app(app)
@@ -202,14 +191,12 @@ def create_app(config_object=Config):
 
     register_error_handlers(app)
         # Setup API CORS & Auth
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
     install_api_errors(app)
     install_api_auth(login_manager)
     app.register_blueprint(api_v1_bp)
     
 
 
-    # Exempt all API child blueprints from CSRF (Bearer token auth)
     
 
     @login_manager.unauthorized_handler
