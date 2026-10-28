@@ -11,8 +11,21 @@ bp = Blueprint("api_wallet", __name__, url_prefix="/api/v1/wallet")
 @login_required
 def summary():
     oid = current_user.org_id
-    bal = entitlements.balance(oid) or 0
-    rate = entitlements.current_rate_ugx(oid) or 45  # fallback rate
+    try:
+        bal = entitlements.balance(oid)
+        rate = entitlements.current_rate_ugx(oid)
+    except Exception:
+        # No fallbacks on money. The app must show an error, not a
+        # fabricated balance or rate.
+        return jsonify({
+            "error": "wallet_unavailable",
+            "message": "Could not load wallet. Please try again.",
+        }), 503
+    if bal is None or rate is None:
+        return jsonify({
+            "error": "wallet_unavailable",
+            "message": "Could not load wallet. Please try again.",
+        }), 503
     return jsonify(serializers.wallet(bal, rate, bal * rate))
 
 @bp.get("/transactions")
