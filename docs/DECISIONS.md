@@ -1,4 +1,4 @@
-# Architecture Decision Records
+﻿# Architecture Decision Records
 
 One page per decision. Add a new ADR for anything expensive to reverse.
 
@@ -405,3 +405,179 @@ time.
 - Filter is an indexed lookup, no join.
 - History is honest: the pool reflects the group at grant time.
 - Adding a group after granting requires a backfill or a re-grant.
+
+## ADR-019 — API serializers must use real model columns
+
+**Date:** 2026-10-28 · **Status:** Accepted
+
+**Context.** The mobile API was written against the developer's mental
+model of the codebase, not against the actual model definitions. Three
+bugs of the same shape surfaced during the 0.11.0 audit:
+
+  - `wallet.summary` called `entitlements.balance(org_id)`, which never
+    existed. The real function is `get_balance`.
+  - `serializers.campaign` read `c.recipient_count` and `c.cost_credits`
+    via `getattr(..., 0)`. The Campaign model has `total` and
+    `credits_debited`. Both fields silently serialized as 0.
+  - `chat.messages` used `ChatMessage.sender_id` and
+    `ChatReadState.last_read_message_id`. Neither column exists; the
+    real ones are `author_id` and `last_read_at`.
+
+None of these could be caught by an import test — they reference
+attributes that Python resolves at call time. All three shipped
+undetected because the API had never been exercised end-to-end.
+
+**Decision.** Every serializer in `app/api/v1/` must be exercised by at
+least one integration test that creates a real model row and asserts
+the serialized fields. Every service function called by the API must be
+importable (`from app.services import X; assert hasattr(X, fn)`) and
+must be exercised by a call that returns without raising.
+
+Practical rule: when adding a field to a serializer, grep
+`Model.__table__.columns` for the name. When calling a service
+function, `grep "^def function_name" services/` to confirm the
+signature. Never write a serializer field or service call from memory.
+
+**Consequences.**
+- `getattr(..., 0)` defaults in serializers are a smell: they hide the
+  exact class of bug this ADR targets. Remove them; let the
+  AttributeError surface at test time.
+- The `[4]`-style end-to-end test inside every fix script is now the
+  standard shape for API changes.
+- An API change that cannot be exercised end-to-end (e.g. requires two
+  tenants, requires a suspended org) must have a static assertion in
+  place of the runtime test, and the runtime test must be deferred to a
+  documented deploy gate.
+
+---
+
+## ADR-020 — Associate-only mobile app; master console stays web-only
+
+**Date:** 2026-10-28 · **Status:** Accepted
+
+**Context.** The mobile API allows any user to log in — including
+`master_admin` — because `install_api_auth` uses Flask-Login's
+`request_loader` without role filtering. A master admin logging into
+the Flutter app would see the associate UI with master-org data, which
+is confusing and shows the wrong information.
+
+Two options were considered:
+
+  1. **Associate-only mobile app.** Master login on mobile shows
+     "Please use the web console for admin tasks" and refuses to
+     proceed past login.
+  2. **Full mobile replica** including master console screens (approve
+     signups, grant credits, view all orgs, master pool, audit log).
+     Estimated additional work: ~4 days + real design risk.
+
+**Decision.** Option 1. The mobile app is associate-facing only. Master
+admin features stay at `https://romansms.com/master/*` on the web.
+
+Rationale:
+  - Master console workflows are inherently laptop-shaped (tables,
+    filters, batch actions, audit log). Rendering them on a phone
+    produces a strictly worse UI than the web version.
+  - The master role is used by the operator on a laptop — not by
+    customers who want mobile access.
+  - Adding master screens to mobile doubles the UI surface to maintain
+    for zero user benefit.
+
+**Consequences.**
+  - Flutter login response handler must check `user.role`. If
+    `master_admin`, show a message and refuse login.
+  - Any future web feature added to mobile should be re-evaluated
+    against this ADR: does it benefit associates specifically?
+    Master-only features do not travel to mobile.
+
+---
+
+## ADR-021 — Full mobile feature parity with web console
+
+**Date:** 2026-10-28 · **Status:** Accepted
+
+**Context.** The Flutter mobile app currently supports: login, signup
+(submission), wallet view, wallet ledger, plan listing, chat,
+notifications list, profile (hardcoded). It does NOT support: contact
+editing/opt-out, groups, CSV import, campaign creation, scheduling,
+campaign detail/delivery report, campaign cancel, invoice list/detail,
+buy plan, profile edit, change password.
+
+Two mobile strategy options were considered:
+
+  1. **Mobile-appropriate subset (~3.5 days).** Build the highest-value
+     mobile workflows (campaign creation, add contact, buy plan, cancel
+     campaign, change password) and omit the mobile-hostile ones
+     (CSV import, group management, schedule editing).
+  2. **Full replica (~10 focused days).** Build everything the web
+     console does, in the mobile app.
+
+**Decision.** Option 2 — full replica, excluding master console (see
+ADR-020).
+
+Rationale:
+  - Users have asked for parity explicitly.
+  - The backend service layer already enforces every business rule
+    (wallet debit before dispatch, opt-out enforcement, rate limits,
+    schedule pausing, invoice snapshotting). The mobile app is a
+    narrower viewport onto the same rules. The gap is UI surface, not
+    correctness — parity is achievable without re-implementing business
+    logic.
+  - Cost is bounded: ~10 focused days, listed as 15 sequential rounds.
+
+**Consequences.**
+  - **Dual maintenance becomes a permanent ongoing cost.** Every new
+    web feature must be evaluated for mobile. Every web UI bug is fixed
+    twice. If it becomes untenable, the mitigation is not "shut down
+    mobile" — it's "extract shared UI components and unify via Flutter
+    Web."
+  - **Some features will look different on mobile than web even when
+    functionally identical.** For each mobile-hostile feature, a
+    mobile-appropriate form is designed and approved before building.
+
+---
+
+## ADR-022 — Flutter base URL and manifest requirements
+
+**Date:** 2026-10-28 · **Status:** Accepted
+
+**Context.** Two separate classes of Flutter configuration bug bit the
+mobile app during the 0.12.0 deployment:
+
+  1. `mobile/lib/api/client.dart` had `baseUrl: 'http://172.27.176.96:5000'`
+     — a developer's laptop IP, marked `// HARDCODED FOR TESTING`. The
+     APK built against this URL fails with "Connection Refused" on any
+     device not on that developer's LAN.
+
+  2. `mobile/android/app/src/main/AndroidManifest.xml` was missing
+     `<uses-permission android:name="android.permission.INTERNET"/>`.
+     Flutter's `flutter run` (debug) auto-injects the permission from
+     `android/app/src/debug/AndroidManifest.xml`; release builds
+     (`flutter build apk --release`) use only `main/`, which does not
+     have it. The resulting APK **cannot open any socket**, and every
+     network call fails with "Connection Refused" — even though the
+     same source builds and works via `flutter run` in debug.
+
+Both bugs cost significant debugging time because the failure mode is
+identical in symptom (Connection Refused) despite unrelated causes, and
+the release APK provides no stack trace to distinguish them.
+
+**Decision.** Two rules for the mobile project:
+
+  1. **Base URL must never be hardcoded in `client.dart` for anything
+     other than the production host.** For development, use
+     `--dart-define=API_BASE_URL=...`. The current code has
+     `baseUrl: 'https://romansms.com'` hardcoded, which is acceptable
+     today. When a staging environment is added, this **must** become a
+     `--dart-define` parameter.
+
+  2. **`android/app/src/main/AndroidManifest.xml` must contain
+     `<uses-permission android:name="android.permission.INTERNET"/>`**
+     at the top-level of the `<manifest>` element, before `<application>`.
+
+**Consequences.**
+  - `flutter build apk --release` is the only build that matters for
+    shipping. **All pre-release testing on a physical phone must use a
+    release build + manual install cycle**, not `flutter run` over USB.
+  - Two `AndroidManifest.xml` files exist in a Flutter project (main +
+    debug). Both must be reviewed separately. Changes to one don't
+    affect the other.
