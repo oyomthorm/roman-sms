@@ -81,3 +81,8 @@ backups/
 # Local tooling output
 # ---------------------------------------------------------------------------
 structure_*.txt
+# One-off session scripts (2026-10-28)
+fix_*.py
+inspect_*.py
+boot_trace.txt
+cloudflared-*.exe
