@@ -21,7 +21,7 @@ def contact(c):
 def campaign(c):
     return {
         "id": c.id, "name": c.name, "status": c.status, "created_at": iso(c.created_at),
-        "recipient_count": getattr(c, "recipient_count", 0), "cost_credits": getattr(c, "cost_credits", 0)
+        "recipient_count": c.total, "cost_credits": c.credits_debited
     }
 
 def paginated(items, next_cursor):

@@ -84,7 +84,7 @@ def create():
         }), 422
 
     try:
-        camp = camp_svc.create_campaign(
+        camp, total_segments = camp_svc.create_campaign(
             org=Organization.query.get(current_user.org_id),
             name=data.get("name", "SMS Campaign"),
             body=body,
@@ -95,6 +95,7 @@ def create():
         return jsonify({"error": "campaign_failed", "message": str(e)}), 400
 
     res = serializers.campaign(camp)
+    res["total_segments"] = total_segments
 
     ApiIdempotency.query.filter_by(
         user_id=current_user.id, key=g.idempotency_key,
