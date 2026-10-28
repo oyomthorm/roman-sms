@@ -12,7 +12,7 @@ bp = Blueprint("api_wallet", __name__, url_prefix="/api/v1/wallet")
 def summary():
     oid = current_user.org_id
     try:
-        bal = entitlements.balance(oid)
+        bal = entitlements.get_balance(oid)
         rate = entitlements.current_rate_ugx(oid)
     except Exception:
         # No fallbacks on money. The app must show an error, not a
