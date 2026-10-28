@@ -4,6 +4,9 @@ from app.extensions import db
 from app.models import User
 from app.models.api import issue_token, ApiToken
 from app.api.v1 import serializers
+from flask import current_app
+from app.extensions import limiter
+from app.services import signups as signups_svc
 
 bp = Blueprint("api_auth", __name__, url_prefix="/api/v1/auth")
 
@@ -38,3 +41,47 @@ def me():
     from app.models import Organization
     org = Organization.query.get(current_user.org_id) if current_user.org_id else None
     return jsonify({"user": serializers.user(current_user), "org": serializers.org(org) if org else None})
+
+@bp.post("/signup")
+@limiter.limit("5 per hour")
+def signup():
+    if not current_app.config.get("SIGNUP_ENABLED", True):
+        return jsonify({"error": "signups_closed",
+                        "message": "Signups are temporarily closed."}), 403
+
+    data = request.get_json(silent=True) or {}
+
+    # Honeypot: mobile always sends website="" — a non-empty value means a bot
+    # filling the raw JSON, and we silently accept-then-drop like the web route.
+    if data.get("website"):
+        return jsonify({"ok": True, "created": False,
+                        "message": "Thanks. If approved, we'll email you."}), 200
+
+    try:
+        req, created = signups_svc.submit_request(
+            company_name=data.get("company_name", ""),
+            desired_slug=data.get("desired_slug", ""),
+            brand_name=data.get("brand_name") or data.get("company_name", ""),
+            contact_name=data.get("contact_name", ""),
+            contact_email=data.get("contact_email", ""),
+            contact_phone=data.get("contact_phone"),
+            district_id=data.get("district_id"),
+            plan_id=data.get("plan_id"),
+            expected_volume=data.get("expected_volume"),
+            message=data.get("message"),
+            ip_address=request.remote_addr,
+            user_agent=(request.headers.get("User-Agent") or "")[:255],
+        )
+    except signups_svc.SignupError as e:
+        return jsonify({"error": "signup_invalid", "message": str(e)}), 422
+    except Exception:
+        current_app.logger.exception("API signup failed")
+        return jsonify({"error": "server_error",
+                        "message": "Could not submit your application. Try again."}), 500
+
+    return jsonify({
+        "ok": True,
+        "created": created,
+        "request_id": req.id,
+        "message": "Thanks. If approved, we'll email you with a link to set your password.",
+    }), 201
