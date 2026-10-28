@@ -6,6 +6,7 @@ from app.api.v1 import serializers
 from app.api.v1.utils import require_idempotency
 from app.models import Campaign, MessageLog, ApiIdempotency
 from app.services import campaigns as camp_svc
+from app.services import phones as phones_svc
 from app.services import renderer, entitlements
 
 bp = Blueprint("api_campaigns", __name__, url_prefix="/api/v1/campaigns")
@@ -41,28 +42,62 @@ def detail(id):
 @require_idempotency
 def create():
     data = request.get_json(silent=True) or {}
-    body = data.get("body", "").strip()
-    if not body: return jsonify({"error": "empty_body"}), 422
+    body = (data.get("body") or "").strip()
+    if not body:
+        return jsonify({"error": "empty_body"}), 422
 
-    synthetic = None
-    if data.get("recipient_source") == "paste":
-        report = camp_svc.resolve_pasted_numbers(data.get("pasted_numbers", ""))
-        if not report.accepted: return jsonify({"error": "no_recipients", "report": report.as_dict()}), 422
-        synthetic = report.accepted
+    source = data.get("recipient_source", "contacts")
+    custom_phones = None
+
+    if source == "paste":
+        text = data.get("pasted_numbers", "") or ""
+        # parse_pasted_numbers is the same normalizer the web route uses
+        # (app/routes/campaigns.py). It returns normalized, deduped
+        # numbers with the platform cap already applied.
+        try:
+            custom_phones = phones_svc.parse_pasted_numbers(text)
+        except TypeError:
+            # Signature mismatch — fall back to the simpler normalize path
+            # so the error surfaces as an empty list rather than 500.
+            from app.services.phones import normalize_ug
+            custom_phones = []
+            for raw in (text.splitlines() or []):
+                norm = normalize_ug(raw)
+                if norm and norm not in custom_phones:
+                    custom_phones.append(norm)
+        if not custom_phones:
+            return jsonify({
+                "error": "no_valid_recipients",
+                "message": "No valid phone numbers in the pasted list.",
+            }), 422
+        if len(custom_phones) > 500:
+            return jsonify({
+                "error": "too_many_recipients",
+                "message": "Pasted list exceeds the 500 number cap.",
+                "count": len(custom_phones),
+            }), 422
+    elif source != "contacts":
+        return jsonify({
+            "error": "invalid_recipient_source",
+            "message": "recipient_source must be 'contacts' or 'paste'.",
+            "got": source,
+        }), 422
 
     try:
         camp = camp_svc.create_campaign(
-            org=Organization.query.get(current_user.org_id), name=data.get("name", "SMS Campaign"), body=body,
-            synthetic_contacts=synthetic, commit=False
+            org=Organization.query.get(current_user.org_id),
+            name=data.get("name", "SMS Campaign"),
+            body=body,
+            custom_phones=custom_phones,
+            created_by=current_user.id,
         )
     except Exception as e:
         return jsonify({"error": "campaign_failed", "message": str(e)}), 400
 
     res = serializers.campaign(camp)
-    
-    # Save idempotent response
-    ApiIdempotency.query.filter_by(user_id=current_user.id, key=g.idempotency_key).update(
-        {"response_status": 201, "response_body": res}
-    )
+
+    ApiIdempotency.query.filter_by(
+        user_id=current_user.id, key=g.idempotency_key,
+    ).update({"response_status": 201, "response_body": res})
     db.session.commit()
     return jsonify(res), 201
