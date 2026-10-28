@@ -1,3 +1,6 @@
+from flask_cors import CORS
+from app.api.v1 import api_v1_bp
+from app.api.v1.utils import install_api_errors, install_api_auth
 import os
 
 from flask import Flask
@@ -45,7 +48,7 @@ def create_app(config_object=Config):
     app.config.from_object(config_object)
 
     # ------------------------------------------------------------------
-    # Database URL — normalize the driver scheme.
+    # Database URL â€” normalize the driver scheme.
     # ------------------------------------------------------------------
     raw_db_url = (
         app.config.get("SQLALCHEMY_DATABASE_URI")
@@ -59,9 +62,19 @@ def create_app(config_object=Config):
     # ------------------------------------------------------------------
     # Note: engine options (NullPool, connect_args={'sslmode': 'require'})
     # are set in config.py via SQLALCHEMY_ENGINE_OPTIONS. We do NOT modify
-    # them here — NullPool doesn't use pool_size / pool_pre_ping etc.
+    # them here â€” NullPool doesn't use pool_size / pool_pre_ping etc.
     db.init_app(app)
     migrate.init_app(app, db)
+    # --- API CSRF bypass (must run before init_app to register patched handler) ---
+    _original_csrf_protect = csrf.protect
+    def _patched_csrf_protect():
+        from flask import request as _req
+        if _req.path.startswith('/api/'):
+            return None
+        return _original_csrf_protect()
+    csrf.protect = _patched_csrf_protect
+    # --- End patch ---
+
     csrf.init_app(app)
     limiter.init_app(app)
     login_manager.init_app(app)
@@ -110,9 +123,9 @@ def create_app(config_object=Config):
         Expose wallet balance, rate, and shilling value to every template.
 
         Returns:
-          wallet_balance    — SMS credit count (integer)
-          wallet_rate       — UGX per credit for the current org
-          wallet_value_ugx  — shilling value of the balance
+          wallet_balance    â€” SMS credit count (integer)
+          wallet_rate       â€” UGX per credit for the current org
+          wallet_value_ugx  â€” shilling value of the balance
 
         All None for anonymous users, the master admin, and background jobs.
         """
@@ -188,4 +201,22 @@ def create_app(config_object=Config):
     register_cli(app)
 
     register_error_handlers(app)
+        # Setup API CORS & Auth
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    install_api_errors(app)
+    install_api_auth(login_manager)
+    app.register_blueprint(api_v1_bp)
+    
+
+
+    # Exempt all API child blueprints from CSRF (Bearer token auth)
+    
+
+    @app.unauthorized_handler
+    def _unauth():
+        from flask import request, jsonify, redirect, url_for
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "unauthorized", "message": "Missing or expired token."}), 401
+        return redirect(url_for("auth.login"))
+
     return app

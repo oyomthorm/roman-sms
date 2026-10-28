@@ -9,18 +9,9 @@ from .pool import PoolPermission, PoolContact
 from .imports import ContactImport, ContactImportIssue
 from .signup import SignupRequest
 
-__all__ = [
-    'District',
-    'Organization', 'User', 'Plan', 'Subscription',
-    'Contact', 'MessageTemplate', 'Campaign', 'MessageLog', 'Group',
-    'CampaignSchedule',
-    'WalletTransaction', 'Invoice', 'NotificationDismissal',
-    'SendQueue', 'OptOut', 'AuditLog',
-    'ChatChannel', 'ChatMessage', 'ChatReadState',
-    'PoolPermission', 'PoolContact',
-    'ContactImport', 'ContactImportIssue',
-    'SignupRequest',
-]
+# Import API models last so foreign keys resolve correctly
+from .api import ApiToken, ApiIdempotency
 
+# Force SQLAlchemy to verify all relationships immediately
 from sqlalchemy.orm import configure_mappers
 configure_mappers()
