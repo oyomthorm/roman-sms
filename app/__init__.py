@@ -212,7 +212,7 @@ def create_app(config_object=Config):
     # Exempt all API child blueprints from CSRF (Bearer token auth)
     
 
-    @app.unauthorized_handler
+    @login_manager.unauthorized_handler
     def _unauth():
         from flask import request, jsonify, redirect, url_for
         if request.path.startswith("/api/"):
