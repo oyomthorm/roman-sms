@@ -86,3 +86,7 @@ fix_*.py
 inspect_*.py
 boot_trace.txt
 cloudflared-*.exe
+testkey
+testkey.pub
+testkey
+testkey.pub
