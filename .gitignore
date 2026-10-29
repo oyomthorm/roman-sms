@@ -86,3 +86,7 @@ fix_*.py
 inspect_*.py
 boot_trace.txt
 cloudflared-*.exe
+
+# Untracked docs artifact from earlier session
+docs/Roman_Panel_Documentation_Formatted.md
+scripts/VPS ROOT.txt
