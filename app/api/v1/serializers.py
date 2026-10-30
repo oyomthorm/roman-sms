@@ -1,7 +1,12 @@
 def iso(dt): return dt.isoformat().replace("+00:00", "Z") if dt else None
 
 def user(u):
-    return {"id": u.id, "email": u.email, "name": getattr(u, "name", "Admin"), "role": u.role}
+    return {
+        "id": u.id,
+        "email": u.email,
+        "name": getattr(u, "full_name", None) or "Admin",
+        "role": u.role,
+    }
 
 def org(o):
     if o is None:

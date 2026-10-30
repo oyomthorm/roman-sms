@@ -85,3 +85,35 @@ def signup():
         "request_id": req.id,
         "message": "Thanks. If approved, we'll email you with a link to set your password.",
     }), 201
+@bp.put("/profile")
+@login_required
+def update_profile():
+    from app.services import users as users_svc
+    data = request.get_json(silent=True) or {}
+    kwargs = {}
+    if "full_name" in data:
+        kwargs["full_name"] = data["full_name"]
+    if not kwargs:
+        return jsonify({"error": "no_fields", "message": "Nothing to update."}), 422
+    try:
+        users_svc.update_profile(current_user, **kwargs)
+    except users_svc.UserError as e:
+        return jsonify({"error": "invalid_profile", "message": str(e)}), 422
+    return jsonify(serializers.user(current_user)), 200
+
+
+@bp.post("/change-password")
+@login_required
+def change_password():
+    from app.services import users as users_svc
+    data = request.get_json(silent=True) or {}
+    try:
+        users_svc.change_password(
+            current_user,
+            current_password=data.get("current_password", ""),
+            new_password=data.get("new_password", ""),
+            confirm_password=data.get("new_password", ""),
+        )
+    except users_svc.UserError as e:
+        return jsonify({"error": "invalid_password", "message": str(e)}), 422
+    return jsonify({"ok": True}), 200
