@@ -81,7 +81,7 @@ class EgoSMSClient:
         self.password = c.get('EGOSMS_PASSWORD') or ''
         self.sender = c.get('EGOSMS_DEFAULT_SENDER', 'ROMANSMS')
         self.timeout = c.get('EGOSMS_TIMEOUT', 20)
-        self.sandbox = c.get('EGOSMS_SANDBOX', False)
+        self.sandbox = str(c.get('EGOSMS_SANDBOX', '')).lower() in ('1', 'true', 'yes', 'on')
         self.endpoint = SANDBOX_ENDPOINT if self.sandbox else JSON_ENDPOINT
 
     # ------------------------------------------------------------------

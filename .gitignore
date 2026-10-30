@@ -86,7 +86,14 @@ fix_*.py
 inspect_*.py
 boot_trace.txt
 cloudflared-*.exe
+testkey
+testkey.pub
+testkey
+testkey.pub
 
-# Untracked docs artifact from earlier session
+# Added from VPS (secrets + panel)
 docs/Roman_Panel_Documentation_Formatted.md
 scripts/VPS ROOT.txt
+testkey
+testkey.pub
+panel/.env
