@@ -10,7 +10,8 @@ class ContactDetailScreen extends ConsumerStatefulWidget {
   const ContactDetailScreen({super.key, required this.initialContact});
 
   @override
-  ConsumerState<ContactDetailScreen> createState() => _ContactDetailScreenState();
+  ConsumerState<ContactDetailScreen> createState() =>
+      _ContactDetailScreenState();
 }
 
 class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
@@ -29,6 +30,21 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
     super.initState();
     _name = widget.initialContact['name'] as String?;
     _optedOut = widget.initialContact['opted_out'] == true;
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    try {
+      final r =
+          await ApiClient.instance.dio.get('/api/v1/contacts/$_contactId');
+      if (!mounted) return;
+      setState(() {
+        _name = r.data['name'] as String?;
+        _optedOut = r.data['opted_out'] == true;
+      });
+    } catch (_) {
+      // Silent. We have initial data from the list; a failed refresh is not fatal.
+    }
   }
 
   Future<void> _editName() async {
@@ -47,7 +63,8 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('Save'),
@@ -82,7 +99,9 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
           '$_phone will be added to the platform-wide opt-out list and will not receive further SMS.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -114,9 +133,12 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete this contact?'),
-        content: Text('$_phone will be removed from your contact list. This cannot be undone.'),
+        content: Text(
+            '$_phone will be removed from your contact list. This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -144,11 +166,13 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = (_name == null || _name!.isEmpty) ? 'Unnamed contact' : _name!;
+    final displayName =
+        (_name == null || _name!.isEmpty) ? 'Unnamed contact' : _name!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(displayName, style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text(displayName,
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -170,7 +194,8 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
           Center(
             child: CircleAvatar(
               radius: 40,
-              backgroundColor: _optedOut ? Colors.grey.shade300 : RomanSmsTheme.lightGreen,
+              backgroundColor:
+                  _optedOut ? Colors.grey.shade300 : RomanSmsTheme.lightGreen,
               child: Icon(
                 Icons.person,
                 size: 40,
@@ -180,21 +205,27 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text(displayName, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+            child: Text(displayName,
+                style: GoogleFonts.inter(
+                    fontSize: 20, fontWeight: FontWeight.bold)),
           ),
           if (_optedOut)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'OPTED OUT',
-                    style: GoogleFonts.inter(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -205,21 +236,29 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.phone),
-                  title: Text('Phone', style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
-                  subtitle: Text(_phone, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  title: Text('Phone',
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: RomanSmsTheme.textMuted)),
+                  subtitle: Text(_phone,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                 ),
                 const Divider(height: 1, indent: 60),
                 ListTile(
                   leading: const Icon(Icons.group),
-                  title: Text('Group', style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
+                  title: Text('Group',
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: RomanSmsTheme.textMuted)),
                   subtitle: Text(_groupId == null ? '—' : 'Group #$_groupId',
                       style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                 ),
                 const Divider(height: 1, indent: 60),
                 ListTile(
                   leading: const Icon(Icons.location_on),
-                  title: Text('District', style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
-                  subtitle: Text(_districtId == null ? '—' : 'District #$_districtId',
+                  title: Text('District',
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: RomanSmsTheme.textMuted)),
+                  subtitle: Text(
+                      _districtId == null ? '—' : 'District #$_districtId',
                       style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                 ),
               ],
@@ -231,8 +270,10 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
               onPressed: _optingOut ? null : _optOut,
               icon: _optingOut
                   ? const SizedBox(
-                      width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.block),
               label: Text(_optingOut ? 'Opting out…' : 'Opt Out This Contact'),
@@ -240,7 +281,8 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
                 backgroundColor: Colors.orange.shade700,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
         ],
