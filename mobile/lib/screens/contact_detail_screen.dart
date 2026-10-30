@@ -1,0 +1,250 @@
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../api/client.dart';
+import '../theme/app_theme.dart';
+import '../state/providers.dart';
+
+class ContactDetailScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> initialContact;
+  const ContactDetailScreen({super.key, required this.initialContact});
+
+  @override
+  ConsumerState<ContactDetailScreen> createState() => _ContactDetailScreenState();
+}
+
+class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
+  late String? _name;
+  late bool _optedOut;
+  bool _optingOut = false;
+  bool _deleting = false;
+
+  int get _contactId => widget.initialContact['id'] as int;
+  String get _phone => widget.initialContact['phone'] as String? ?? '';
+  int? get _groupId => widget.initialContact['group_id'] as int?;
+  int? get _districtId => widget.initialContact['district_id'] as int?;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = widget.initialContact['name'] as String?;
+    _optedOut = widget.initialContact['opted_out'] == true;
+  }
+
+  Future<void> _editName() async {
+    final controller = TextEditingController(text: _name ?? '');
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            hintText: 'Leave empty to clear',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (newName == null) return;
+
+    try {
+      final r = await ApiClient.instance.dio.patch(
+        '/api/v1/contacts/$_contactId',
+        data: {'name': newName},
+      );
+      if (!mounted) return;
+      setState(() => _name = r.data['name'] as String?);
+      ref.invalidate(contactsProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update name: $e')),
+      );
+    }
+  }
+
+  Future<void> _optOut() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Opt out this contact?'),
+        content: Text(
+          '$_phone will be added to the platform-wide opt-out list and will not receive further SMS.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Opt Out'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() => _optingOut = true);
+    try {
+      await ApiClient.instance.dio.post('/api/v1/contacts/$_contactId/optout');
+      if (!mounted) return;
+      setState(() => _optedOut = true);
+      ref.invalidate(contactsProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to opt out: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _optingOut = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this contact?'),
+        content: Text('$_phone will be removed from your contact list. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ApiClient.instance.dio.delete('/api/v1/contacts/$_contactId');
+      if (!mounted) return;
+      ref.invalidate(contactsProvider);
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete: $e')),
+      );
+      setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = (_name == null || _name!.isEmpty) ? 'Unnamed contact' : _name!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(displayName, style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: _optingOut || _deleting ? null : _editName,
+            tooltip: 'Edit name',
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: _optingOut || _deleting ? null : _delete,
+            tooltip: 'Delete',
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Center(
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: _optedOut ? Colors.grey.shade300 : RomanSmsTheme.lightGreen,
+              child: Icon(
+                Icons.person,
+                size: 40,
+                color: _optedOut ? Colors.grey : RomanSmsTheme.primaryGreen,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(displayName, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+          ),
+          if (_optedOut)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'OPTED OUT',
+                    style: GoogleFonts.inter(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 32),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.phone),
+                  title: Text('Phone', style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
+                  subtitle: Text(_phone, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                ),
+                const Divider(height: 1, indent: 60),
+                ListTile(
+                  leading: const Icon(Icons.group),
+                  title: Text('Group', style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
+                  subtitle: Text(_groupId == null ? '—' : 'Group #$_groupId',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                ),
+                const Divider(height: 1, indent: 60),
+                ListTile(
+                  leading: const Icon(Icons.location_on),
+                  title: Text('District', style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
+                  subtitle: Text(_districtId == null ? '—' : 'District #$_districtId',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (!_optedOut)
+            ElevatedButton.icon(
+              onPressed: _optingOut ? null : _optOut,
+              icon: _optingOut
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.block),
+              label: Text(_optingOut ? 'Opting out…' : 'Opt Out This Contact'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

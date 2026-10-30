@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../state/providers.dart';
 import '../widgets/add_contact_sheet.dart';
+import 'contact_detail_screen.dart';
 
 class ContactsScreen extends ConsumerWidget {
   const ContactsScreen({super.key});
@@ -60,7 +61,7 @@ class ContactsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 Text('All Contacts', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                
+
                 if (contacts.isEmpty)
                   Center(
                     child: Padding(
@@ -79,10 +80,16 @@ class ContactsScreen extends ConsumerWidget {
                         return Column(
                           children: [
                             ListTile(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ContactDetailScreen(initialContact: contact),
+                                ),
+                              ),
                               leading: CircleAvatar(
                                 backgroundColor: isOptedOut ? Colors.grey.shade200 : RomanSmsTheme.lightGreen,
                                 child: Icon(
-                                  Icons.person, 
+                                  Icons.person,
                                   color: isOptedOut ? Colors.grey : RomanSmsTheme.primaryGreen
                                 ),
                               ),
@@ -155,4 +162,3 @@ class ContactsScreen extends ConsumerWidget {
     );
   }
 }
-
