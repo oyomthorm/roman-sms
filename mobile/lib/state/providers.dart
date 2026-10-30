@@ -68,12 +68,6 @@ final chatMessagesProvider = StreamProvider.autoDispose.family((ref, int channel
 });
 
 final dashboardStatsProvider = FutureProvider.autoDispose((ref) async {
-  return {
-    'sent_30d': 12450,
-    'delivery_rate': '98.2%',
-    'recent_activity': [
-      {'type': 'credit', 'title': 'Wallet Top-up', 'date': 'Today, 10:30 AM', 'amount': '+ 50,000'},
-      {'type': 'debit', 'title': 'Campaign: PTA Meeting', 'date': 'Yesterday, 14:00 PM', 'amount': '- 2,500'},
-    ]
-  };
+  final r = await ApiClient.instance.dio.get('/api/v1/dashboard');
+  return r.data as Map<String, dynamic>;
 });
