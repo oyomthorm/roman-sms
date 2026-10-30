@@ -1,4 +1,4 @@
-"""Local end-to-end test for the new /api/v1/contacts routes.
+"""Local end-to-end test for the /api/v1/contacts routes.
 
 Runs against the local DB via Flask's test client. Does not touch production.
 """
@@ -28,6 +28,17 @@ def main():
         print('create:', r.status_code, r.get_json())
         assert r.status_code in (200, 201), 'create failed'
         contact_id = r.get_json()['id']
+
+        # ---- NEW IN ROUND 2 ----
+        # 2.5. GET by id — must return the same shape as create
+        r = c.get(f'/api/v1/contacts/{contact_id}', headers=H)
+        body = r.get_json()
+        print('get by id:', r.status_code, body)
+        assert r.status_code == 200, 'get by id failed'
+        assert body['id'] == contact_id
+        assert body['phone'] == '256700000001'
+        assert body['name'] == 'Round1 Throwaway'
+        # ---- END NEW ----
 
         # 3. PATCH name
         r = c.patch(f'/api/v1/contacts/{contact_id}',
@@ -87,6 +98,13 @@ def main():
         r = c.post(f'/api/v1/contacts/{contact_id}/optout', headers=H)
         print('optout missing:', r.status_code)
         assert r.status_code == 404
+
+        # ---- NEW IN ROUND 2 ----
+        # 13. GET by id on deleted — 404
+        r = c.get(f'/api/v1/contacts/{contact_id}', headers=H)
+        print('get missing:', r.status_code)
+        assert r.status_code == 404
+        # ---- END NEW ----
 
     print('\nALL ASSERTIONS PASSED')
 

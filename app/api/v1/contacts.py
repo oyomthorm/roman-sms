@@ -95,3 +95,11 @@ def optout(contact_id):
         db.session.rollback()
         return jsonify({"error": "optout_failed", "message": str(e)}), 422
     return jsonify(serializers.contact(c)), 200
+
+@bp.get("/<int:contact_id>")
+@login_required
+def get(contact_id):
+    c = Contact.query.filter_by(id=contact_id, org_id=current_user.org_id).first()
+    if not c:
+        return jsonify({"error": "not_found"}), 404
+    return jsonify(serializers.contact(c)), 200
