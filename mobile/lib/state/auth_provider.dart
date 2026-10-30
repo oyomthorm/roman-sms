@@ -1,32 +1,61 @@
-﻿import 'package:dio/dio.dart'; // <-- ADD THIS LINE
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/client.dart';
-
 
 class AuthState {
   final bool isAuthenticated;
   final bool isLoading;
   final String? error;
-  const AuthState({this.isAuthenticated = false, this.isLoading = false, this.error});
+  final Map<String, dynamic>? user;
+  final Map<String, dynamic>? org;
 
-  AuthState copyWith({bool? isAuthenticated, bool? isLoading, String? error}) {
+  const AuthState({
+    this.isAuthenticated = false,
+    this.isLoading = false,
+    this.error,
+    this.user,
+    this.org,
+  });
+
+  AuthState copyWith({
+    bool? isAuthenticated,
+    bool? isLoading,
+    String? error,
+    Map<String, dynamic>? user,
+    Map<String, dynamic>? org,
+    bool clearUser = false,
+    bool clearOrg = false,
+  }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      user: clearUser ? null : (user ?? this.user),
+      org: clearOrg ? null : (org ?? this.org),
     );
   }
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final _storage = const FlutterSecureStorage();
-  AuthNotifier() : super(const AuthState()) { _checkToken(); }
+  AuthNotifier() : super(const AuthState()) {
+    _checkToken();
+  }
 
   Future<void> _checkToken() async {
     final token = await _storage.read(key: 'api_token');
-    if (token != null) {
-      state = state.copyWith(isAuthenticated: true);
+    if (token == null) return;
+    try {
+      final r = await ApiClient.instance.dio.get('/api/v1/auth/me');
+      state = state.copyWith(
+        isAuthenticated: true,
+        user: r.data['user'] as Map<String, dynamic>?,
+        org: r.data['org'] as Map<String, dynamic>?,
+      );
+    } catch (_) {
+      await _storage.delete(key: 'api_token');
+      state = const AuthState(isAuthenticated: false);
     }
   }
 
@@ -39,7 +68,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'device_label': 'Flutter Android',
       });
       await _storage.write(key: 'api_token', value: r.data['token']);
-      state = state.copyWith(isAuthenticated: true, isLoading: false);
+      state = state.copyWith(
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+        user: r.data['user'] as Map<String, dynamic>?,
+        org: r.data['org'] as Map<String, dynamic>?,
+      );
       return true;
     } catch (e) {
       String errMsg = "Unknown error";
@@ -60,9 +95,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    try {
+      await ApiClient.instance.dio.post('/api/v1/auth/logout');
+    } catch (_) {
+      // Ignore — even if server revoke fails, we clear local state.
+    }
     await _storage.delete(key: 'api_token');
     state = const AuthState(isAuthenticated: false);
   }
+
+  Future<void> refreshProfile() async {
+    try {
+      final r = await ApiClient.instance.dio.get('/api/v1/auth/me');
+      state = state.copyWith(
+        user: r.data['user'] as Map<String, dynamic>?,
+        org: r.data['org'] as Map<String, dynamic>?,
+      );
+    } catch (_) {
+      // Silent — if refresh fails, keep existing state.
+    }
+  }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+final authProvider =
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
