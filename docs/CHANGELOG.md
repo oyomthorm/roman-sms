@@ -1,4 +1,155 @@
 # Changelog
+## [0.12.0] — Mobile API deployed; signup, wallet, plans fixes; Flutter client working
+
+### Deployed
+- **Mobile API v1 is live on production.** All 17 `/api/v1/*` routes were
+  previously unreachable because `create_app()` raised
+  `AttributeError: 'Flask' object has no attribute 'unauthorized_handler'`.
+  This bug survived to production because the mobile API was written on
+  a branch that had never booted. `89593c7` fixed it. The mobile API is
+  now tested end-to-end against `https://romansms.com` with real users.
+- **Flutter client deployed to a physical Android device.** Login,
+  signup, wallet, plans, chat, notifications, and all navigation routes
+  work against production.
+
+### Fixed
+- **Boot crash** (see Deployed above).
+- **CSRF exemption** moved from a `csrf.protect` monkey-patch in
+  `create_app()` to explicit per-child-blueprint `csrf.exempt()` calls in
+  `app/api/v1/__init__.py`. The monkey-patch is gone.
+- **Wildcard CORS** removed. No browser client exists; wildcard CORS on
+  a Bearer-authenticated API was a hazard given a leaked token.
+- **`entitlements.balance(oid)` → `entitlements.get_balance(oid)`** in
+  `wallet.summary`. The old function never existed; `/api/v1/wallet`
+  had been 500-ing on every request since it was written. The `or 0`
+  fallback never caught the error because `AttributeError` is not `None`.
+- **`/api/v1/campaigns` paste path** was broken at three levels:
+  called nonexistent `resolve_pasted_numbers`, passed `synthetic_contacts=`
+  to a function expecting `custom_phones=`, and did not unpack the
+  `(campaign, total_segments)` tuple `create_campaign` returns. Fixed by
+  mirroring the web route: `parse_pasted_numbers` → `create_campaign(custom_phones=...)`
+  → unpack → serialize.
+- **`serializers.campaign`** read `c.recipient_count` and `c.cost_credits`
+  via `getattr(..., 0)`; the Campaign model has `total` and `credits_debited`.
+  Every campaign ever returned by the mobile API had zeros for both fields.
+  Fixed to read real columns.
+- **`/api/v1/plans`** read `p.price_ugx` / `p.rate_ugx`; Plan has `price`
+  and derives `rate = price / credits`. 500'd on every request before this fix.
+- **`/api/v1/chat/*`** cross-tenant leak: `channels()` had no org filter,
+  `messages(cid)` and `send_message(cid)` had no ownership check. Fixed
+  to scope by `associate_org_id`, with `ChatMessage.author_id` and
+  `ChatReadState.last_read_at` (both of which were previously referenced
+  under wrong names).
+- **`chat.messages`** response field names updated to `author_id` /
+  `created_at` (was `sender_id` / `sender_name`). Client impacts none
+  because chat messages had never been reachable from any client.
+
+### Added
+- **`POST /api/v1/auth/signup`** — public signup endpoint that mirrors
+  the web signup form. Anonymous (no token required), honeypot-aware
+  (mobile always sends `website=""`, matching web behavior), rate-limited
+  at 5/hour/IP. Returns 201 with `{ok, created, request_id, message}`.
+  Does **not** issue a token; the applicant is notified after master
+  approval via the existing welcome-email flow.
+
+### Discovered, not fixed (deferred to 0.13.0+)
+- **SMTP is unconfigured on production.** `MAIL_SERVER`, `MAIL_USERNAME`,
+  `MAIL_PASSWORD`, `ALERT_EMAIL` are all empty or absent in
+  `/srv/roman-sms/.env`. Signup applications land in `signup_requests`
+  table but neither the applicant nor the master receives any email.
+  **This is a documented, accepted deficiency** — signup is
+  functionally complete, notification is not.
+- **`POST /api/v1/invoices` and `GET /api/v1/invoices`** do not exist.
+  The mobile Plans screen's "Buy Plan" button calls `/api/v1/invoices`
+  and will 404. Purchase flow is web-only until these are added.
+- **`GET /api/v1/campaigns/<id>`** does not exist. The mobile campaign
+  detail screen will 404 when tapping a campaign in the list.
+- **`GET /api/v1/dashboard`** does not exist. The mobile Dashboard
+  screen uses `dashboardStatsProvider` which returns hardcoded
+  `sent_30d: 12450, delivery_rate: '98.2%'` values.
+- **`PATCH /api/v1/contacts/<id>`, `DELETE /api/v1/contacts/<id>`,
+  `POST /api/v1/contacts/<id>/optout`** do not exist. Contact editing
+  and opt-out are web-only.
+- **Groups CRUD** endpoints do not exist. Contact groups are web-only.
+- **`POST /api/v1/campaigns/schedules`** and related endpoints do not
+  exist. Recurring campaign scheduling is web-only.
+- **`PUT /api/v1/auth/profile`** and **`POST /api/v1/auth/change-password`**
+  do not exist. The mobile Profile screen shows hardcoded
+  "admin@example.com" / "Organization Admin" values.
+
+### Notes
+- The mobile API had never worked in production before 0.12.0. The
+  pattern of latent bugs (wrong function names, wrong model field names,
+  unpacked tuples) suggests the API was written against a mental model
+  of the codebase, not against the actual code. See ADR-019.
+- **Flutter APK build note**: `android/app/src/main/AndroidManifest.xml`
+  must include `<uses-permission android:name="android.permission.INTERNET"/>`.
+  Debug builds auto-inject this; release builds do not. Missing this
+  permission produces "Connection Refused" on every network call and is
+  a common source of confusion (the app works in `flutter run` but fails
+  in `flutter build apk --release`).
+- **Flutter base URL** is hardcoded to `https://romansms.com` in
+  `mobile/lib/api/client.dart`. Change this before any deploy to a
+  different environment; the value should eventually be moved to
+  `--dart-define=API_BASE_URL=...`.
+  
+## [0.11.0] — Mobile API audit: C1/C2/C3 fixes, boot repair, CSRF refactor
+
+### Fixed
+- **Boot crash from `@app.unauthorized_handler`.** Flask has no such
+  method; the correct API is `login_manager.unauthorized_handler`. The
+  AttributeError occurred inside `create_app()`, so `api_v1_bp` was
+  never registered on a booted app. Every `/api/v1/*` route was
+  unreachable. This masked a deeper problem: the mobile API had never
+  successfully booted.
+- **`/api/v1/wallet` 500'd on every request.** The handler called
+  `entitlements.balance(org_id)`, a function that does not exist. The
+  real function is `entitlements.get_balance(org_id)`. The `or 0`
+  fallback never fired because `AttributeError` is not `None`, so the
+  bug was silent from day one.
+- **`/api/v1/campaigns` paste path was broken at three levels.**
+  (a) Called `camp_svc.resolve_pasted_numbers`, which does not exist.
+  (b) Passed `synthetic_contacts=` to `create_campaign`, which expects
+  `custom_phones=`. (c) Did not unpack the `(campaign, total_segments)`
+  tuple that `create_campaign` returns. All three were masked because
+  (a) raised first, so (b) and (c) never triggered. Fixed by mirroring
+  the web route: `phones.parse_pasted_numbers` → `create_campaign(custom_phones=...)`
+  → unpack → serialize.
+- **`serializers.campaign` returned zeros for recipient_count and
+  cost_credits.** The serializer read `c.recipient_count` and
+  `c.cost_credits` via `getattr(..., 0)`, but the Campaign model has
+  `total` and `credits_debited`. Fixed to use the real column names.
+- **Chat cross-tenant leak in `/api/v1/chat/*`.** `channels()` listed
+  every chat channel in the database with no org filter;
+  `messages(cid)` and `send_message(cid)` never checked ownership. Any
+  logged-in associate could read or post to another org's DM by
+  iterating integer channel ids. Fixed: all channel access goes
+  through `_channel_visible_or_404(cid)` which scopes by
+  `associate_org_id` (dm) or `associate_org_id IS NULL or current_org`
+  (broadcast). `ChatMessage.author_id` and `ChatReadState.last_read_at`
+  corrected (previously used nonexistent `sender_id` / `last_read_message_id`).
+
+### Changed
+- **CSRF exemption moved from `create_app()` to `app/api/v1/__init__.py`.**
+  Previously a monkey-patch on `csrf.protect` skipped CSRF for any path
+  starting with `/api/`. Replaced with `csrf.exempt(child_bp)` for each
+  child blueprint, called from the api package. HTML blueprints remain
+  CSRF-protected; verified by a POST test returning 400 for
+  unauthenticated HTML, 401 for the API.
+- **Wildcard CORS removed.** `CORS(app, resources={"/api/*": {"origins": "*"}})`
+  provided no benefit (no browser client) and combined with Bearer
+  tokens was a hazard if a token leaked. Removed.
+
+### Notes
+- `services.campaigns.resolve_recipients` already enforced `OptOut`
+  for `custom_phones` — no fix needed there.
+- `services.entitlements.check_can_send` already enforced
+  `org.status == 'active'` — no fix needed there.
+- Runtime test for C1 (cross-tenant channel access) requires two
+  orgs with separate users. Deferred to first multi-tenant deploy.
+- Three H-tier items from the API audit remain: idempotency under
+  concurrency, keyset pagination on list endpoints, and rate limiting
+  on `/auth/login`.
 
 ## [0.10.0] — Plan pricing revision; credits never expire
 

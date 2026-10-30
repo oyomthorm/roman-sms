@@ -1,4 +1,4 @@
-# Roman SMS documentation
+﻿# Roman SMS documentation
 
 Everything a developer or operator needs to know about the platform.
 
@@ -25,6 +25,7 @@ Everything a developer or operator needs to know about the platform.
 | `EGOSMS_NOTES.md` | Pahappa API quirks, constraints, gotchas | API behaviour changes |
 | `WEBHOOK.md` | Delivery webhook contract and testing | Webhook shape changes |
 | `DEPLOY.md` | Full deployment procedure | The deploy process changes |
+| `MOBILE.md` | Flutter mobile app — stack, testing, Play Store checklist | The mobile app changes |
 
 ## Rules
 

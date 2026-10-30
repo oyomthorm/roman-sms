@@ -234,3 +234,62 @@ chat page is open. Read state per user per channel. No websockets.
 
 Text (dev) or JSON (prod) via `app/logging_config.py`. Per-request IDs
 attached via `X-Request-ID`.
+
+
+---
+
+## Mobile API
+
+`/api/v1/*` is the JSON surface for the Flutter mobile client. It is a
+third consumer of the same services that back the web app — no business
+logic lives in `app/api/v1/`. Every `/api/v1/*` handler delegates to a
+`services.*` function; handlers do serialization, argument shape
+adaptation, and error mapping only.
+
+### Authentication
+
+Bearer tokens issued by `POST /api/v1/auth/login`. Tokens are opaque
+`rsms_<random>` strings stored hashed in `ApiToken`. Expiry is enforced
+by the token table, not by a claim in the token. No cookies, no CSRF.
+
+The Bearer token is loaded per-request by `install_api_auth` via
+Flask-Login's `login_manager.request_loader`. Existing decorators
+(`@login_required`, `@org_admin_required`) work unchanged for API
+requests.
+
+### CSRF exemption
+
+The entire `/api/v1/*` blueprint tree is CSRF-exempt, applied per-child
+in `app/api/v1/__init__.py` via `csrf.exempt(child_bp)` for each child
+before registration. **Flask-WTF does not cascade exemptions from a
+parent blueprint to its children**, so exempting `api_v1_bp` alone is
+insufficient. Every new child blueprint added to `api_v1_bp` must be
+added to the `_CHILDREN` tuple for exemption.
+
+### Invariants
+
+- **`org_id` comes from `current_user.org_id`, never from the request.**
+  Same rule as PERMISSIONS.md; the mobile API inherits it.
+- Every `/api/v1/*` GET returns `{"items": [...]}` for lists or the
+  resource directly for single-item reads.
+- Decimal fields (`price_ugx`, `rate_ugx`, `value_ugx`) serialize as
+  **strings**, not numbers, to preserve precision. Flutter clients must
+  parse with `num.parse(...)` or `double.parse(...)`, never
+  `int.parse(...)`.
+- Campaign creation requires an `Idempotency-Key` header.
+- `/api/v1/auth/signup` is anonymous, 5/hour/IP rate-limited, returns
+  201 but does NOT issue a token.
+
+### Testing
+
+The mobile API has no automated test coverage as of 0.12.0. The
+verification pattern used during the 0.11.0–0.12.0 audit was a
+`test_client()` loop hitting every GET endpoint with a real login token.
+This should be promoted to `tests/integration/test_mobile_api.py`
+before the next round of features lands on the API. See ADR-019.
+
+### Deferred
+
+See `CHANGELOG.md` 0.12.0 "Discovered, not fixed" for the list of
+endpoints and features deferred to 0.13.0+. Full parity is planned
+across 15 sequential rounds (ADR-021).
