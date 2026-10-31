@@ -18,6 +18,9 @@ class AppShell extends ConsumerWidget {
     if (location.startsWith('/campaigns')) {
       currentIndex = 1;
       title = 'Campaigns';
+    } else if (location.startsWith('/groups')) {
+      currentIndex = 2;
+      title = 'Groups';
     } else if (location.startsWith('/contacts')) {
       currentIndex = 2;
       title = 'Contacts';
@@ -66,7 +69,7 @@ class AppShell extends ConsumerWidget {
                 context.go('/campaigns');
                 break;
               case 2:
-                context.go('/contacts');
+                context.go('/groups');
                 break;
               case 3:
                 context.go('/wallet');
@@ -83,9 +86,9 @@ class AppShell extends ConsumerWidget {
                 activeIcon: Icon(Icons.send),
                 label: 'Campaigns'),
             BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                activeIcon: Icon(Icons.people),
-                label: 'Contacts'),
+                icon: Icon(Icons.group_outlined),
+                activeIcon: Icon(Icons.group),
+                label: 'Groups'),
             BottomNavigationBarItem(
                 icon: Icon(Icons.account_balance_wallet_outlined),
                 activeIcon: Icon(Icons.account_balance_wallet),
@@ -143,6 +146,14 @@ class AppShell extends ConsumerWidget {
               onTap: () {
                 Navigator.pop(context);
                 context.push('/chat');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Contacts'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/contacts');
               },
             ),
             ListTile(

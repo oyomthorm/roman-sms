@@ -6,6 +6,7 @@ import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/signup_pending_screen.dart';
 import 'screens/contacts_screen.dart';
+import 'screens/groups_screen.dart';
 import 'screens/wallet_screen.dart';
 import 'screens/campaigns_screen.dart';
 import 'screens/campaign_detail_screen.dart';
@@ -49,6 +50,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/campaigns',
               builder: (context, state) => const CampaignsScreen()),
+          GoRoute(
+              path: '/groups',
+              builder: (context, state) => const GroupsScreen()),
           GoRoute(
               path: '/contacts',
               builder: (context, state) => const ContactsScreen()),
