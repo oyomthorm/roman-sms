@@ -1,6 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
+from app.extensions import db
+from app.models import Contact, OptOut
+from app.services import contacts as contacts_svc
+from app.services import geo as geo_svc
 from app.services import groups as svc
 
 groups_bp = Blueprint('groups', __name__)
@@ -103,3 +107,64 @@ def delete(gid):
                            group=group,
                            contact_count=contact_count,
                            other_groups=other_groups)
+
+
+@groups_bp.route('/<int:gid>/import', methods=['GET', 'POST'])
+@login_required
+def import_to_group(gid):
+    org = _org()
+    group = svc.get(org, gid)
+    if not group:
+        return render_template('errors/404.html'), 404
+
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if not file or not file.filename:
+            flash('No file uploaded.', 'danger')
+            return redirect(url_for('groups.import_to_group', gid=gid))
+
+        on_duplicate = request.form.get('on_duplicate', 'skip').strip()
+        if on_duplicate not in ('skip', 'update'):
+            on_duplicate = 'skip'
+
+        district_id_raw = request.form.get('district_id', '').strip()
+        district_id = int(district_id_raw) if district_id_raw.isdigit() else None
+
+        try:
+            job = contacts_svc.import_csv(
+                org, file.stream,
+                default_group=group.name,
+                default_district_id=district_id,
+                on_duplicate=on_duplicate,
+                filename=file.filename,
+                user_id=current_user.id,
+            )
+        except contacts_svc.ContactError as e:
+            flash(str(e), 'danger')
+            return redirect(url_for('groups.import_to_group', gid=gid))
+
+        return redirect(url_for('contacts.import_report', job_id=job.id))
+
+    # GET: mirror contacts.import_page context
+    existing_phones = [
+        row[0] for row in
+        db.session.query(Contact.phone)
+        .filter_by(org_id=org.id)
+        .order_by(Contact.id.desc())
+        .limit(5000)
+        .all()
+    ]
+    opt_out_phones = [
+        row[0] for row in
+        db.session.query(OptOut.phone)
+        .order_by(OptOut.id.desc())
+        .limit(5000)
+        .all()
+    ]
+
+    return render_template('contacts/import.html',
+                           preset_group=group,
+                           groups=svc.list_groups(org),
+                           districts_by_region=geo_svc.list_by_region(),
+                           existing_phones=existing_phones,
+                           opt_out_phones=opt_out_phones)

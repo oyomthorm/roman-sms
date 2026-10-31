@@ -51,7 +51,6 @@
       <select name="group_id"
               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-        <option value="">No group</option>
         {% for g, c in groups %}
         <option value="{{ g.id }}"
           {% if contact and contact.group_id == g.id %}selected{% endif %}>

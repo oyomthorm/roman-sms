@@ -94,8 +94,13 @@ def edit(cid):
     contact = org_scoped(Contact).filter_by(id=cid).first_or_404()
     if request.method == 'POST':
         group_id_raw = request.form.get('group_id', '').strip()
-        group_id = int(group_id_raw) if group_id_raw.isdigit() else None
-        clear_group = (group_id_raw == '')
+        if not group_id_raw.isdigit():
+            flash('Group is required.', 'danger')
+            return render_template('contacts/form.html',
+                                   contact=contact,
+                                   groups=groups_svc.list_groups(org),
+                                   districts_by_region=geo_svc.list_by_region())
+        group_id = int(group_id_raw)
 
         district_id_raw = request.form.get('district_id', '').strip()
         district_id = int(district_id_raw) if district_id_raw.isdigit() else None
@@ -105,13 +110,15 @@ def edit(cid):
             svc.update_contact(org, cid,
                                name=request.form.get('name', ''),
                                group_id=group_id,
-                               clear_group=clear_group,
                                district_id=district_id,
                                clear_district=clear_district)
         except svc.ContactError as e:
             flash(str(e), 'danger')
         else:
             flash('Contact updated.', 'success')
+            next_url = request.referrer
+            if next_url and next_url.startswith(request.host_url):
+                return redirect(next_url)
             return redirect(url_for('contacts.index'))
 
     return render_template('contacts/form.html',
@@ -128,6 +135,9 @@ def delete(cid):
         flash('Contact deleted.', 'success')
     except svc.ContactError as e:
         flash(str(e), 'danger')
+    next_url = request.referrer
+    if next_url and next_url.startswith(request.host_url):
+        return redirect(next_url)
     return redirect(url_for('contacts.index'))
 
 
@@ -139,6 +149,9 @@ def optout(cid):
         flash(f'{c.phone} opted out.', 'success')
     except svc.ContactError as e:
         flash(str(e), 'danger')
+    next_url = request.referrer
+    if next_url and next_url.startswith(request.host_url):
+        return redirect(next_url)
     return redirect(url_for('contacts.index'))
 
 

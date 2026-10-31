@@ -58,9 +58,18 @@
     </a>
   </div>
 
-  <form method="post" action="{{ url_for('contacts.import_csv') }}"
+  <form method="post" action="{% if preset_group %}{{ url_for('groups.import_to_group', gid=preset_group.id) }}{% else %}{{ url_for('contacts.import_csv') }}{% endif %}"
         enctype="multipart/form-data" id="import-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% if preset_group %}
+    <div class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+      <p class="text-sm text-emerald-900">
+        Importing into group: <strong>{{ preset_group.name }}</strong>.
+        Contacts without a group column will be added to this group.
+      </p>
+    </div>
+    {% endif %}
 
     {# ---------------------------------------------------------------- #}
     {# Step 2 — File + options                                           #}
@@ -90,14 +99,26 @@
           <label class="block text-sm font-medium text-slate-700 mb-1.5">
             Default group
           </label>
+          {% if preset_group %}
+          <div class="w-full rounded-lg border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-900">
+            {{ preset_group.name }}
+          </div>
+          <p class="text-xs text-emerald-700 mt-1.5">
+            All imported contacts will be added to this group.
+          </p>
+          {% else %}
           <input name="group" list="group-list"
-                 placeholder="Blank = use file column"
+                 placeholder="Leave blank if your file has a group column"
                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
                         placeholder:text-slate-400
                         focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
           <datalist id="group-list">
             {% for g, c in groups %}<option value="{{ g.name }}">{% endfor %}
           </datalist>
+          <p class="text-xs text-slate-500 mt-1.5">
+            Rows with no group column and no default group will be skipped.
+          </p>
+          {% endif %}
         </div>
 
         <div>
