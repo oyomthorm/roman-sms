@@ -15,7 +15,8 @@ class ContactsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Contacts', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text('Contacts',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -29,11 +30,16 @@ class ContactsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          showModalBottomSheet(context: context, isScrollControlled: true, builder: (context) => const AddContactSheet());
+          showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              builder: (context) => const AddContactSheet());
         },
         backgroundColor: RomanSmsTheme.primaryGreen,
         icon: const Icon(Icons.person_add, color: Colors.white),
-        label: Text('Add Contact', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text('Add Contact',
+            style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(contactsProvider),
@@ -43,8 +49,13 @@ class ContactsScreen extends ConsumerWidget {
           data: (contacts) {
             // Calculate stats for the top circles
             final totalContacts = contacts.length;
-            final optedOut = contacts.where((c) => c['opted_out'] == true).length;
-            final groups = contacts.map((c) => c['group_id']).where((id) => id != null).toSet().length;
+            final optedOut =
+                contacts.where((c) => c['opted_out'] == true).length;
+            final groups = contacts
+                .map((c) => c['group_id'])
+                .where((id) => id != null)
+                .toSet()
+                .length;
 
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -55,18 +66,23 @@ class ContactsScreen extends ConsumerWidget {
                   children: [
                     _buildCircleStat('Total', totalContacts.toString()),
                     _buildCircleStat('Groups', groups.toString()),
-                    _buildCircleStat('Opt-outs', optedOut.toString(), isWarning: true),
+                    _buildCircleStat('Opt-outs', optedOut.toString(),
+                        isWarning: true),
                   ],
                 ),
                 const SizedBox(height: 24),
-                Text('All Contacts', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('All Contacts',
+                    style: GoogleFonts.inter(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
 
                 if (contacts.isEmpty)
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
-                      child: Text('No contacts yet. Add one to get started!', style: GoogleFonts.inter(color: RomanSmsTheme.textMuted)),
+                      child: Text('No contacts yet. Add one to get started!',
+                          style: GoogleFonts.inter(
+                              color: RomanSmsTheme.textMuted)),
                     ),
                   )
                 else
@@ -83,33 +99,45 @@ class ContactsScreen extends ConsumerWidget {
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => ContactDetailScreen(initialContact: contact),
+                                  builder: (_) => ContactDetailScreen(
+                                      initialContact: contact),
                                 ),
                               ),
                               leading: CircleAvatar(
-                                backgroundColor: isOptedOut ? Colors.grey.shade200 : RomanSmsTheme.lightGreen,
-                                child: Icon(
-                                  Icons.person,
-                                  color: isOptedOut ? Colors.grey : RomanSmsTheme.primaryGreen
-                                ),
+                                backgroundColor: isOptedOut
+                                    ? Colors.grey.shade200
+                                    : RomanSmsTheme.lightGreen,
+                                child: Icon(Icons.person,
+                                    color: isOptedOut
+                                        ? Colors.grey
+                                        : RomanSmsTheme.primaryGreen),
                               ),
                               title: Text(
                                 contact['name'] ?? 'Unknown Name',
-                                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+                                style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w600, fontSize: 14),
                               ),
-                              subtitle: Text(contact['phone'], style: GoogleFonts.inter(fontSize: 12)),
+                              subtitle: Text(contact['phone'],
+                                  style: GoogleFonts.inter(fontSize: 12)),
                               trailing: isOptedOut
                                   ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: Colors.red.shade50,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Text('Opted Out', style: GoogleFonts.inter(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
+                                      child: Text('Opted Out',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 10,
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold)),
                                     )
-                                  : const Icon(Icons.chevron_right, color: Colors.grey),
+                                  : const Icon(Icons.chevron_right,
+                                      color: Colors.grey),
                             ),
-                            if (index < contacts.length - 1) const Divider(height: 1, indent: 60),
+                            if (index < contacts.length - 1)
+                              const Divider(height: 1, indent: 60),
                           ],
                         );
                       }).toList(),
@@ -124,7 +152,8 @@ class ContactsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCircleStat(String label, String value, {bool isWarning = false}) {
+  Widget _buildCircleStat(String label, String value,
+      {bool isWarning = false}) {
     return Column(
       children: [
         Container(
@@ -157,7 +186,11 @@ class ContactsScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(label, style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted, fontWeight: FontWeight.w600)),
+        Text(label,
+            style: GoogleFonts.inter(
+                fontSize: 12,
+                color: RomanSmsTheme.textMuted,
+                fontWeight: FontWeight.w600)),
       ],
     );
   }

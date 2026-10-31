@@ -17,6 +17,11 @@ final contactsProvider = FutureProvider.autoDispose((ref) async {
   return (r.data['items'] as List).cast<Map<String, dynamic>>();
 });
 
+final groupsProvider = FutureProvider.autoDispose((ref) async {
+  final r = await ApiClient.instance.dio.get('/api/v1/groups');
+  return (r.data['items'] as List).cast<Map<String, dynamic>>();
+});
+
 final campaignsProvider = FutureProvider.autoDispose((ref) async {
   final r = await ApiClient.instance.dio.get('/api/v1/campaigns');
   return (r.data['items'] as List).cast<Map<String, dynamic>>();

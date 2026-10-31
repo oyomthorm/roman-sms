@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../api/client.dart';
 import '../theme/app_theme.dart';
 import '../state/providers.dart';
+import '../widgets/group_picker_dialog.dart';
 
 class ContactDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> initialContact;
@@ -22,14 +23,19 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
 
   int get _contactId => widget.initialContact['id'] as int;
   String get _phone => widget.initialContact['phone'] as String? ?? '';
-  int? get _groupId => widget.initialContact['group_id'] as int?;
+  // NOTE: _districtId is intentionally still a getter. It has the same
+  // staleness bug _groupId had, but district editing is not in scope
+  // this round — a future district picker will promote it to state too.
   int? get _districtId => widget.initialContact['district_id'] as int?;
+
+  int? _groupId; // state: promoted from getter so picker PATCH can update it
 
   @override
   void initState() {
     super.initState();
     _name = widget.initialContact['name'] as String?;
     _optedOut = widget.initialContact['opted_out'] == true;
+    _groupId = widget.initialContact['group_id'] as int?;
     _refresh();
   }
 
@@ -41,9 +47,33 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
       setState(() {
         _name = r.data['name'] as String?;
         _optedOut = r.data['opted_out'] == true;
+        _groupId = r.data['group_id'] as int?; // was missing — fixed
       });
     } catch (_) {
       // Silent. We have initial data from the list; a failed refresh is not fatal.
+    }
+  }
+
+  Future<void> _pickGroup() async {
+    final result = await GroupPickerDialog.show(
+      context,
+      currentGroupId: _groupId,
+    );
+    if (!result.picked) return;
+
+    try {
+      final r = await ApiClient.instance.dio.patch(
+        '/api/v1/contacts/$_contactId',
+        data: {'group_id': result.groupId}, // null clears, int sets
+      );
+      if (!mounted) return;
+      setState(() => _groupId = r.data['group_id'] as int?);
+      ref.invalidate(contactsProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update group: $e')),
+      );
     }
   }
 
@@ -169,6 +199,23 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
     final displayName =
         (_name == null || _name!.isEmpty) ? 'Unnamed contact' : _name!;
 
+    // Resolve group name for the tile. If the provider is loading or errored,
+    // fall back to "Group #id" — the tile must render even if the group list
+    // call fails, because the contact itself loaded fine.
+    String? groupName;
+    if (_groupId != null) {
+      ref.watch(groupsProvider).whenData((groups) {
+        for (final g in groups) {
+          if (g['id'] == _groupId) {
+            groupName = g['name'] as String?;
+            break;
+          }
+        }
+      });
+    }
+    final groupSubtitle =
+        _groupId == null ? '—' : (groupName ?? 'Group #$_groupId');
+
     return Scaffold(
       appBar: AppBar(
         title: Text(displayName,
@@ -248,8 +295,10 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
                   title: Text('Group',
                       style: GoogleFonts.inter(
                           fontSize: 12, color: RomanSmsTheme.textMuted)),
-                  subtitle: Text(_groupId == null ? '—' : 'Group #$_groupId',
+                  subtitle: Text(groupSubtitle,
                       style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: (_optingOut || _deleting) ? null : _pickGroup,
                 ),
                 const Divider(height: 1, indent: 60),
                 ListTile(
@@ -289,4 +338,4 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
       ),
     );
   }
-}
+} 
