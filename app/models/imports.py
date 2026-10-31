@@ -37,6 +37,7 @@ class ContactImport(db.Model):
     skipped_duplicate = db.Column(db.Integer, default=0)
     skipped_in_file = db.Column(db.Integer, default=0)
     skipped_opt_out = db.Column(db.Integer, default=0)
+    skipped_no_group = db.Column(db.Integer, default=0)
     invalid = db.Column(db.Integer, default=0)
     groups_created = db.Column(db.Integer, default=0)
     districts_matched = db.Column(db.Integer, default=0)

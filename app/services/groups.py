@@ -127,6 +127,8 @@ def delete(org, group_id, *, move_to_group_id=None, actor_id=None):
 
     q = Contact.query.filter_by(org_id=org.id, group_id=group.id)
     moved = q.count()
+    if moved > 0 and not move_to_group_id:
+        raise GroupError('Cannot delete a non-empty group without specifying where to move contacts.')
     q.update({'group_id': target.id if target else None},
              synchronize_session=False)
 

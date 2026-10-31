@@ -106,18 +106,26 @@ def main():
         print('list contact_count:', rows[gid]['contact_count'])
         assert rows[gid]['contact_count'] == 1
 
-        # 12. DELETE without move_to — contact detaches
+        # 12. DELETE non-empty group without move_to → 422 (invariant enforcement)
         r = c.delete(f'/api/v1/groups/{gid}', headers=H)
-        body = r.get_json()
-        print('delete detach:', r.status_code, body)
-        assert r.status_code == 200
-        assert body == {'ok': True, 'moved_count': 1, 'moved_to': None}
+        print('delete non-empty no move_to:', r.status_code, r.get_json())
+        assert r.status_code == 422
+        assert r.get_json()['error'] == 'delete_failed'
+        assert 'non-empty' in r.get_json()['message']
 
-        # 13. Contact is now ungrouped
-        r = c.get(f'/api/v1/contacts/{cid}', headers=H)
-        print('contact after detach:', r.status_code, r.get_json())
+        # 12b. Move contact to gid2, then delete gid (now empty) → 200
+        r = c.patch(f'/api/v1/contacts/{cid}', headers=H, json={'group_id': gid2})
         assert r.status_code == 200
-        assert r.get_json()['group_id'] is None
+        r = c.delete(f'/api/v1/groups/{gid}', headers=H)
+        print('delete empty gid:', r.status_code, r.get_json())
+        assert r.status_code == 200
+        assert r.get_json() == {'ok': True, 'moved_count': 0, 'moved_to': None}
+
+        # 13. Contact is now in gid2 (moved during step 12b)
+        r = c.get(f'/api/v1/contacts/{cid}', headers=H)
+        print('contact after move:', r.status_code, r.get_json())
+        assert r.status_code == 200
+        assert r.get_json()['group_id'] == gid2
 
         # 14. GET deleted group — 404
         r = c.get(f'/api/v1/groups/{gid}', headers=H)
@@ -189,11 +197,15 @@ def main():
         assert body['contacts'][0]['id'] == mover_id
 
         # 22. Nested contacts — empty group returns empty list + zero stats
-        r = c.get(f'/api/v1/groups/{gid2}/contacts', headers=H)
+        # (Using a fresh group because gid2 now contains cid after step 12b)
+        r = c.post('/api/v1/groups', headers=H, json={'name': 'Round5 Empty For Nested'})
+        assert r.status_code == 201
+        empty_nested_gid = r.get_json()['id']
+        r = c.get(f'/api/v1/groups/{empty_nested_gid}/contacts', headers=H)
         body = r.get_json()
-        print('nested contacts empty gid:', r.status_code)
+        print('nested contacts empty:', r.status_code)
         assert r.status_code == 200
-        assert body['group']['id'] == gid2
+        assert body['group']['id'] == empty_nested_gid
         assert body['contacts'] == []
         assert body['stats'] == {'total': 0, 'opted_out': 0}
 
@@ -204,13 +216,29 @@ def main():
         print('nested contacts 999999:', r.status_code)
         assert r.status_code == 404
 
+        # 24. POST /contacts without group → 422 'Group is required.'
+        r = c.post('/api/v1/contacts', headers=H, json={'phone': '256700000077'})
+        print('contact no group:', r.status_code, r.get_json())
+        assert r.status_code == 422
+        assert r.get_json()['error'] == 'invalid_contact'
+        assert 'Group is required' in r.get_json()['message']
+
+        # 25. PATCH /contacts/<id> group_id:null → 422
+        r = c.patch(f'/api/v1/contacts/{mover_id}', headers=H, json={'group_id': None})
+        print('contact clear group:', r.status_code, r.get_json())
+        assert r.status_code == 422
+        assert r.get_json()['error'] == 'invalid_update'
+        assert 'cannot be cleared' in r.get_json()['message']
+
         # ---- CLEANUP ----
+
         # Remove throwaway contacts (both mover and the first one, plus contact in B)
         c.delete(f'/api/v1/contacts/{mover_id}', headers=H)
         c.delete(f'/api/v1/contacts/{cid}', headers=H)
         # Remove remaining groups
         c.delete(f'/api/v1/groups/{b_id}', headers=H)
         c.delete(f'/api/v1/groups/{gid2}', headers=H)
+        c.delete(f'/api/v1/groups/{empty_nested_gid}', headers=H)
 
     print('\nALL ASSERTIONS PASSED')
 

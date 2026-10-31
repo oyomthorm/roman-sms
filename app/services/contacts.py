@@ -44,6 +44,8 @@ def add_contact(org, *, phone, name=None, group=None, group_id=None,
         g, _ = groups_svc.find_or_create(org, group)
         if g:
             resolved_group_id = g.id
+    else:
+        raise ContactError('Group is required.')
 
     # Clean up optional fields: empty string -> None
     clean_name = (name or '').strip() or None
@@ -285,6 +287,20 @@ def import_csv(org, file_stream, *,
                     job.groups_created = (job.groups_created or 0) + 1
                 group_cache[key] = g
                 group_obj = g
+
+        # -- Enforce: every row must have a group (invariant) --
+        if group_obj is None:
+            job.skipped_no_group = (job.skipped_no_group or 0) + 1
+            db.session.add(ContactImportIssue(
+                import_id=job.id, row_num=row_num,
+                status='skipped_no_group',
+                reason='No group: add a group column or set a default group',
+                raw_phone=raw_phone[:60],
+                canonical=canonical,
+                name=name[:120] or None,
+                district_name=district_name[:80] or None,
+            ))
+            continue
 
         # -- Resolve district (never auto-created) --
         district_obj = default_district_obj

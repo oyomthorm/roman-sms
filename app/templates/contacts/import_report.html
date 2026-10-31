@@ -126,7 +126,8 @@
         {{ '{:,}'.format((job.skipped_duplicate or 0)
                          + (job.skipped_in_file or 0)
                          + (job.skipped_opt_out or 0)
-                         + (job.invalid or 0)) }}
+                         + (job.invalid or 0)
+                         + (job.skipped_no_group or 0)) }}
       </div>
     </div>
   </div>
@@ -146,7 +147,8 @@
       ('invalid',        'Invalid phone',     'red'),
       ('duplicate_db',   'Already in list',   'amber'),
       ('duplicate_file', 'Duplicate in file', 'amber'),
-      ('opted_out',      'Opted out',         'slate')
+      ('opted_out',      'Opted out',         'slate'),
+      ('skipped_no_group', 'No group',        'amber'),
     ] %}
 
     {# Desktop: 4 columns, single row #}

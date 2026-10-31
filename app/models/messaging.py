@@ -30,7 +30,7 @@ class Contact(db.Model):
     # Legacy string column kept for the backfill. Unused by code.
     group_legacy = db.Column('group', db.String(80), index=True)
     group_id = db.Column(db.Integer, db.ForeignKey('contact_group.id'),
-                         index=True)
+                         nullable=False, index=True)
     district_id = db.Column(
         db.Integer,
         db.ForeignKey('district.id', name='fk_contact_district'),

@@ -45,7 +45,8 @@ def patch(contact_id):
 
     if "group_id" in data:
         if data["group_id"] is None:
-            kwargs["clear_group"] = True
+            return jsonify({"error": "invalid_update",
+                            "message": "group_id cannot be cleared; all contacts must belong to a group."}), 422
         else:
             kwargs["group_id"] = data["group_id"]
 
