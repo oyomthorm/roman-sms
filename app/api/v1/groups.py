@@ -51,6 +51,21 @@ def get(group_id):
     return jsonify(serializers.group(g)), 200
 
 
+@bp.get("/<int:group_id>/contacts")
+@login_required
+def list_contacts(group_id):
+    org = _org()
+    g = svc.get(org, group_id)
+    if not g:
+        return jsonify({"error": "not_found"}), 404
+    contacts = svc.contacts_in(org, group_id)
+    opted_out = sum(1 for c in contacts if c.opted_out)
+    return jsonify({
+        "group": serializers.group(g, contact_count=len(contacts)),
+        "contacts": [serializers.contact(c) for c in contacts],
+        "stats": {"total": len(contacts), "opted_out": opted_out},
+    })
+
 @bp.patch("/<int:group_id>")
 @login_required
 def patch(group_id):

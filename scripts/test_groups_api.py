@@ -171,6 +171,39 @@ def main():
         print('unauthenticated:', r.status_code)
         assert r.status_code == 401
 
+        # 20. Nested contacts — unauthenticated 401
+        r = c.get(f'/api/v1/groups/{b_id}/contacts')
+        print('nested contacts unauth:', r.status_code)
+        assert r.status_code == 401
+
+        # 21. Nested contacts — group with 1 contact (mover_id was moved into b_id)
+        r = c.get(f'/api/v1/groups/{b_id}/contacts', headers=H)
+        body = r.get_json()
+        print('nested contacts b_id:', r.status_code, 'total=', body.get('stats', {}).get('total'))
+        assert r.status_code == 200
+        assert body['group']['id'] == b_id
+        assert isinstance(body['contacts'], list)
+        assert len(body['contacts']) == 1
+        assert body['stats']['total'] == 1
+        assert body['stats']['opted_out'] == 0
+        assert body['contacts'][0]['id'] == mover_id
+
+        # 22. Nested contacts — empty group returns empty list + zero stats
+        r = c.get(f'/api/v1/groups/{gid2}/contacts', headers=H)
+        body = r.get_json()
+        print('nested contacts empty gid:', r.status_code)
+        assert r.status_code == 200
+        assert body['group']['id'] == gid2
+        assert body['contacts'] == []
+        assert body['stats'] == {'total': 0, 'opted_out': 0}
+
+        # 23. Nested contacts — nonexistent group 404
+        # (also covers cross-org: svc.get filters by org, so a group in another
+        # org returns None identically — see commit message for rationale.)
+        r = c.get('/api/v1/groups/999999/contacts', headers=H)
+        print('nested contacts 999999:', r.status_code)
+        assert r.status_code == 404
+
         # ---- CLEANUP ----
         # Remove throwaway contacts (both mover and the first one, plus contact in B)
         c.delete(f'/api/v1/contacts/{mover_id}', headers=H)
