@@ -31,3 +31,13 @@ def campaign(c):
 
 def paginated(items, next_cursor):
     return {"items": items, "next_cursor": next_cursor}
+
+def group(g, contact_count=None):
+    return {
+        "id": g.id,
+        "name": g.name,
+        "description": getattr(g, "description", None),
+        "contact_count": contact_count,
+        "created_at": iso(g.created_at),
+        "updated_at": iso(getattr(g, "updated_at", None)),
+    }

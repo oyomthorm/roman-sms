@@ -10,6 +10,8 @@ from .contacts import bp as contacts_bp
 from .plans import bp as plans_bp
 from .chat import bp as chat_bp
 from .notifications import bp as notif_bp
+from .contacts import bp as contacts_bp
+from .groups import bp as groups_bp
 
 # The mobile API authenticates with Bearer tokens (see install_api_auth in
 # app/api/v1/utils.py); it does not use session cookies, so Flask-WTF's
@@ -30,6 +32,7 @@ _CHILDREN = (
     wallet_bp,
     campaigns_bp,
     contacts_bp,
+    groups_bp,
     plans_bp,
     chat_bp,
     notif_bp,
