@@ -79,12 +79,21 @@ def new():
                                    groups=groups_svc.list_groups(org),
                                    districts_by_region=geo_svc.list_by_region())
         flash('Contact added.', 'success')
+        next_url = request.referrer
+        if next_url and next_url.startswith(request.host_url):
+            return redirect(next_url)
         return redirect(url_for('contacts.index'))
+
+    preselected_group_id = None
+    gid_raw = (request.args.get('group_id') or '').strip()
+    if gid_raw.isdigit():
+        preselected_group_id = int(gid_raw)
 
     return render_template('contacts/form.html',
                            contact=None,
                            groups=groups_svc.list_groups(org),
-                           districts_by_region=geo_svc.list_by_region())
+                           districts_by_region=geo_svc.list_by_region(),
+                           preselected_group_id=preselected_group_id)
 
 
 @contacts_bp.route('/<int:cid>/edit', methods=['GET', 'POST'])

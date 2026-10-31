@@ -53,7 +53,7 @@
                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
         {% for g, c in groups %}
         <option value="{{ g.id }}"
-          {% if contact and contact.group_id == g.id %}selected{% endif %}>
+          {% if (contact and contact.group_id == g.id) or (preselected_group_id and preselected_group_id == g.id) %}selected{% endif %}>
           {{ g.name }} ({{ c }})
         </option>
         {% endfor %}

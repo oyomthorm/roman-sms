@@ -27,6 +27,14 @@
               text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
       Import
     </a>
+    <a href="{{ url_for('contacts.new', group_id=group.id) }}"
+       class="inline-flex items-center gap-2 border border-slate-300 hover:bg-slate-50
+              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add contact
+    </a>
     <a href="{{ url_for('groups.delete', gid=group.id) }}"
        class="inline-flex items-center gap-2 border border-red-300 text-red-700 hover:bg-red-50
               text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -92,10 +100,10 @@
   <div class="text-center py-16 px-4">
     <div class="text-slate-500 font-medium">No contacts in this group yet</div>
     <div class="text-sm text-slate-400 mt-1">
-      <a href="{{ url_for('contacts.index') }}" class="text-emerald-600 hover:underline">
-        Add contacts
+      <a href="{{ url_for('contacts.new', group_id=group.id) }}" class="text-emerald-600 hover:underline">
+        Add a contact
       </a>
-      and assign them to this group.
+      to this group.
     </div>
   </div>
   {% endif %}
