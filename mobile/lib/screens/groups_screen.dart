@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../state/providers.dart';
@@ -112,7 +113,12 @@ class GroupsScreen extends ConsumerWidget {
                               ),
                               subtitle: Text(countLabel,
                                   style: GoogleFonts.inter(fontSize: 12)),
-                              // No chevron, no onTap — R6b adds group detail.
+                              onTap: () => context.push(
+                                '/groups/${group['id']}',
+                                extra: group['name'],
+                              ),
+                              trailing: const Icon(Icons.chevron_right,
+                                  color: Colors.grey),
                             ),
                             if (index < groups.length - 1)
                               const Divider(height: 1, indent: 60),

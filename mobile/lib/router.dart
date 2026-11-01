@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/new_campaign_screen.dart';
@@ -7,6 +7,7 @@ import 'screens/signup_screen.dart';
 import 'screens/signup_pending_screen.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/groups_screen.dart';
+import 'screens/group_detail_screen.dart';
 import 'screens/wallet_screen.dart';
 import 'screens/campaigns_screen.dart';
 import 'screens/campaign_detail_screen.dart';
@@ -53,6 +54,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/groups',
               builder: (context, state) => const GroupsScreen()),
+          GoRoute(
+            path: '/groups/:id',
+            builder: (context, state) => GroupDetailScreen(
+              groupId: int.parse(state.pathParameters['id']!),
+              initialGroupName: state.extra as String?,
+            ),
+          ),
           GoRoute(
               path: '/contacts',
               builder: (context, state) => const ContactsScreen()),

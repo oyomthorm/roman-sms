@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/client.dart';
 
@@ -74,5 +74,11 @@ final chatMessagesProvider = StreamProvider.autoDispose.family((ref, int channel
 
 final dashboardStatsProvider = FutureProvider.autoDispose((ref) async {
   final r = await ApiClient.instance.dio.get('/api/v1/dashboard');
+  return r.data as Map<String, dynamic>;
+});
+
+final groupContactsProvider =
+    FutureProvider.autoDispose.family((ref, int groupId) async {
+  final r = await ApiClient.instance.dio.get('/api/v1/groups/$groupId/contacts');
   return r.data as Map<String, dynamic>;
 });

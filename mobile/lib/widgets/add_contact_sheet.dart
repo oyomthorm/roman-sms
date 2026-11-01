@@ -6,7 +6,9 @@ import '../theme/app_theme.dart';
 import '../state/providers.dart';
 
 class AddContactSheet extends ConsumerStatefulWidget {
-  const AddContactSheet({super.key});
+  final int? initialGroupId;
+
+  const AddContactSheet({super.key, this.initialGroupId});
 
   @override
   ConsumerState<AddContactSheet> createState() => _AddContactSheetState();
@@ -17,6 +19,12 @@ class _AddContactSheetState extends ConsumerState<AddContactSheet> {
   final _phoneController = TextEditingController();
   bool _isSubmitting = false;
   int? _selectedGroupId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedGroupId = widget.initialGroupId;
+  }
 
   Future<void> _submit() async {
     if (_phoneController.text.isEmpty) return;
