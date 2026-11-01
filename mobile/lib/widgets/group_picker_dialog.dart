@@ -7,7 +7,6 @@ import '../theme/app_theme.dart';
 
 /// Result of a group picker interaction.
 /// - picked == false: user cancelled, no change intended
-/// - picked == true, groupId == null: user chose "None (remove from group)"
 /// - picked == true, groupId != null: user selected that group
 typedef GroupPickerResult = ({bool picked, int? groupId});
 
@@ -72,18 +71,6 @@ class GroupPickerDialog extends ConsumerWidget {
             return ListView(
               shrinkWrap: true,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.block),
-                  title: Text('None (remove from group)',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
-                  trailing: currentGroupId == null
-                      ? const Icon(Icons.check,
-                          color: RomanSmsTheme.primaryGreen)
-                      : null,
-                  onTap: () =>
-                      Navigator.pop(context, (picked: true, groupId: null)),
-                ),
-                const Divider(height: 1),
                 for (final g in groups)
                   ListTile(
                     leading: const Icon(Icons.group),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../api/client.dart';
@@ -64,7 +64,7 @@ class _ContactDetailScreenState extends ConsumerState<ContactDetailScreen> {
     try {
       final r = await ApiClient.instance.dio.patch(
         '/api/v1/contacts/$_contactId',
-        data: {'group_id': result.groupId}, // null clears, int sets
+        data: {'group_id': result.groupId}, // group_id always non-null now
       );
       if (!mounted) return;
       setState(() => _groupId = r.data['group_id'] as int?);
