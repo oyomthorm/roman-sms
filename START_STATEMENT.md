@@ -3,26 +3,36 @@
 I'm continuing work on Roman SMS, a Flask SMS reseller platform with a
 Flutter Android client, running on a single DigitalOcean VPS.
 
-## Where I left off (end of session 2026-11-01)
+## Where I left off (end of session 2026-11-01, continued)
 
-**Branch:** `wip/mobile-api` at `a3ffc2e` — pushed to GitHub.
+**Branch:** `wip/mobile-api` at `6b07d67` — pushed to GitHub.
 Working tree is clean. Nothing is in-flight.
 
 **Production (LIVE and VERIFIED):**
-- VPS at `a3ffc2e` — same as local, fully deployed.
+- VPS at `6b07d67` — same as local, fully deployed.
 - Migration `6c7a338d1274` applied (`Contact.group_id NOT NULL`,
-  `ContactImport.skipped_no_group`).
-- Services active: `roman-sms.service`, `roman-worker.service`, `roman-panel.service`.
+  `ContactImport.skipped_no_group`). Unchanged this round — `6b07d67`
+  added no migration (mobile-only).
+- Services active: `roman-sms.service`, `roman-worker.service`, `roman-panel.service`
+  (restarted post-pull, all three `active`).
 - Mobile API live at `https://romansms.com/api/v1/*` with the new contract.
 - All 3 enforcement checks verified prod: POST without group → 422,
   PATCH with null group_id → 422, DELETE non-empty without move_to → 422.
+- `GET /api/v1/groups/<id>/contacts` confirmed on prod: `401` unauth
+  (route exists, auth-gated). Payload = `{group, contacts, stats}`; rows
+  are `serializers.contact` (same shape as `/api/v1/contacts`), so
+  tap-through works; `group.contact_count` and `stats.{total,opted_out}`
+  are computed server-side.
 
-**Flutter app:** Release APK built from `a3ffc2e` and installed on physical
-device. Verified:
-- Add-contact sheet requires group (dropdown from `groupsProvider`).
-- Save disabled until group picked.
-- POST includes `group_id`.
-- Contact lands in correct group.
+**Flutter app:** Release APK built from `6b07d67` (52.1 MB) and installed
+on physical device. Verified:
+- (R6b, previous round) Add-contact sheet requires group; save disabled
+  until picked; POST includes `group_id`; contact lands in correct group.
+- (R7, this round) Group detail opens from Groups tab tap; header shows
+  backend-computed Total / Opt-outs; contact rows list with tap-through to
+  `ContactDetailScreen`; FAB opens AddContactSheet with the group
+  **preselected**; sheet/detail return invalidates the group's own provider.
+- Installed and confirmed working on device (no adb; installed by user).
 
 **Database (prod):** Migrated to `6c7a338d1274`. 507 contacts, 0 NULL groups.
 Associate account `associate@romansms.com` — **password `Temp2026!`** (confirmed
@@ -76,41 +86,64 @@ fixtures" below).
 **Critical window** (migration applied, old APK on device) was ~3 minutes.
 Restart-services step unblocked by re-run with `ssh -t`.
 
-## What's next — mobile group detail screen
+### R7 — mobile group detail screen (`6b07d67`)
 
-**This is the next round.** The Groups tab on mobile has **no tap handler** —
-clicking a group does nothing. The backend `/groups/<id>/contacts` endpoint is
-ready; the app doesn't use it.
+**New `mobile/lib/screens/group_detail_screen.dart`:**
+- Fetches `/api/v1/groups/<id>/contacts` via a new
+  `groupContactsProvider` (`FutureProvider.autoDispose.family`, returns
+  the **whole map** — mirrors `campaignDetailProvider`, not the
+  `['items']` list-unwrap).
+- Header: group name (from payload `group.name`, fallback
+  `initialGroupName`, then `Group #<id>`), two stat circles using
+  `stats.total` / `stats.opted_out` (backend-computed — not recounted
+  client-side).
+- Rows: `contacts_screen.dart`-identical `ListTile` (avatar, name/phone,
+  opted-out pill or chevron), tap → `Navigator.push` → `ContactDetailScreen`
+  (same `MaterialPageRoute` pattern, not `context.push`).
+- FAB → `showModalBottomSheet(AddContactSheet(initialGroupId: groupId))`.
+- Decision **B**: screen invalidates `groupContactsProvider(groupId)`
+  after sheet return **and** after detail return — the sheet keeps its
+  own `contactsProvider` invalidation only; no coupling added.
 
-**Scope (~1–1.5h):**
+**`AddContactSheet`:** added `final int? initialGroupId`, seeded
+`_selectedGroupId` in `initState` (widget is `ConsumerStatefulWidget`,
+so field-init can't read `widget.`). Dropdown, `canSubmit` gate
+(`groupsAsync.hasValue`), and `_submit` body unchanged — preselection
+does **not** bypass the loading/errored guard.
 
-1. **New `mobile/lib/screens/group_detail_screen.dart`** —
-   - Fetch `/api/v1/groups/<id>/contacts`.
-   - Header with group name, contact count, stats (total/opted-out).
-   - List of contacts (phone, name, opted-out badge).
-   - Tap-through to `ContactDetailScreen`.
-   - FAB → `AddContactSheet()` (already requires group, but here the group
-     should be pre-selected — see design note below).
-   - Actions per row: same Edit / Opt-out / Delete pattern as `contacts_screen`.
-2. **`mobile/lib/router.dart`** — add `GoRoute(path: '/groups/:id', ...)`
-   inside or outside the ShellRoute (decide based on UX — probably inside ShellRoute
-   so the app shell/nav stays visible).
-3. **`mobile/lib/screens/groups_screen.dart:114`** — remove the "No chevron,
-   no onTap — R6b adds group detail." comment, add `onTap: () => context.push('/groups/${g['id']}')`,
-   and add a chevron to the `ListTile` trailing.
+**`router.dart`:** `/groups/:id` inside `ShellRoute` (shell/nav stays
+visible), right after `/groups`. Mirrors `/campaigns/:id`'s
+`int.parse(state.pathParameters['id']!)`. Reads `initialGroupName` from
+`state.extra as String?` (null on deep link — screen falls back to
+payload name).
 
-**Design note on AddContactSheet in group detail:** the current sheet has its
-own dropdown. If invoked from a group detail, the group should be preselected.
-Two options:
-- **(a)** Extend `AddContactSheet` with `final int? initialGroupId` — dropdown
-  default = `initialGroupId`. Caller in group detail passes `groupId`.
-- **(b)** Leave `AddContactSheet` unchanged, but from group detail call a
-  different path (add directly with `group_id` fixed, no sheet — just an
-  inline form).
+**`groups_screen.dart`:** replaced the "No chevron, no onTap — R6b adds
+group detail" placeholder comment with `onTap: () => context.push(
+'/groups/${group['id']}', extra: group['name'])` + trailing
+`Icon(Icons.chevron_right)`. Added `package:go_router/go_router.dart`
+import.
 
-**Recommendation: (a).** Simpler, reuses the sheet, one-line default.
+**`providers.dart`:** appended `groupContactsProvider` after the last
+provider. `flutter analyze` clean of new warnings (10 issues, all
+pre-existing: #6, #7, #24, #25, #31).
 
-**Estimated:** ~1–1.5h including `flutter analyze`, commit, rebuild, deploy.
+**Deploy:** pull `a3ffc2e..6b07d67` (FF, 6 files — includes `d4fe631`
+docs commit the VPS had not yet seen), restart 3 services, `401` on the
+new route, rebuild APK, install, device-verified. **No migration.**
+
+## What's next
+
+The R6b/R7 mobile rounds are done. Deferred list below is the backlog;
+pick from it in the next session.
+
+**Recommended short first: #14 SMTP configuration (~20 min).**
+Unblocks signup end-to-end. Small, self-contained, high leverage.
+
+**Recommended big next: #16 Schedules CRUD** (own session — biggest
+remaining round).
+
+Everything else on the deferred list is polish or small fixes; none
+blocks the other.
 
 ## Deferred / known issues (accumulated)
 
@@ -228,6 +261,37 @@ Two options:
 44. **`sudo systemctl` over non-interactive ssh fails with "a terminal is
     required."** Use `ssh -t` and/or wrap in `sudo bash -c '...'` for one
     prompt. Plain `ssh "sudo ..."` will silently fail.
+45. **`<<EOF` heredocs are bash-only.** In PowerShell, `git commit -F - <<'EOF'`
+    fails at parse time and the message body executes as commands. Use
+    `@'...'@` + `[System.IO.File]::WriteAllText($msgPath, $msg, UTF8Encoding($false))`
+    + `git commit -F $msgPath`. Refines #35/#38.
+46. **A `throw` in a pasted line does not stop later lines in the same paste.**
+    The lines are independent statements; a `throw` is a notification, not a
+    guard. The only reliable guard is the mutation being the final line of the
+    paste, with nothing after it. Refines #18.
+47. **Mojibake in the *display* of a source file may be a real Unicode char
+    on disk.** `Get-Content` renders `—` as `â€”`; `ReadAllText` sees U+2014.
+    Anchor `Replace` on ASCII-only prefixes, and locate the line with
+    `.Contains()` — do not match the full byte string. Refines #21/#30.
+48. **`Resolve-Path` fails on a file that doesn't exist yet.** For
+    `WriteAllText` of a new file, use `Join-Path (Get-Location) $file`.
+49. **Escape Dart `$` in PowerShell strings with a backtick:**
+    `` '/groups/`${group['id']}' `` — without it, PowerShell eats the variable
+    and writes `'/groups/',`. Refines #15/#16.
+50. **Never apply a "corrected" transformation to a file whose prior
+    transformation is not verified restored.** `git status --short` must be
+    empty before re-applying. A line-count check is not enough — you can be
+    at the wrong count for the right reason. Refines #37.
+51. **A literal-URL grep missing is not proof an endpoint is absent.** Flask
+    composes the URL from `url_prefix` + decorator; a route registered
+    `@bp.get("/<int:id>/contacts")` never contains the contiguous string
+    `groups/<id>/contacts`. Grep decorators and `url_prefix`, then confirm
+    the composed path. Refines #21/#30.
+52. **For a file under ~500 lines, whole-file replacement via one here-string
+    + one `WriteAllText` as the final line is strictly safer than line-index
+    surgery.** Index arithmetic's failure modes (partial apply, silent no-op,
+    post-write re-execution) all vanish. The diff is larger; the failure
+    surface is not. Refines #2.
 
 ## Test accounts
 
@@ -266,7 +330,9 @@ Two options:
 - systemd: `roman-sms.service` (gunicorn, 3 workers, `127.0.0.1:8000`),
   `roman-worker.service`, `roman-panel.service` (Flask panel on `127.0.0.1:8080`).
 - Nginx + Let's Encrypt SSL on `https://romansms.com`.
-- **Currently at `a3ffc2e` — fully deployed and verified.**
+- **Currently at `6b07d67` — fully deployed and verified.** The VPS will be
+  one `docs:` commit behind after this statement update; that is expected and
+  benign (docs don't deploy).
 
 **Backups:** `/srv/roman-sms/backups/` — daily cron at 03:00 UTC, schema only.
 Ad-hoc `pg_dump` needs `chown postgres` first.
@@ -275,20 +341,13 @@ Ad-hoc `pg_dump` needs `chown postgres` first.
 
 1. `cd D:\Dev_Apps\roman_sms`
 2. `git fetch origin wip/mobile-api`
-3. `git pull origin wip/mobile-api` — confirm at `a3ffc2e`
+3. `git pull origin wip/mobile-api` — confirm at `6b07d67` (plus the `docs:`
+   statement commit on top)
 4. `git status --short` — expect clean
-5. Confirm VPS is at `a3ffc2e` and services active
+5. Confirm VPS is at `6b07d67` and services active
 6. Update this statement if needed, commit as `docs:`
 
-Then **mobile group detail screen**:
-- New `mobile/lib/screens/group_detail_screen.dart`.
-- `/groups/:id` route in `router.dart`.
-- Tap handler in `groups_screen.dart:114` (replace the "R6b adds group detail"
-  comment).
-- Extend `AddContactSheet` with `final int? initialGroupId` for pre-selection
-  from group detail.
-- `flutter analyze`, commit as `feat(mobile): group detail screen`, push.
-- Deploy: pull → no migration needed → restart `roman-sms.service` →
-  rebuild APK → install → device test.
+Then **#14 SMTP configuration** (~20 min): configure SMTP, unblock signup
+end-to-end. After that, **#16 Schedules CRUD** (own session).
 
 **No migration pending. Deploy is standard (no DB changes).**
