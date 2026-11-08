@@ -12,6 +12,7 @@ Format: `Feature — requested by NAME (DATE) — est. Nd — notes`
 - [ ] Public API for associates — (not yet requested) — est. 4d
 - [ ] Registered sender IDs per associate — (gated on paying client) — est. 2d + cost of registration
 - [ ] Two-factor authentication — (not yet requested) — est. 2d
+- [ ] Personalized campaign sends (CSV + `{{col}}` template merge) — requested by schools vertical (2026-11-08) — est. 3–4d — see "Ideas considered and parked" below
 
 ## Ideas considered and parked
 
@@ -27,6 +28,22 @@ Format: `Feature — requested by NAME (DATE) — est. Nd — notes`
 - **Top-up reminder emails.** Warn associates before their balance
   hits the low-balance threshold, based on their 30-day burn rate.
   Deferred until a real associate asks for it.
+- **Personalized campaign sends.** Schools (and later SACCOs, pharmacies,
+  landlords) need per-recipient messages: fee reminders with pupil name,
+  parent name, fee balance, due date, and bursar contact; meeting
+  reminders with parent name, meeting time, and headteacher contact.
+  Current campaign pipeline sends **one** body to all recipients — no
+  merge fields, no per-row substitution, no per-row segment accounting,
+  so a 100-pupil fee reminder cannot include each pupil's balance today.
+  Feature shape: CSV upload + `{{column}}` template syntax; per-row
+  rendered body stored on `MessageLog` (schema change); wallet debit
+  computed as **sum of per-row segments** (not rows x template segments),
+  because substitution changes length; worker dispatch sends per-recipient
+  body. Optional `{{payment_ussd}}` merge variable so schools can embed a
+  mobile-money USSD line (per-row CSV column, or per-org default with a
+  per-campaign override — decide at build time). Web-only first; mobile
+  deferred. Est. 3-4d. Blocks nothing. See `SCOPE.md` change rule:
+  named requester = schools vertical; written reason = above; cost = 3-4d.
 
 ## Shipped (no longer parked)
 
