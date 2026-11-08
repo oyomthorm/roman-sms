@@ -30,6 +30,32 @@ def render(org, template_body, contact):
     return with_prefix(org, substitute(template_body, contact))
 
 
+def substitute_vars(body, variables):
+    """
+    Substitute {{key}} placeholders from a dict of variables.
+
+    Unknown keys are left verbatim (same behaviour as substitute()).
+    Used by the personalized campaign path; substitute() stays as the
+    Contact-based path for regular campaigns.
+    """
+    def repl(m):
+        key = m.group(1).lower()
+        if key in variables:
+            return '' if variables[key] is None else str(variables[key])
+        return m.group(0)
+    return PLACEHOLDER.sub(repl, body)
+
+
+def render_personalized(org, template_body, variables):
+    """
+    Render a personalized message for one recipient: brand prefix +
+    substituted template body.
+
+    The result is what gets stored on MessageLog.body — same shape as
+    render() produces for a Contact, just with dict-based substitution.
+    """
+    return with_prefix(org, substitute_vars(template_body, variables))
+
 def segments(body):
     size = current_app.config.get('SMS_SEGMENT_CHARS', 160)
     return max(1, -(-len(body) // size))

@@ -8,6 +8,7 @@ from app.services.audit import log as audit
 from collections import namedtuple
 
 Recipient = namedtuple('Recipient', ['id', 'phone', 'name'])
+PersonalizedRecipient = namedtuple('PersonalizedRecipient', ['id', 'phone', 'name', 'vars'])
 
 class CampaignError(Exception):
     pass
@@ -31,7 +32,7 @@ from collections import namedtuple
 
 
 def resolve_recipients(org_id, group_id=None, district_id=None,
-                       custom_phones=None):
+                       custom_phones=None, personalized_rows=None):
     """
     Return a list of recipient-like objects, each with .id, .phone, .name.
 
@@ -40,6 +41,18 @@ def resolve_recipients(org_id, group_id=None, district_id=None,
     - otherwise: org-scoped contacts, not opted out, filtered by
       group/district, minus the platform-wide opt-out list.
     """
+    if personalized_rows is not None:
+        blocked = {r[0] for r in db.session.query(OptOut.phone).all()}
+        out = []
+        for row in personalized_rows:
+            if row['phone'] in blocked:
+                continue
+            out.append(PersonalizedRecipient(
+                id=None, phone=row['phone'],
+                name=row['vars'].get('name'),
+                vars=row['vars'],
+            ))
+        return out
     blocked = {r[0] for r in db.session.query(OptOut.phone).all()}
 
     if custom_phones:
@@ -75,6 +88,7 @@ def create_campaign(org, *, name, body,
                     group_id=None, group_name=None,
                     district_id=None, district_name=None,
                     custom_phones=None,
+                    personalized_rows=None,
                     template_id=None, created_by=None,
                     scheduled_at=None):
     """
@@ -94,15 +108,25 @@ def create_campaign(org, *, name, body,
         raise CampaignError('Campaign name and message body are required.')
 
     contacts = resolve_recipients(
-        org.id, group_id, district_id, custom_phones=custom_phones)
+        org.id, group_id, district_id,
+        custom_phones=custom_phones, personalized_rows=personalized_rows)
     if not contacts:
+        if personalized_rows is not None:
+            raise CampaignError(
+                'No valid rows in the personalized CSV '
+                '(all were skipped as invalid, duplicate, or opted-out).')
         raise CampaignError(
             'No eligible recipients for this selection.'
             if not custom_phones
             else 'No valid recipients in the pasted list.'
         )
 
-    rendered = [(c, render(org, body, c)) for c in contacts]
+    from app.services.renderer import render_personalized
+    def _render_one(c):
+        if hasattr(c, 'vars'):
+            return render_personalized(org, body, c.vars)
+        return render(org, body, c)
+    rendered = [(c, _render_one(c)) for c in contacts]
     total_segments = sum(segments(msg) for _, msg in rendered)
 
     try:
@@ -111,6 +135,9 @@ def create_campaign(org, *, name, body,
         raise CampaignError(str(e))
 
     # Name the campaign so pasted-number sends are distinguishable.
+    if personalized_rows and not group_name:
+        group_name = f'Personalized ({len(contacts)})'
+
     if custom_phones and not group_name:
         group_name = f'Pasted ({len(contacts)})'
 
