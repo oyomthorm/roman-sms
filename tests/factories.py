@@ -13,11 +13,17 @@ from datetime import datetime, timedelta
 
 from app.extensions import db
 from app.models import (Organization, User, Plan, Subscription,
-                        Contact, MessageTemplate, Campaign, MessageLog,
+                        Contact, Group, MessageTemplate, Campaign, MessageLog,
                         WalletTransaction, OptOut)
 
 
 _counter = {'n': 0}
+
+# Per-org default group cache, populated lazily by ContactFactory.
+# One group per org is enough for tests; the factory reuses it across
+# all contacts in that org. Keyed by org_id so multi-tenant tests stay
+# isolated.
+_default_group_per_org = {}
 
 
 def _next():
@@ -93,21 +99,47 @@ def PlanFactory(**kwargs):
 
 
 def ContactFactory(**kwargs):
+    """
+    Create a Contact. group_id is NOT NULL on the model, so resolve it
+    automatically when the caller does not pass one:
+      - if group_id is given, use it as-is;
+      - otherwise, find-or-create a per-org "Test Group" and use its id.
+
+    The find-or-create is a real DB query (not an in-memory cache) so it
+    stays correct across the app fixture's drop_all/create_all cycle.
+    """
     n = _next()
+    kwargs = dict(kwargs)  # defensive copy — do not mutate caller's dict
     defaults = dict(
         phone=f'2567{n:08d}',
         name=f'Contact {n}',
     )
     defaults.update(kwargs)
+
+    if not defaults.get('group_id'):
+        org = defaults.pop('org', None)
+        if org is None and defaults.get('org_id'):
+            org = Organization.query.get(defaults['org_id'])
+        if org is None:
+            raise ValueError(
+                'ContactFactory requires org or org_id '
+                'so it can resolve a default group.')
+        defaults['org_id'] = org.id
+
+        group_name = f'Test Group (org {org.id})'
+        group = Group.query.filter_by(
+            org_id=org.id, name=group_name).first()
+        if group is None:
+            group = Group(org_id=org.id, name=group_name)
+            db.session.add(group)
+            db.session.flush()
+        defaults['group_id'] = group.id
+
+    defaults.pop('org', None)  # not a Contact column
     contact = Contact(**defaults)
     db.session.add(contact)
     db.session.commit()
     return contact
-
-
-# --------------------------------------------------------------------------
-# Helper-style constructors (kept for compatibility)
-# --------------------------------------------------------------------------
 
 def make_org(name='TestOrg', brand=None, status='active', is_master=False,
              parent=None):
