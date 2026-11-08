@@ -21,7 +21,7 @@
   </div>
 </div>
 
-<form method="post" id="campaign-form">
+<form method="post" id="campaign-form" enctype="multipart/form-data">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -156,6 +156,15 @@
                 Paste numbers
               </span>
             </label>
+            <label class="cursor-pointer" id="personalized-label">
+              <input type="radio" name="recipient_source" value="personalized"
+                     class="peer sr-only" onchange="toggleRecipientSource()">
+              <span class="inline-block px-3.5 py-2 rounded-lg border border-slate-300 text-sm
+                           peer-checked:bg-emerald-500 peer-checked:text-white
+                           peer-checked:border-emerald-500 transition cursor-pointer">
+                Personalized (CSV)
+              </span>
+            </label>
           </div>
 
           <div id="source-group" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -206,6 +215,56 @@
               Pasted numbers are used once for this campaign and are not
               added to your contact list.
             </p>
+          </div>
+          <div id="source-personalized" class="hidden space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1.5">
+                CSV file
+              </label>
+              <input type="file" name="personalized_csv" id="personalized_csv"
+                     accept=".csv,text/csv"
+                     class="block w-full text-sm text-slate-700
+                            file:mr-3 file:py-2 file:px-3 file:rounded-lg
+                            file:border-0 file:bg-slate-100 file:text-slate-700
+                            file:font-medium file:cursor-pointer
+                            hover:file:bg-slate-200 transition
+                            border border-slate-300 rounded-lg px-3 py-2">
+              <p class="text-xs text-slate-400 mt-1">
+                First row is headers. One column must be the phone number
+                (<code class="bg-slate-100 px-1 rounded">phone</code>,
+                <code>number</code>, <code>mobile</code>, etc.).
+                All other columns become template variables.
+              </p>
+            </div>
+            <div>
+              <label for="personalized_body"
+                     class="block text-xs font-medium text-slate-500 mb-1.5">
+                Message template
+              </label>
+              <textarea name="personalized_body" id="personalized_body" rows="5"
+                        placeholder="Dear parent, {{ '{{pupil_name}}' }} owes {{ '{{fee_balance}}' }}."
+                        class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                               font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500
+                               focus:border-emerald-500 transition
+                               placeholder:font-sans placeholder:text-slate-400"></textarea>
+              <p class="text-xs text-slate-400 mt-1">
+                Use <code class="bg-slate-100 px-1 rounded">{{ '{{column_name}}' }}</code>
+                to insert a CSV column. Column names are matched
+                case-insensitively.
+              </p>
+            </div>
+            <div id="personalized-preview"
+                 class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Preview
+                </div>
+                <div id="personalized-preview-summary" class="text-xs text-slate-500"></div>
+              </div>
+              <div id="personalized-preview-rows" class="space-y-2"></div>
+              <div id="personalized-preview-errors"
+                   class="hidden mt-2 text-xs text-red-600 space-y-1"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -361,7 +420,7 @@ var RATE_UGX   = {{ wallet_rate or 50 }};
 var PREFIX     = "{{ current_user.organization.prefix }}";
 var SEGMENT    = 160;
 
-// ---- Character / segment / cost counter + live preview ----
+// ---- Character / segment / cost counter + live preview (contact mode) ----
 function updateCount() {
   var raw = document.getElementById('body').value;
   var full = PREFIX + raw;
@@ -369,16 +428,11 @@ function updateCount() {
   var segs = Math.max(1, Math.ceil(len / SEGMENT));
   var cost = segs * RATE_UGX;
 
-  // Counter strip
   document.getElementById('char-count').textContent = len;
   document.getElementById('seg-count').textContent = segs;
-  document.getElementById('seg-label').textContent =
-    segs === 1 ? 'SMS' : 'SMS';
+  document.getElementById('seg-label').textContent = 'SMS';
+  document.getElementById('cost-ugx').textContent = 'UGX ' + cost.toLocaleString();
 
-  var costEl = document.getElementById('cost-ugx');
-  costEl.textContent = 'UGX ' + cost.toLocaleString();
-
-  // Progress within the current segment
   var charsInCurrentSeg = len % SEGMENT;
   if (len > 0 && charsInCurrentSeg === 0) charsInCurrentSeg = SEGMENT;
   var pct = (charsInCurrentSeg / SEGMENT) * 100;
@@ -386,13 +440,11 @@ function updateCount() {
   var bar = document.getElementById('segment-bar');
   bar.style.width = pct.toFixed(1) + '%';
 
-  // Colour transitions as the boundary nears
   var hintEl = document.getElementById('segment-hint');
   var nextEl = document.getElementById('chars-to-next');
   var nextBoundary = segs * SEGMENT;
   var remaining = nextBoundary - len;
 
-  // Background tints: green well under, amber near, red past
   var cardEl = document.getElementById('counter-card');
   cardEl.classList.remove('bg-amber-50', 'bg-red-50', 'border-amber-200', 'border-red-200');
 
@@ -400,9 +452,6 @@ function updateCount() {
     bar.className = 'h-full rounded-full bg-amber-500 transition-all';
     cardEl.classList.add('bg-amber-50', 'border-amber-200');
     hintEl.className = 'text-[11px] text-amber-700 mt-2 tabular-nums';
-  } else if (segs > 1) {
-    bar.className = 'h-full rounded-full bg-emerald-500 transition-all';
-    hintEl.className = 'text-[11px] text-slate-500 mt-2 tabular-nums';
   } else {
     bar.className = 'h-full rounded-full bg-emerald-500 transition-all';
     hintEl.className = 'text-[11px] text-slate-500 mt-2 tabular-nums';
@@ -410,24 +459,17 @@ function updateCount() {
 
   if (remaining === 0) {
     nextEl.textContent = SEGMENT;
-    hintEl.childNodes[1].nodeValue =
-      ' more characters and this becomes ' + (segs + 1) + ' SMS';
+    hintEl.childNodes[1].nodeValue = ' more characters and this becomes ' + (segs + 1) + ' SMS';
   } else {
     nextEl.textContent = remaining;
-    hintEl.childNodes[1].nodeValue =
-      ' more character' + (remaining === 1 ? '' : 's') +
+    hintEl.childNodes[1].nodeValue = ' more character' + (remaining === 1 ? '' : 's') +
       ' before the next SMS (' + (segs + 1) + ' total)';
   }
 
-  // Preview header
   document.getElementById('preview-header-count').textContent = segs;
-
-  // Cost card (duplicate values — kept for the sticky sidebar)
   document.getElementById('cost-segments').textContent = segs;
-  document.getElementById('cost-total').textContent =
-    'UGX ' + cost.toLocaleString();
+  document.getElementById('cost-total').textContent = 'UGX ' + cost.toLocaleString();
 
-  // Live preview body
   var previewBody = document.getElementById('preview-body');
   if (raw.trim()) {
     previewBody.textContent = raw;
@@ -477,12 +519,20 @@ function toggleMode() {
   var label = document.getElementById('submit-label');
   var pasteRadio = document.querySelector('input[name="recipient_source"][value="paste"]');
   var pasteLabel = document.getElementById('paste-label');
+  var personalizedRadio = document.querySelector('input[name="recipient_source"][value="personalized"]');
+  var personalizedLabel = document.getElementById('personalized-label');
 
   if (mode === 'schedule') {
     fields.classList.remove('opacity-40', 'pointer-events-none');
     pasteRadio.disabled = true;
     pasteLabel.classList.add('opacity-40', 'pointer-events-none');
+    personalizedRadio.disabled = true;
+    personalizedLabel.classList.add('opacity-40', 'pointer-events-none');
     if (pasteRadio.checked) {
+      document.querySelector('input[name="recipient_source"][value="group"]').checked = true;
+      toggleRecipientSource();
+    }
+    if (personalizedRadio.checked) {
       document.querySelector('input[name="recipient_source"][value="group"]').checked = true;
       toggleRecipientSource();
     }
@@ -491,6 +541,8 @@ function toggleMode() {
     fields.classList.add('opacity-40', 'pointer-events-none');
     pasteRadio.disabled = false;
     pasteLabel.classList.remove('opacity-40', 'pointer-events-none');
+    personalizedRadio.disabled = false;
+    personalizedLabel.classList.remove('opacity-40', 'pointer-events-none');
     label.textContent = 'Queue campaign';
   }
 }
@@ -500,13 +552,132 @@ function toggleRecipientSource() {
   var source = document.querySelector('input[name="recipient_source"]:checked').value;
   var groupBox = document.getElementById('source-group');
   var pasteBox = document.getElementById('source-paste');
+  var personalizedBox = document.getElementById('source-personalized');
+
+  groupBox.classList.add('hidden');
+  pasteBox.classList.add('hidden');
+  personalizedBox.classList.add('hidden');
+
   if (source === 'paste') {
-    groupBox.classList.add('hidden');
     pasteBox.classList.remove('hidden');
+  } else if (source === 'personalized') {
+    personalizedBox.classList.remove('hidden');
+    refreshPersonalizedPreview();
   } else {
     groupBox.classList.remove('hidden');
-    pasteBox.classList.add('hidden');
   }
+}
+
+// ---- Personalized preview ----
+var _personalizedDebounce = null;
+
+function refreshPersonalizedPreview() {
+  if (_personalizedDebounce) { clearTimeout(_personalizedDebounce); }
+  _personalizedDebounce = setTimeout(_doRefreshPersonalizedPreview, 400);
+}
+
+function _doRefreshPersonalizedPreview() {
+  var source = document.querySelector('input[name="recipient_source"]:checked');
+  if (!source || source.value !== 'personalized') { return; }
+
+  var fileInput = document.getElementById('personalized_csv');
+  var bodyEl = document.getElementById('personalized_body');
+  var previewBox = document.getElementById('personalized-preview');
+  var previewRows = document.getElementById('personalized-preview-rows');
+  var previewSummary = document.getElementById('personalized-preview-summary');
+  var errorsBox = document.getElementById('personalized-preview-errors');
+  var submitBtn = document.querySelector('button[type="submit"]');
+
+  var file = fileInput.files && fileInput.files[0];
+  var body = (bodyEl.value || '').trim();
+
+  if (!file || !body) {
+    previewBox.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
+    return;
+  }
+
+  var formData = new FormData();
+  var csrfInput = document.querySelector('input[name="csrf_token"]');
+  if (csrfInput) { formData.append('csrf_token', csrfInput.value); }
+  formData.append('personalized_csv', file);
+  formData.append('personalized_body', body);
+
+  fetch('/campaigns/personalized/preview', {
+    method: 'POST',
+    body: formData,
+    credentials: 'same-origin',
+  })
+  .then(function (r) { return r.json().then(function (j) { return { status: r.status, json: j }; }); })
+  .then(function (resp) {
+    var j = resp.json;
+    previewBox.classList.remove('hidden');
+    previewRows.innerHTML = '';
+    errorsBox.innerHTML = '';
+    errorsBox.classList.add('hidden');
+
+    if (!j.ok) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      errorsBox.classList.remove('hidden');
+      var errP = document.createElement('div');
+      errP.textContent = j.error || 'Preview failed.';
+      errorsBox.appendChild(errP);
+      previewSummary.textContent = '';
+      return;
+    }
+
+    if (j.errors && j.errors.length > 0) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      errorsBox.classList.remove('hidden');
+      j.errors.forEach(function (e) {
+        var p = document.createElement('div');
+        p.textContent = e;
+        errorsBox.appendChild(p);
+      });
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+    }
+
+    (j.preview || []).forEach(function (row) {
+      var rowDiv = document.createElement('div');
+      rowDiv.className = 'bg-white rounded-lg border border-slate-200 p-2 text-xs';
+      var phoneDiv = document.createElement('div');
+      phoneDiv.className = 'text-slate-400 tabular-nums';
+      phoneDiv.textContent = row.phone + ' · ' + row.segments + ' SMS';
+      var bodyDiv = document.createElement('div');
+      bodyDiv.className = 'mt-1 text-slate-900 whitespace-pre-wrap break-words';
+      bodyDiv.textContent = row.body;
+      rowDiv.appendChild(phoneDiv);
+      rowDiv.appendChild(bodyDiv);
+      previewRows.appendChild(rowDiv);
+    });
+
+    var summary = (j.row_count || 0) + ' rows · ' + (j.total_segments || 0) + ' SMS total';
+    if (j.issues && j.issues.length > 0) {
+      summary += ' · ' + j.issues.length + ' skipped';
+    }
+    previewSummary.textContent = summary;
+
+    var totalCost = (j.total_segments || 0) * RATE_UGX;
+    document.getElementById('cost-segments').textContent = j.total_segments || 0;
+    document.getElementById('cost-total').textContent = 'UGX ' + totalCost.toLocaleString();
+  })
+  .catch(function (err) {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
+    previewBox.classList.remove('hidden');
+    previewSummary.textContent = '';
+    previewRows.innerHTML = '';
+    errorsBox.classList.remove('hidden');
+    errorsBox.innerHTML = '';
+    var p = document.createElement('div');
+    p.textContent = 'Preview failed: ' + err;
+    errorsBox.appendChild(p);
+  });
 }
 
 // ---- Template loader ----
@@ -562,12 +733,17 @@ function removeTimeRow(btn) {
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('body').addEventListener('input', updateCount);
   document.getElementById('pasted_numbers').addEventListener('input', updatePasteCount);
+
+  var csvInput = document.getElementById('personalized_csv');
+  if (csvInput) { csvInput.addEventListener('change', refreshPersonalizedPreview); }
+  var persoBody = document.getElementById('personalized_body');
+  if (persoBody) { persoBody.addEventListener('input', refreshPersonalizedPreview); }
+
   addTimeRow();
   toggleMode();
   toggleRecipientSource();
   updateCount();
   updatePasteCount();
-});
-</script>
+});</script>
 
 {% endblock %}

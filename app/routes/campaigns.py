@@ -50,6 +50,7 @@ def new():
         district_name = None
         custom_phones = None
         personalized_rows = None
+        personalized_body = None
 
         if recipient_source == 'paste':
             if mode == 'schedule':
@@ -88,6 +89,17 @@ def new():
             if csv_file is None or not csv_file.filename:
                 flash('Please upload a CSV file for the personalized send.',
                       'danger')
+                return render_template(
+                    'campaigns/new.html',
+                    templates=templates, groups=groups,
+                    districts_by_region=districts_by_region,
+                    balance=get_balance(org.id))
+
+            personalized_body = (request.form.get('personalized_body')
+                                 or '').strip()
+            if not personalized_body:
+                flash('Message template is required for the personalized '
+                      'send.', 'danger')
                 return render_template(
                     'campaigns/new.html',
                     templates=templates, groups=groups,
@@ -150,11 +162,19 @@ def new():
                                     sid=schedule.id))
 
         # Send now (default path)
+        # Pick the body field appropriate for the source. Personalized
+        # sends use their own template textarea; everything else uses
+        # the shared body field.
+        if recipient_source == 'personalized':
+            campaign_body = personalized_body
+        else:
+            campaign_body = request.form.get('body', '')
+
         try:
             campaign, segs = svc.create_campaign(
                 org,
                 name=request.form.get('name', ''),
-                body=request.form.get('body', ''),
+                body=campaign_body,
                 group_id=group_id, group_name=group_name,
                 district_id=district_id, district_name=district_name,
                 custom_phones=custom_phones,
@@ -210,7 +230,7 @@ def personalized_preview():
     wallet - the campaign form calls this before allowing submit.
     """
     org = _org()
-    body = (request.form.get('body') or '').strip()
+    body = (request.form.get('personalized_body') or '').strip()
     if not body:
         return jsonify({'ok': False,
                         'error': 'Message body is required.'}), 400
