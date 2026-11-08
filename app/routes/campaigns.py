@@ -1,5 +1,5 @@
 from flask import (Blueprint, render_template, request, redirect, url_for,
-                   flash)
+                   flash, jsonify)
 from flask_login import login_required, current_user
 
 from app.models import Campaign, MessageLog
@@ -10,6 +10,7 @@ from app.services import groups as groups_svc
 from app.services import geo as geo_svc
 from app.services.wallet import get_balance
 from app.services.phones import parse_pasted_numbers
+from app.services import personalization as perso_svc
 from app.models import CampaignSchedule
 from app.services import schedules as schedules_svc
 
@@ -48,6 +49,7 @@ def new():
         district_id = None
         district_name = None
         custom_phones = None
+        personalized_rows = None
 
         if recipient_source == 'paste':
             if mode == 'schedule':
@@ -66,6 +68,36 @@ def new():
             if not custom_phones:
                 flash('No valid phone numbers found in the pasted list. '
                       'Numbers must be Ugandan mobiles.', 'danger')
+                return render_template(
+                    'campaigns/new.html',
+                    templates=templates, groups=groups,
+                    districts_by_region=districts_by_region,
+                    balance=get_balance(org.id))
+        elif recipient_source == 'personalized':
+            if mode == 'schedule':
+                flash('Scheduled campaigns send to your contact list. '
+                      'To use a personalized CSV, choose "Send now".',
+                      'danger')
+                return render_template(
+                    'campaigns/new.html',
+                    templates=templates, groups=groups,
+                    districts_by_region=districts_by_region,
+                    balance=get_balance(org.id))
+
+            csv_file = request.files.get('personalized_csv')
+            if csv_file is None or not csv_file.filename:
+                flash('Please upload a CSV file for the personalized send.',
+                      'danger')
+                return render_template(
+                    'campaigns/new.html',
+                    templates=templates, groups=groups,
+                    districts_by_region=districts_by_region,
+                    balance=get_balance(org.id))
+
+            try:
+                _columns, personalized_rows, _issues = perso_svc.parse_csv(csv_file)
+            except perso_svc.PersonalizationError as e:
+                flash(str(e), 'danger')
                 return render_template(
                     'campaigns/new.html',
                     templates=templates, groups=groups,
@@ -126,6 +158,7 @@ def new():
                 group_id=group_id, group_name=group_name,
                 district_id=district_id, district_name=district_name,
                 custom_phones=custom_phones,
+                personalized_rows=personalized_rows,
                 template_id=int(template_id) if template_id else None,
                 created_by=current_user.id,
             )
@@ -166,6 +199,37 @@ def cancel(cid):
     else:
         flash('Campaign already finished.', 'warning')
     return redirect(url_for('campaigns.detail', cid=campaign.id))
+
+
+@campaigns_bp.route('/personalized/preview', methods=['POST'])
+@login_required
+def personalized_preview():
+    """
+    Validate a personalized-send CSV + template and return a preview
+    as JSON. Does not write to the database and does not debit the
+    wallet - the campaign form calls this before allowing submit.
+    """
+    org = _org()
+    body = (request.form.get('body') or '').strip()
+    if not body:
+        return jsonify({'ok': False,
+                        'error': 'Message body is required.'}), 400
+
+    csv_file = request.files.get('personalized_csv')
+    if csv_file is None or not csv_file.filename:
+        return jsonify({'ok': False,
+                        'error': 'CSV file is required.'}), 400
+
+    try:
+        columns, rows, issues = perso_svc.parse_csv(csv_file)
+    except perso_svc.PersonalizationError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+    result = perso_svc.preview(org, body, rows, limit=3)
+    result['ok'] = True
+    result['issues'] = issues
+    result['columns_all'] = columns
+    return jsonify(result), 200
 
 
 # --------------------------------------------------------------------------

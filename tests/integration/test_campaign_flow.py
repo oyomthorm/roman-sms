@@ -182,3 +182,185 @@ def test_campaign_paste_numbers_not_allowed_with_schedule(
 
     after = CampaignSchedule.query.filter_by(org_id=org.id).count()
     assert after == before
+
+# ---------------------------------------------------------------------------
+# Personalized CSV recipient source (#33 Session B - route wiring)
+# ---------------------------------------------------------------------------
+
+
+def _csv_upload(text):
+    """Build a Flask test-client file tuple from a string."""
+    import io
+    return (io.BytesIO(text.encode('utf-8')), 'recipients.csv')
+
+
+def test_personalized_preview_returns_json(client, app, db,
+                                           associate_admin,
+                                           subscribed_associate):
+    """The preview endpoint validates CSV + template and returns JSON."""
+    client.post('/login', data={
+        'email': associate_admin.email, 'password': 'assocpass',
+    }, follow_redirects=True)
+
+    csv_text = 'phone,pupil_name,fee\n' \
+               '0700123456,Joan,450000\n' \
+               '0752123456,Peter,300000\n'
+
+    resp = client.post(
+        '/campaigns/personalized/preview',
+        data={
+            'body': 'Dear parent, {{pupil_name}} owes {{fee}}.',
+            'personalized_csv': _csv_upload(csv_text),
+        },
+        content_type='multipart/form-data',
+    )
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload['ok'] is True
+    assert payload['row_count'] == 2
+    assert payload['total_segments'] == 2
+    assert len(payload['preview']) == 2
+    assert 'phone' in payload['columns_all']
+    assert 'pupil_name' in payload['columns']
+    assert payload['errors'] == []
+
+
+def test_personalized_preview_rejects_unknown_column(client, app, db,
+                                                     associate_admin,
+                                                     subscribed_associate):
+    """Template referencing a column not in the CSV returns errors[]."""
+    client.post('/login', data={
+        'email': associate_admin.email, 'password': 'assocpass',
+    }, follow_redirects=True)
+
+    csv_text = 'phone,pupil_name\n0700123456,Joan\n'
+    resp = client.post(
+        '/campaigns/personalized/preview',
+        data={
+            'body': 'Hi {{missing_column}}',
+            'personalized_csv': _csv_upload(csv_text),
+        },
+        content_type='multipart/form-data',
+    )
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload['ok'] is True
+    assert len(payload['errors']) == 1
+    assert 'missing_column' in payload['errors'][0]
+
+
+def test_personalized_campaign_via_route(client, app, db,
+                                         associate_admin,
+                                         subscribed_associate):
+    """POST a personalized campaign -> per-row MessageLog bodies."""
+    from app.models import Campaign, MessageLog
+    from app.services import wallet as wallet_svc
+
+    org = subscribed_associate
+    client.post('/login', data={
+        'email': associate_admin.email, 'password': 'assocpass',
+    }, follow_redirects=True)
+
+    starting = wallet_svc.get_balance(org.id)
+
+    csv_text = 'phone,pupil_name,fee\n' \
+               '0700123456,Joan,450000\n' \
+               '0752123456,Peter,300000\n'
+
+    resp = client.post(
+        '/campaigns/new',
+        data={
+            'mode': 'now',
+            'recipient_source': 'personalized',
+            'name': 'Fee reminders',
+            'body': 'Dear parent, {{pupil_name}} owes {{fee}}.',
+            'personalized_csv': _csv_upload(csv_text),
+        },
+        content_type='multipart/form-data',
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 302
+    assert '/campaigns/' in resp.headers['Location']
+
+    campaign = (Campaign.query
+                .filter_by(org_id=org.id)
+                .order_by(Campaign.id.desc())
+                .first())
+    assert campaign is not None
+    assert campaign.name == 'Fee reminders'
+    assert campaign.total == 2
+    assert wallet_svc.get_balance(org.id) == starting - 2
+
+    logs = (MessageLog.query
+            .filter_by(campaign_id=campaign.id)
+            .order_by(MessageLog.phone)
+            .all())
+    assert len(logs) == 2
+    # Rendered bodies differ per row - that's the whole point.
+    assert 'Joan' in logs[0].body and '450000' in logs[0].body
+    assert 'Peter' in logs[1].body and '300000' in logs[1].body
+
+
+def test_personalized_rejects_schedule(client, app, db,
+                                       associate_admin,
+                                       subscribed_associate):
+    """mode=schedule + recipient_source=personalized is refused."""
+    from app.models import CampaignSchedule
+
+    client.post('/login', data={
+        'email': associate_admin.email, 'password': 'assocpass',
+    }, follow_redirects=True)
+
+    before = CampaignSchedule.query.filter_by(
+        org_id=subscribed_associate.id).count()
+
+    csv_text = 'phone\n0700123456\n'
+    resp = client.post(
+        '/campaigns/new',
+        data={
+            'mode': 'schedule',
+            'recipient_source': 'personalized',
+            'name': 'Nope',
+            'body': 'Hi',
+            'personalized_csv': _csv_upload(csv_text),
+            'scheduled_times': ['2026-12-01T09:00'],
+        },
+        content_type='multipart/form-data',
+        follow_redirects=True,
+    )
+
+    assert resp.status_code == 200
+    assert b'Scheduled campaigns send to your contact list' in resp.data
+
+    after = CampaignSchedule.query.filter_by(
+        org_id=subscribed_associate.id).count()
+    assert after == before
+
+
+def test_personalized_rejects_missing_csv(client, app, db,
+                                          associate_admin,
+                                          subscribed_associate):
+    """recipient_source=personalized without a CSV -> flash, no campaign."""
+    from app.models import Campaign
+
+    client.post('/login', data={
+        'email': associate_admin.email, 'password': 'assocpass',
+    }, follow_redirects=True)
+
+    before = Campaign.query.filter_by(
+        org_id=subscribed_associate.id).count()
+
+    resp = client.post('/campaigns/new', data={
+        'mode': 'now',
+        'recipient_source': 'personalized',
+        'name': 'No file',
+        'body': 'Hi',
+    }, follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert b'upload a CSV' in resp.data
+
+    after = Campaign.query.filter_by(
+        org_id=subscribed_associate.id).count()
+    assert after == before
