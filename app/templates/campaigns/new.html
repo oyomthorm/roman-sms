@@ -23,12 +23,13 @@
 
 <form method="post" id="campaign-form" enctype="multipart/form-data">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if personalized_only | default(False) %}
+  <input type="hidden" name="recipient_source" value="personalized">
+  <input type="hidden" name="mode" value="now">
+  {% endif %}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    {# ============================================================ #}
-    {# LEFT: the form                                              #}
-    {# ============================================================ #}
     <div class="lg:col-span-2 space-y-6">
 
       {# ---- Section: Message ---- #}
@@ -53,6 +54,7 @@
             </p>
           </div>
 
+          {% if not (personalized_only | default(False)) %}
           <div>
             <label for="template_picker" class="block text-sm font-medium text-slate-700 mb-1.5">
               Load from template <span class="text-slate-400 font-normal">(optional)</span>
@@ -67,7 +69,9 @@
             </select>
             <input type="hidden" name="template_id" id="template_id">
           </div>
+          {% endif %}
 
+          {% if not (personalized_only | default(False)) %}
           <div>
             <div class="flex items-center justify-between mb-1.5">
               <label for="body" class="block text-sm font-medium text-slate-700">
@@ -79,7 +83,7 @@
                 <code class="bg-slate-100 px-1 rounded text-[11px]">{{ '{{phone}}' }}</code>
               </span>
             </div>
-            <textarea id="body" name="body" rows="6" required
+            <textarea id="body" name="body" rows="6"
                       placeholder="Hi {{ '{{name}}' }}, your balance is due…"
                       class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
                              font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition
@@ -112,7 +116,6 @@
                 </div>
               </div>
 
-              {# Segment progress bar #}
               <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden">
                 <div id="segment-bar"
                      class="h-full rounded-full bg-emerald-500 transition-all"
@@ -125,6 +128,7 @@
               </div>
             </div>
           </div>
+          {% endif %}
         </div>
       </section>
 
@@ -137,6 +141,7 @@
         </header>
 
         <div class="space-y-5">
+          {% if not (personalized_only | default(False)) %}
           <div class="flex gap-2">
             <label class="cursor-pointer">
               <input type="radio" name="recipient_source" value="group" checked
@@ -166,7 +171,9 @@
               </span>
             </label>
           </div>
+          {% endif %}
 
+          {% if not (personalized_only | default(False)) %}
           <div id="source-group" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1.5">Group</label>
@@ -195,7 +202,9 @@
               </select>
             </div>
           </div>
+          {% endif %}
 
+          {% if not (personalized_only | default(False)) %}
           <div id="source-paste" class="hidden">
             <textarea name="pasted_numbers" id="pasted_numbers" rows="6"
                       placeholder="One number per line, e.g.&#10;0700123456&#10;0752123456&#10;+256772123456"
@@ -216,7 +225,9 @@
               added to your contact list.
             </p>
           </div>
-          <div id="source-personalized" class="hidden space-y-4">
+          {% endif %}
+
+          <div id="source-personalized" class="{% if not (personalized_only | default(False)) %}hidden {% endif %}space-y-4">
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1.5">
                 CSV file
@@ -278,6 +289,7 @@
         </header>
 
         <div class="space-y-5">
+          {% if not (personalized_only | default(False)) %}
           <div class="grid grid-cols-2 gap-3">
             <label class="cursor-pointer">
               <input type="radio" name="mode" value="now" checked
@@ -298,6 +310,11 @@
               </div>
             </label>
           </div>
+          {% else %}
+          <p class="text-sm text-slate-500">
+            Personalized sends go out immediately when queued.
+          </p>
+          {% endif %}
 
           <div id="schedule-fields"
                class="opacity-40 pointer-events-none transition-opacity
@@ -329,9 +346,6 @@
 
     </div>
 
-    {# ============================================================ #}
-    {# RIGHT: sticky preview + cost + submit                       #}
-    {# ============================================================ #}
     <div class="lg:col-span-1">
       <div class="lg:sticky lg:top-6 space-y-4">
 
@@ -419,26 +433,30 @@
 var RATE_UGX   = {{ wallet_rate or 50 }};
 var PREFIX     = "{{ current_user.organization.prefix }}";
 var SEGMENT    = 160;
+var PERSONALIZED_ONLY = {{ (personalized_only | default(False)) | tojson }};
 
-// ---- Character / segment / cost counter + live preview (contact mode) ----
+// ---- Character / segment / cost counter (contact mode) ----
 function updateCount() {
-  var raw = document.getElementById('body').value;
+  var bodyEl = document.getElementById('body');
+  if (!bodyEl) { return; }
+  var raw = bodyEl.value;
   var full = PREFIX + raw;
   var len = full.length;
   var segs = Math.max(1, Math.ceil(len / SEGMENT));
   var cost = segs * RATE_UGX;
 
-  document.getElementById('char-count').textContent = len;
-  document.getElementById('seg-count').textContent = segs;
-  document.getElementById('seg-label').textContent = 'SMS';
-  document.getElementById('cost-ugx').textContent = 'UGX ' + cost.toLocaleString();
+  var el;
+  if ((el = document.getElementById('char-count'))) el.textContent = len;
+  if ((el = document.getElementById('seg-count'))) el.textContent = segs;
+  if ((el = document.getElementById('seg-label'))) el.textContent = 'SMS';
+  if ((el = document.getElementById('cost-ugx'))) el.textContent = 'UGX ' + cost.toLocaleString();
 
   var charsInCurrentSeg = len % SEGMENT;
   if (len > 0 && charsInCurrentSeg === 0) charsInCurrentSeg = SEGMENT;
   var pct = (charsInCurrentSeg / SEGMENT) * 100;
 
   var bar = document.getElementById('segment-bar');
-  bar.style.width = pct.toFixed(1) + '%';
+  if (bar) { bar.style.width = pct.toFixed(1) + '%'; }
 
   var hintEl = document.getElementById('segment-hint');
   var nextEl = document.getElementById('chars-to-next');
@@ -446,39 +464,44 @@ function updateCount() {
   var remaining = nextBoundary - len;
 
   var cardEl = document.getElementById('counter-card');
-  cardEl.classList.remove('bg-amber-50', 'bg-red-50', 'border-amber-200', 'border-red-200');
-
-  if (pct >= 90) {
-    bar.className = 'h-full rounded-full bg-amber-500 transition-all';
-    cardEl.classList.add('bg-amber-50', 'border-amber-200');
-    hintEl.className = 'text-[11px] text-amber-700 mt-2 tabular-nums';
-  } else {
-    bar.className = 'h-full rounded-full bg-emerald-500 transition-all';
-    hintEl.className = 'text-[11px] text-slate-500 mt-2 tabular-nums';
+  if (cardEl) {
+    cardEl.classList.remove('bg-amber-50', 'bg-red-50', 'border-amber-200', 'border-red-200');
+    if (pct >= 90) {
+      if (bar) { bar.className = 'h-full rounded-full bg-amber-500 transition-all'; }
+      cardEl.classList.add('bg-amber-50', 'border-amber-200');
+      if (hintEl) { hintEl.className = 'text-[11px] text-amber-700 mt-2 tabular-nums'; }
+    } else {
+      if (bar) { bar.className = 'h-full rounded-full bg-emerald-500 transition-all'; }
+      if (hintEl) { hintEl.className = 'text-[11px] text-slate-500 mt-2 tabular-nums'; }
+    }
   }
 
-  if (remaining === 0) {
-    nextEl.textContent = SEGMENT;
-    hintEl.childNodes[1].nodeValue = ' more characters and this becomes ' + (segs + 1) + ' SMS';
-  } else {
-    nextEl.textContent = remaining;
-    hintEl.childNodes[1].nodeValue = ' more character' + (remaining === 1 ? '' : 's') +
-      ' before the next SMS (' + (segs + 1) + ' total)';
+  if (nextEl && hintEl && hintEl.childNodes[1]) {
+    if (remaining === 0) {
+      nextEl.textContent = SEGMENT;
+      hintEl.childNodes[1].nodeValue = ' more characters and this becomes ' + (segs + 1) + ' SMS';
+    } else {
+      nextEl.textContent = remaining;
+      hintEl.childNodes[1].nodeValue = ' more character' + (remaining === 1 ? '' : 's') +
+        ' before the next SMS (' + (segs + 1) + ' total)';
+    }
   }
 
-  document.getElementById('preview-header-count').textContent = segs;
-  document.getElementById('cost-segments').textContent = segs;
-  document.getElementById('cost-total').textContent = 'UGX ' + cost.toLocaleString();
+  if ((el = document.getElementById('preview-header-count'))) el.textContent = segs;
+  if ((el = document.getElementById('cost-segments'))) el.textContent = segs;
+  if ((el = document.getElementById('cost-total'))) el.textContent = 'UGX ' + cost.toLocaleString();
 
   var previewBody = document.getElementById('preview-body');
-  if (raw.trim()) {
-    previewBody.textContent = raw;
-    previewBody.classList.remove('text-slate-400');
-    previewBody.classList.add('text-slate-900');
-  } else {
-    previewBody.textContent = 'Your message will appear here…';
-    previewBody.classList.remove('text-slate-900');
-    previewBody.classList.add('text-slate-400');
+  if (previewBody) {
+    if (raw.trim()) {
+      previewBody.textContent = raw;
+      previewBody.classList.remove('text-slate-400');
+      previewBody.classList.add('text-slate-900');
+    } else {
+      previewBody.textContent = 'Your message will appear here…';
+      previewBody.classList.remove('text-slate-900');
+      previewBody.classList.add('text-slate-400');
+    }
   }
 }
 
@@ -501,7 +524,10 @@ function normalizeUG(raw) {
 }
 
 function updatePasteCount() {
-  var raw = document.getElementById('pasted_numbers').value;
+  var pasteEl = document.getElementById('pasted_numbers');
+  var countEl = document.getElementById('paste-count');
+  if (!pasteEl || !countEl) { return; }
+  var raw = pasteEl.value;
   var tokens = raw.split(/[\s,;]+/).filter(function (t) { return t.length; });
   var seen = {};
   var valid = 0;
@@ -509,12 +535,14 @@ function updatePasteCount() {
     var n = normalizeUG(tokens[i]);
     if (n && !seen[n]) { seen[n] = true; valid++; }
   }
-  document.getElementById('paste-count').textContent = valid;
+  countEl.textContent = valid;
 }
 
 // ---- Delivery mode ----
 function toggleMode() {
-  var mode = document.querySelector('input[name="mode"]:checked').value;
+  var modeEl = document.querySelector('input[name="mode"]:checked');
+  if (!modeEl) { return; }
+  var mode = modeEl.value;
   var fields = document.getElementById('schedule-fields');
   var label = document.getElementById('submit-label');
   var pasteRadio = document.querySelector('input[name="recipient_source"][value="paste"]');
@@ -523,48 +551,58 @@ function toggleMode() {
   var personalizedLabel = document.getElementById('personalized-label');
 
   if (mode === 'schedule') {
-    fields.classList.remove('opacity-40', 'pointer-events-none');
-    pasteRadio.disabled = true;
-    pasteLabel.classList.add('opacity-40', 'pointer-events-none');
-    personalizedRadio.disabled = true;
-    personalizedLabel.classList.add('opacity-40', 'pointer-events-none');
-    if (pasteRadio.checked) {
-      document.querySelector('input[name="recipient_source"][value="group"]').checked = true;
+    if (fields) { fields.classList.remove('opacity-40', 'pointer-events-none'); }
+    if (pasteRadio) { pasteRadio.disabled = true; }
+    if (pasteLabel) { pasteLabel.classList.add('opacity-40', 'pointer-events-none'); }
+    if (personalizedRadio) { personalizedRadio.disabled = true; }
+    if (personalizedLabel) { personalizedLabel.classList.add('opacity-40', 'pointer-events-none'); }
+    if (pasteRadio && pasteRadio.checked) {
+      var groupRadioA = document.querySelector('input[name="recipient_source"][value="group"]');
+      if (groupRadioA) { groupRadioA.checked = true; }
       toggleRecipientSource();
     }
-    if (personalizedRadio.checked) {
-      document.querySelector('input[name="recipient_source"][value="group"]').checked = true;
+    if (personalizedRadio && personalizedRadio.checked) {
+      var groupRadioB = document.querySelector('input[name="recipient_source"][value="group"]');
+      if (groupRadioB) { groupRadioB.checked = true; }
       toggleRecipientSource();
     }
-    label.textContent = 'Create schedule';
+    if (label) { label.textContent = 'Create schedule'; }
   } else {
-    fields.classList.add('opacity-40', 'pointer-events-none');
-    pasteRadio.disabled = false;
-    pasteLabel.classList.remove('opacity-40', 'pointer-events-none');
-    personalizedRadio.disabled = false;
-    personalizedLabel.classList.remove('opacity-40', 'pointer-events-none');
-    label.textContent = 'Queue campaign';
+    if (fields) { fields.classList.add('opacity-40', 'pointer-events-none'); }
+    if (pasteRadio) { pasteRadio.disabled = false; }
+    if (pasteLabel) { pasteLabel.classList.remove('opacity-40', 'pointer-events-none'); }
+    if (personalizedRadio) { personalizedRadio.disabled = false; }
+    if (personalizedLabel) { personalizedLabel.classList.remove('opacity-40', 'pointer-events-none'); }
+    if (label) { label.textContent = 'Queue campaign'; }
   }
 }
 
 // ---- Recipient source ----
 function toggleRecipientSource() {
-  var source = document.querySelector('input[name="recipient_source"]:checked').value;
+  var sourceEl = document.querySelector('input[name="recipient_source"]:checked');
+  var source;
+  if (sourceEl) {
+    source = sourceEl.value;
+  } else if (PERSONALIZED_ONLY) {
+    source = 'personalized';
+  } else {
+    return;
+  }
   var groupBox = document.getElementById('source-group');
   var pasteBox = document.getElementById('source-paste');
   var personalizedBox = document.getElementById('source-personalized');
 
-  groupBox.classList.add('hidden');
-  pasteBox.classList.add('hidden');
-  personalizedBox.classList.add('hidden');
+  if (groupBox) { groupBox.classList.add('hidden'); }
+  if (pasteBox) { pasteBox.classList.add('hidden'); }
+  if (personalizedBox) { personalizedBox.classList.add('hidden'); }
 
   if (source === 'paste') {
-    pasteBox.classList.remove('hidden');
+    if (pasteBox) { pasteBox.classList.remove('hidden'); }
   } else if (source === 'personalized') {
-    personalizedBox.classList.remove('hidden');
+    if (personalizedBox) { personalizedBox.classList.remove('hidden'); }
     refreshPersonalizedPreview();
   } else {
-    groupBox.classList.remove('hidden');
+    if (groupBox) { groupBox.classList.remove('hidden'); }
   }
 }
 
@@ -577,8 +615,9 @@ function refreshPersonalizedPreview() {
 }
 
 function _doRefreshPersonalizedPreview() {
-  var source = document.querySelector('input[name="recipient_source"]:checked');
-  if (!source || source.value !== 'personalized') { return; }
+  var sourceEl = document.querySelector('input[name="recipient_source"]:checked');
+  var source = sourceEl ? sourceEl.value : (PERSONALIZED_ONLY ? 'personalized' : null);
+  if (source !== 'personalized') { return; }
 
   var fileInput = document.getElementById('personalized_csv');
   var bodyEl = document.getElementById('personalized_body');
@@ -587,6 +626,7 @@ function _doRefreshPersonalizedPreview() {
   var previewSummary = document.getElementById('personalized-preview-summary');
   var errorsBox = document.getElementById('personalized-preview-errors');
   var submitBtn = document.querySelector('button[type="submit"]');
+  if (!fileInput || !bodyEl || !previewBox || !submitBtn) { return; }
 
   var file = fileInput.files && fileInput.files[0];
   var body = (bodyEl.value || '').trim();
@@ -613,79 +653,92 @@ function _doRefreshPersonalizedPreview() {
   .then(function (resp) {
     var j = resp.json;
     previewBox.classList.remove('hidden');
-    previewRows.innerHTML = '';
-    errorsBox.innerHTML = '';
-    errorsBox.classList.add('hidden');
+    if (previewRows) { previewRows.innerHTML = ''; }
+    if (errorsBox) { errorsBox.innerHTML = ''; errorsBox.classList.add('hidden'); }
 
     if (!j.ok) {
       submitBtn.disabled = true;
       submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
-      errorsBox.classList.remove('hidden');
-      var errP = document.createElement('div');
-      errP.textContent = j.error || 'Preview failed.';
-      errorsBox.appendChild(errP);
-      previewSummary.textContent = '';
+      if (errorsBox) {
+        errorsBox.classList.remove('hidden');
+        var errP = document.createElement('div');
+        errP.textContent = j.error || 'Preview failed.';
+        errorsBox.appendChild(errP);
+      }
+      if (previewSummary) { previewSummary.textContent = ''; }
       return;
     }
 
     if (j.errors && j.errors.length > 0) {
       submitBtn.disabled = true;
       submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
-      errorsBox.classList.remove('hidden');
-      j.errors.forEach(function (e) {
-        var p = document.createElement('div');
-        p.textContent = e;
-        errorsBox.appendChild(p);
-      });
+      if (errorsBox) {
+        errorsBox.classList.remove('hidden');
+        j.errors.forEach(function (e) {
+          var p = document.createElement('div');
+          p.textContent = e;
+          errorsBox.appendChild(p);
+        });
+      }
     } else {
       submitBtn.disabled = false;
       submitBtn.classList.remove('opacity-40', 'cursor-not-allowed');
     }
 
-    (j.preview || []).forEach(function (row) {
-      var rowDiv = document.createElement('div');
-      rowDiv.className = 'bg-white rounded-lg border border-slate-200 p-2 text-xs';
-      var phoneDiv = document.createElement('div');
-      phoneDiv.className = 'text-slate-400 tabular-nums';
-      phoneDiv.textContent = row.phone + ' · ' + row.segments + ' SMS';
-      var bodyDiv = document.createElement('div');
-      bodyDiv.className = 'mt-1 text-slate-900 whitespace-pre-wrap break-words';
-      bodyDiv.textContent = row.body;
-      rowDiv.appendChild(phoneDiv);
-      rowDiv.appendChild(bodyDiv);
-      previewRows.appendChild(rowDiv);
-    });
-
-    var summary = (j.row_count || 0) + ' rows · ' + (j.total_segments || 0) + ' SMS total';
-    if (j.issues && j.issues.length > 0) {
-      summary += ' · ' + j.issues.length + ' skipped';
+    if (previewRows) {
+      (j.preview || []).forEach(function (row) {
+        var rowDiv = document.createElement('div');
+        rowDiv.className = 'bg-white rounded-lg border border-slate-200 p-2 text-xs';
+        var phoneDiv = document.createElement('div');
+        phoneDiv.className = 'text-slate-400 tabular-nums';
+        phoneDiv.textContent = row.phone + ' · ' + row.segments + ' SMS';
+        var bodyDiv = document.createElement('div');
+        bodyDiv.className = 'mt-1 text-slate-900 whitespace-pre-wrap break-words';
+        bodyDiv.textContent = row.body;
+        rowDiv.appendChild(phoneDiv);
+        rowDiv.appendChild(bodyDiv);
+        previewRows.appendChild(rowDiv);
+      });
     }
-    previewSummary.textContent = summary;
+
+    if (previewSummary) {
+      var summary = (j.row_count || 0) + ' rows · ' + (j.total_segments || 0) + ' SMS total';
+      if (j.issues && j.issues.length > 0) {
+        summary += ' · ' + j.issues.length + ' skipped';
+      }
+      previewSummary.textContent = summary;
+    }
 
     var totalCost = (j.total_segments || 0) * RATE_UGX;
-    document.getElementById('cost-segments').textContent = j.total_segments || 0;
-    document.getElementById('cost-total').textContent = 'UGX ' + totalCost.toLocaleString();
+    var cs = document.getElementById('cost-segments');
+    var ct = document.getElementById('cost-total');
+    if (cs) { cs.textContent = j.total_segments || 0; }
+    if (ct) { ct.textContent = 'UGX ' + totalCost.toLocaleString(); }
   })
   .catch(function (err) {
     submitBtn.disabled = true;
     submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
     previewBox.classList.remove('hidden');
-    previewSummary.textContent = '';
-    previewRows.innerHTML = '';
-    errorsBox.classList.remove('hidden');
-    errorsBox.innerHTML = '';
-    var p = document.createElement('div');
-    p.textContent = 'Preview failed: ' + err;
-    errorsBox.appendChild(p);
+    if (previewSummary) { previewSummary.textContent = ''; }
+    if (previewRows) { previewRows.innerHTML = ''; }
+    if (errorsBox) {
+      errorsBox.classList.remove('hidden');
+      errorsBox.innerHTML = '';
+      var p = document.createElement('div');
+      p.textContent = 'Preview failed: ' + err;
+      errorsBox.appendChild(p);
+    }
   });
 }
 
 // ---- Template loader ----
 function applyTemplate(sel) {
   var opt = sel.options[sel.selectedIndex];
-  document.getElementById('template_id').value = opt.value || '';
+  var tidEl = document.getElementById('template_id');
+  if (tidEl) { tidEl.value = opt.value || ''; }
   if (opt.dataset.body) {
-    document.getElementById('body').value = opt.dataset.body;
+    var bodyEl = document.getElementById('body');
+    if (bodyEl) { bodyEl.value = opt.dataset.body; }
     updateCount();
   }
 }
@@ -702,6 +755,7 @@ function defaultDatetimeLocal() {
 
 function addTimeRow(value) {
   var wrap = document.getElementById('times-list');
+  if (!wrap) { return; }
   var row = document.createElement('div');
   row.className = 'flex items-center gap-2';
   row.innerHTML = `
@@ -722,8 +776,10 @@ function addTimeRow(value) {
 
 function removeTimeRow(btn) {
   var wrap = document.getElementById('times-list');
+  if (!wrap) { return; }
   if (wrap.children.length <= 1) {
-    wrap.querySelector('input').value = defaultDatetimeLocal();
+    var inp = wrap.querySelector('input');
+    if (inp) { inp.value = defaultDatetimeLocal(); }
     return;
   }
   btn.parentElement.remove();
@@ -731,8 +787,10 @@ function removeTimeRow(btn) {
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', function () {
-  document.getElementById('body').addEventListener('input', updateCount);
-  document.getElementById('pasted_numbers').addEventListener('input', updatePasteCount);
+  var bodyEl = document.getElementById('body');
+  if (bodyEl) { bodyEl.addEventListener('input', updateCount); }
+  var pasteEl = document.getElementById('pasted_numbers');
+  if (pasteEl) { pasteEl.addEventListener('input', updatePasteCount); }
 
   var csvInput = document.getElementById('personalized_csv');
   if (csvInput) { csvInput.addEventListener('change', refreshPersonalizedPreview); }
@@ -744,6 +802,7 @@ document.addEventListener('DOMContentLoaded', function () {
   toggleRecipientSource();
   updateCount();
   updatePasteCount();
-});</script>
+});
+</script>
 
 {% endblock %}

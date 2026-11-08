@@ -29,6 +29,34 @@ def index():
     return render_template('campaigns/list.html', campaigns=campaigns)
 
 
+@campaigns_bp.route('/personalized/new', methods=['GET'])
+@login_required
+def personalized_new():
+    """Dedicated personalized-send page.
+
+    Renders the same form template as campaigns.new, but with
+    personalized_only=True. The template then hides the recipient-
+    source tabs (only the CSV panel shows), the template picker, and
+    the schedule radio. Submit still posts to campaigns.new - the
+    personalized radio and mode=now are baked in as hidden inputs.
+
+    A GET-only route: no POST branch. The existing campaigns.new
+    handler handles the submit.
+    """
+    org = _org()
+    templates = templates_svc.list_templates(org)
+    groups = groups_svc.list_groups(org)
+    districts_by_region = geo_svc.list_by_region()
+    return render_template(
+        'campaigns/new.html',
+        templates=templates,
+        groups=groups,
+        districts_by_region=districts_by_region,
+        balance=get_balance(org.id),
+        personalized_only=True,
+    )
+
+
 @campaigns_bp.route('/new', methods=['GET', 'POST'])
 @login_required
 def new():
