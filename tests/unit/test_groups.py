@@ -76,18 +76,27 @@ def test_delete_with_contacts_requires_target(app, db, associate_org):
     assert Group.query.filter_by(id=g1.id).first() is None
 
 
-def test_delete_without_target_detaches_contacts(app, db, associate_org):
+def test_delete_without_target_rejected_when_non_empty(app, db,
+                                                       associate_org):
+    """A non-empty group cannot be deleted without a move target.
+
+    Under the Contact.group_id NOT NULL invariant (migration
+    6c7a338d1274), 'detach' is no longer a legal outcome. The
+    service raises GroupError rather than silently orphaning the
+    contact.
+    """
     g = svc.create(associate_org, name='Detach')
     c = Contact(org_id=associate_org.id, phone='256700000003',
                 group_id=g.id)
     db.session.add(c)
     db.session.commit()
 
-    moved, target = svc.delete(associate_org, g.id)
-    assert moved == 1
-    assert target is None
+    with pytest.raises(svc.GroupError, match='non-empty'):
+        svc.delete(associate_org, g.id)
+
+    # Group unchanged, contact unchanged.
     db.session.refresh(c)
-    assert c.group_id is None
+    assert c.group_id == g.id
 
 
 def test_delete_cannot_target_itself(app, db, associate_org):

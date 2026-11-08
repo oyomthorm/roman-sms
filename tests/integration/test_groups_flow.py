@@ -19,13 +19,12 @@ def test_import_creates_groups_automatically(app, db,
         b"0700000001,Alice,VIP\n"
         b"0700000002,Bob,Newsletter\n"
         b"0700000003,Carol,VIP\n"
-        b"0700000004,Dave,\n"
     )
     import io
     result = contacts_svc.import_csv(
         org, io.BytesIO(csv_bytes))
 
-    assert result.added == 4
+    assert result.added == 3
     assert result.groups_created == 2
 
     names = {g.name for g in Group.query.filter_by(org_id=org.id).all()}
@@ -34,10 +33,32 @@ def test_import_creates_groups_automatically(app, db,
     vip = Group.query.filter_by(org_id=org.id, name='VIP').first()
     assert Contact.query.filter_by(group_id=vip.id).count() == 2
 
-    # Dave with no group column value
+
+def test_import_skips_rows_with_missing_group(app, db,
+                                              subscribed_associate):
+    """Under Contact.group_id NOT NULL (migration 6c7a338d1274),
+    a CSV row whose group value is empty cannot be imported -
+    there is no group to attach it to. The row is skipped and
+    counted in ContactImport.skipped_no_group.
+    """
+    org = subscribed_associate
+    csv_bytes = (
+        b"phone,name,group\n"
+        b"0700000001,Alice,VIP\n"
+        b"0700000004,Dave,\n"
+    )
+    import io
+    result = contacts_svc.import_csv(
+        org, io.BytesIO(csv_bytes))
+
+    assert result.added == 1
+    assert result.skipped_no_group == 1
+
+    # Dave was not imported at all - there is no legal row for him
+    # under the NOT NULL invariant.
     dave = Contact.query.filter_by(
         org_id=org.id, phone='256700000004').first()
-    assert dave.group_id is None
+    assert dave is None
 
 
 def test_import_reuses_existing_groups(app, db, subscribed_associate):

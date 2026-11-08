@@ -13,18 +13,14 @@ import pytest
 from app.extensions import db
 from app.models import Contact
 from app.services import renderer
+from tests.factories import ContactFactory
 
 
 @pytest.fixture
 def contact(db, associate_org):
-    c = Contact(
-        org_id=associate_org.id,
-        phone='256700123456',
-        name='Alice Example',
-    )
-    db.session.add(c)
-    db.session.commit()
-    return c
+    return ContactFactory(org_id=associate_org.id,
+                          phone='256700123456',
+                          name='Alice Example')
 
 
 # ---------------------------------------------------------------------------
@@ -57,9 +53,8 @@ def test_substitute_unknown_placeholder_left_alone(app, contact):
 
 
 def test_substitute_name_missing_is_empty(app, db, associate_org):
-    c = Contact(org_id=associate_org.id, phone='256700999999', name=None)
-    db.session.add(c)
-    db.session.commit()
+    c = ContactFactory(org_id=associate_org.id, phone='256700999999',
+                       name=None)
     assert renderer.substitute('Hi {{name}}!', c) == 'Hi !'
 
 
@@ -77,7 +72,7 @@ def test_with_prefix(app, associate_org):
 
 
 # ---------------------------------------------------------------------------
-# render — the composed function used by campaigns
+# render - the composed function used by campaigns
 # ---------------------------------------------------------------------------
 
 def test_render_applies_prefix_and_substitution(app, associate_org, contact):
@@ -110,7 +105,7 @@ def test_render_does_not_append_optout_when_base_url_absent(
 # ---------------------------------------------------------------------------
 
 def test_segments_empty_body_is_one(app):
-    # min 1 even for empty input — an empty SMS still costs one segment
+    # min 1 even for empty input - an empty SMS still costs one segment
     assert renderer.segments('') == 1
 
 
