@@ -167,3 +167,18 @@ def attach(org, contact_ids, group_id):
          .update({'group_id': group_id}, synchronize_session=False))
     db.session.commit()
     return n
+
+def get_for_user(org, gid, user):
+    """Fetch a single group by id, returning None if not visible.
+
+    Returns None when:
+      - no group with this id in this org
+      - user.department is set and group.department is a different dept
+    """
+    group = get(org, gid)
+    if group is None:
+        return None
+    if user is not None and getattr(user, 'department', None) is not None:
+        if group.department not in (user.department, None):
+            return None
+    return group

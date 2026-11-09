@@ -17,7 +17,7 @@ def _org():
 @groups_bp.route('/')
 @login_required
 def index():
-    rows = svc.list_groups(_org())
+    rows = svc.list_groups(_org(), user=current_user)
     return render_template('groups/list.html', rows=rows)
 
 
@@ -29,6 +29,7 @@ def new():
             svc.create(_org(),
                        name=request.form.get('name', ''),
                        description=request.form.get('description', ''),
+                       department=current_user.department,
                        actor_id=current_user.id)
         except svc.GroupError as e:
             flash(str(e), 'danger')
@@ -43,7 +44,7 @@ def new():
 @login_required
 def detail(gid):
     org = _org()
-    group = svc.get(org, gid)
+    group = svc.get_for_user(org, gid, current_user)
     if not group:
         return render_template('errors/404.html'), 404
     contacts = svc.contacts_in(org, gid)
@@ -55,7 +56,7 @@ def detail(gid):
 @login_required
 def edit(gid):
     org = _org()
-    group = svc.get(org, gid)
+    group = svc.get_for_user(org, gid, current_user)
     if not group:
         return render_template('errors/404.html'), 404
 
@@ -77,7 +78,7 @@ def edit(gid):
 @login_required
 def delete(gid):
     org = _org()
-    group = svc.get(org, gid)
+    group = svc.get_for_user(org, gid, current_user)
     if not group:
         return render_template('errors/404.html'), 404
 
@@ -102,7 +103,7 @@ def delete(gid):
             flash(f'Deleted "{group.name}".', 'success')
         return redirect(url_for('groups.index'))
 
-    other_groups = [g for g, _ in svc.list_groups(org) if g.id != gid]
+    other_groups = [g for g, _ in svc.list_groups(org, user=current_user) if g.id != gid]
     return render_template('groups/delete.html',
                            group=group,
                            contact_count=contact_count,
@@ -113,7 +114,7 @@ def delete(gid):
 @login_required
 def import_to_group(gid):
     org = _org()
-    group = svc.get(org, gid)
+    group = svc.get_for_user(org, gid, current_user)
     if not group:
         return render_template('errors/404.html'), 404
 
@@ -164,7 +165,7 @@ def import_to_group(gid):
 
     return render_template('contacts/import.html',
                            preset_group=group,
-                           groups=svc.list_groups(org),
+                           groups=svc.list_groups(org, user=current_user),
                            districts_by_region=geo_svc.list_by_region(),
                            existing_phones=existing_phones,
                            opt_out_phones=opt_out_phones)
