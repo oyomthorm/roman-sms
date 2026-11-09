@@ -110,7 +110,7 @@ def _next_run_at(iso_times):
 
 def create_schedule(org, *, name, body, times,
                     group_id=None, district_id=None,
-                    template_id=None, created_by=None):
+                    template_id=None, created_by=None, user=None):
     name = (name or '').strip()
     body = (body or '').strip()
     if not name:
@@ -128,6 +128,7 @@ def create_schedule(org, *, name, body, times,
         template_id=template_id,
         group_id=group_id,
         district_id=district_id,
+        department=(user.department if user else None),
         sender_id=org.brand_name,
         scheduled_times=json.dumps(scheduled_times),
         status='active',
@@ -293,6 +294,7 @@ def materialize_run(schedule_id, fired_iso=None):
         total=len(contacts),
         created_by=schedule.created_by,
         schedule_id=schedule.id,
+        department=schedule.department,
     )
     db.session.add(campaign)
     db.session.flush()

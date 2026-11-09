@@ -1,3 +1,5 @@
+from sqlalchemy import or_
+
 from functools import wraps
 from flask import abort
 from flask_login import current_user
@@ -29,3 +31,24 @@ def org_scoped(model):
     if current_user.is_authenticated and current_user.role == 'master_admin':
         return model.query
     return model.query.filter_by(org_id=current_user.org_id)
+
+def department_filter(query, model, user):
+    """Filter a query by the current user's department visibility.
+
+    - user.department is None       -> sees everything in the org
+    - record.department is None     -> shared, visible to all
+    - record.department matches     -> visible to that department only
+
+    A user with department='bursar' sees records where
+    department='bursar' OR department IS NULL, never 'dos'.
+
+    Usage:
+        q = Group.query.filter_by(org_id=org.id)
+        q = department_filter(q, Group, current_user)
+    """
+    if user is None or getattr(user, 'department', None) is None:
+        return query
+    return query.filter(
+        or_(model.department == user.department,
+            model.department.is_(None))
+    )

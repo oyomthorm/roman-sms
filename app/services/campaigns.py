@@ -5,6 +5,7 @@ from app.services import wallet as wallet_svc
 from app.services.entitlements import check_can_send, EntitlementError
 from app.services.renderer import render, segments
 from app.services.audit import log as audit
+from app.permissions import department_filter
 from collections import namedtuple
 
 Recipient = namedtuple('Recipient', ['id', 'phone', 'name'])
@@ -89,7 +90,7 @@ def create_campaign(org, *, name, body,
                     district_id=None, district_name=None,
                     custom_phones=None,
                     personalized_rows=None,
-                    template_id=None, created_by=None,
+                    template_id=None, created_by=None, user=None,
                     scheduled_at=None):
     """
     The whole send pipeline, minus the actual network call.
@@ -148,6 +149,7 @@ def create_campaign(org, *, name, body,
         status='queued',
         total=len(contacts), created_by=created_by,
         scheduled_at=scheduled_at,
+        department=(user.department if user else None),
     )
     db.session.add(campaign)
     db.session.flush()
@@ -182,6 +184,16 @@ def create_campaign(org, *, name, body,
           f'id={campaign.id} recipients={len(contacts)} '
           f'segments={total_segments}')
     return campaign, total_segments
+def list_for_org(org, user=None, limit=100):
+    """Return recent campaigns for an org, filtered by user's department.
+
+    When user has a department, returns matching campaigns plus shared
+    (department IS NULL). When user is None or has no department,
+    returns all campaigns in the org.
+    """
+    query = Campaign.query.filter_by(org_id=org.id)
+    query = department_filter(query, Campaign, user)
+    return query.order_by(Campaign.id.desc()).limit(limit).all()
 
 
 def cancel_campaign(campaign, *, actor_id=None):

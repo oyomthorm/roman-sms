@@ -5,18 +5,23 @@ so uniqueness, renaming, and cascading behaviour stay consistent.
 from app.extensions import db
 from app.models import Group, Contact
 from app.services.audit import log as audit
+from app.permissions import department_filter
 
 
 class GroupError(Exception):
     pass
 
 
-def list_groups(org):
-    """Return [(group, contact_count), ...] sorted by name."""
-    groups = (Group.query
-              .filter_by(org_id=org.id)
-              .order_by(Group.name)
-              .all())
+def list_groups(org, user=None):
+    """Return [(group, contact_count), ...] sorted by name.
+
+    When user is set and has a department, only returns records
+    with matching department or NULL (shared). When user is None
+    or has no department, returns all groups in the org.
+    """
+    query = Group.query.filter_by(org_id=org.id)
+    query = department_filter(query, Group, user)
+    groups = query.order_by(Group.name).all()
     counts = dict(
         db.session.query(Contact.group_id, db.func.count(Contact.id))
         .filter(Contact.org_id == org.id, Contact.group_id.isnot(None))
@@ -26,9 +31,9 @@ def list_groups(org):
     return [(g, counts.get(g.id, 0)) for g in groups]
 
 
-def list_names(org):
+def list_names(org, user=None):
     """Return group names only. Used by legacy callers."""
-    return [g.name for g, _ in list_groups(org)]
+    return [g.name for g, _ in list_groups(org, user=user)]
 
 
 def get(org, group_id):
@@ -70,21 +75,24 @@ def _validate_name(org, name, exclude_id=None):
     return name
 
 
-def create(org, *, name, description=None, actor_id=None):
+def create(org, *, name, description=None, department=None,
+           actor_id=None):
     name = _validate_name(org, name)
     group = Group(org_id=org.id, name=name,
-                  description=(description or '').strip() or None)
+                  description=(description or '').strip() or None,
+                  department=department)
     db.session.add(group)
     db.session.commit()
-    audit('group_create', f'name={name}', org_id=org.id, actor_id=actor_id)
+    audit('group_create', f'name={name} dept={department or "shared"}',
+          org_id=org.id, actor_id=actor_id)
     return group
 
 
-def find_or_create(org, name, *, actor_id=None):
+def find_or_create(org, name, *, department=None, actor_id=None):
     """
     Used by the importer and by manual contact entry.
     Returns (group, created) where created is True if a new row was made.
-    Does NOT commit — the caller manages the transaction.
+    Does NOT commit - the caller manages the transaction.
     """
     name = (name or '').strip()
     if not name:
@@ -92,7 +100,7 @@ def find_or_create(org, name, *, actor_id=None):
     existing = find_by_name(org, name)
     if existing:
         return existing, False
-    group = Group(org_id=org.id, name=name)
+    group = Group(org_id=org.id, name=name, department=department)
     db.session.add(group)
     db.session.flush()
     return group, True

@@ -65,12 +65,14 @@ def UserFactory(org=None, **kwargs):
     password = kwargs.pop('password', 'testpass123')
     role = kwargs.pop('role', 'associate_admin')
     full_name = kwargs.pop('full_name', f'User {n}')
+    department = kwargs.pop('department', None)
 
     user = User(
         email=email,
         full_name=full_name,
         role=role,
         org_id=org_id,
+        department=department,
     )
     user.set_password(password)
     db.session.add(user)
