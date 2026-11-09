@@ -43,6 +43,7 @@ class CampaignSchedule(db.Model):
         db.ForeignKey('district.id', name='fk_schedule_district'),
         nullable=True)
     sender_id = db.Column(db.String(60), nullable=False)
+    department = db.Column(db.String(40), nullable=True, index=True)
 
     # JSON list of local datetimes
     scheduled_times = db.Column(db.Text, nullable=False, default='[]')

@@ -9,6 +9,7 @@ class Group(db.Model):
                        nullable=False, index=True)
     name = db.Column(db.String(80), nullable=False)
     description = db.Column(db.String(255))
+    department = db.Column(db.String(40), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)
@@ -52,6 +53,7 @@ class MessageTemplate(db.Model):
                        nullable=False, index=True)
     name = db.Column(db.String(120), nullable=False)
     body = db.Column(db.Text, nullable=False)
+    department = db.Column(db.String(40), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -64,6 +66,7 @@ class Campaign(db.Model):
     template_id = db.Column(db.Integer, db.ForeignKey('message_template.id'))
     body = db.Column(db.Text, nullable=False)
     sender_id = db.Column(db.String(60), nullable=False)
+    department = db.Column(db.String(40), nullable=True, index=True)
     group_filter = db.Column(db.String(80))
     district_filter = db.Column(db.String(80))
     status = db.Column(db.String(20), default='draft', index=True)

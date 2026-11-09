@@ -43,6 +43,7 @@ class User(UserMixin, db.Model):
     org_id = db.Column(db.Integer, db.ForeignKey('organization.id'),
                        nullable=False, index=True)
     is_active_flag = db.Column('is_active', db.Boolean, default=True)
+    department = db.Column(db.String(40), nullable=True, index=True)
     last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
