@@ -19,6 +19,7 @@ from app.services import wallet as wallet_svc
 from app.services.entitlements import check_can_send, EntitlementError
 from app.services.renderer import render, segments
 from app.services.audit import log as audit
+from app.permissions import department_filter
 
 
 LOCAL_FMT = '%Y-%m-%dT%H:%M'
@@ -356,3 +357,32 @@ def _run_name(schedule, fired_iso=None):
         except ValueError:
             pass
     return f'{schedule.name} — {_local_now().strftime("%d %b %H:%M")}'
+
+def list_for_org(org, user=None, limit=100):
+    """List schedules for an org, filtered by the user's department.
+
+    Mirrors app.services.campaigns.list_for_org.
+    """
+    query = CampaignSchedule.query.filter_by(org_id=org.id)
+    if user is not None:
+        query = department_filter(query, CampaignSchedule, user)
+    return (query
+            .order_by(CampaignSchedule.id.desc())
+            .limit(limit).all())
+
+
+def get_for_user(org, sid, user):
+    """Fetch a single schedule by id, returning None if not visible.
+
+    Returns None when:
+      - no schedule with this id in this org
+      - user.department is set and schedule.department is a different dept
+    """
+    schedule = CampaignSchedule.query.filter_by(
+        org_id=org.id, id=sid).first()
+    if schedule is None:
+        return None
+    if user is not None and getattr(user, 'department', None) is not None:
+        if schedule.department not in (user.department, None):
+            return None
+    return schedule

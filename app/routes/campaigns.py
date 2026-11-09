@@ -1,5 +1,5 @@
 from flask import (Blueprint, render_template, request, redirect, url_for,
-                   flash, jsonify)
+                   flash, jsonify, abort)
 from flask_login import login_required, current_user
 
 from app.models import Campaign, MessageLog
@@ -288,10 +288,7 @@ def personalized_preview():
 @login_required
 def schedules():
     org = _org()
-    rows = (CampaignSchedule.query
-            .filter_by(org_id=org.id)
-            .order_by(CampaignSchedule.id.desc())
-            .limit(100).all())
+    rows = schedules_svc.list_for_org(org, user=current_user)
     return render_template('campaigns/schedules.html', schedules=rows)
 
 
@@ -299,8 +296,9 @@ def schedules():
 @login_required
 def schedule_detail(sid):
     org = _org()
-    schedule = CampaignSchedule.query.filter_by(
-        id=sid, org_id=org.id).first_or_404()
+    schedule = schedules_svc.get_for_user(org, sid, current_user)
+    if schedule is None:
+        abort(404)
     runs = schedule.runs.limit(50).all()
     return render_template('campaigns/schedule_detail.html',
                            schedule=schedule, runs=runs)
@@ -309,8 +307,9 @@ def schedule_detail(sid):
 @campaigns_bp.route('/schedules/<int:sid>/pause', methods=['POST'])
 @login_required
 def schedule_pause(sid):
-    schedule = CampaignSchedule.query.filter_by(
-        id=sid, org_id=_org().id).first_or_404()
+    schedule = schedules_svc.get_for_user(_org(), sid, current_user)
+    if schedule is None:
+        abort(404)
     schedules_svc.pause_schedule(schedule, actor_id=current_user.id)
     flash('Schedule paused.', 'success')
     return redirect(url_for('campaigns.schedule_detail', sid=sid))
@@ -319,8 +318,9 @@ def schedule_pause(sid):
 @campaigns_bp.route('/schedules/<int:sid>/resume', methods=['POST'])
 @login_required
 def schedule_resume(sid):
-    schedule = CampaignSchedule.query.filter_by(
-        id=sid, org_id=_org().id).first_or_404()
+    schedule = schedules_svc.get_for_user(_org(), sid, current_user)
+    if schedule is None:
+        abort(404)
     schedules_svc.resume_schedule(schedule, actor_id=current_user.id)
     flash('Schedule resumed.', 'success')
     return redirect(url_for('campaigns.schedule_detail', sid=sid))
@@ -329,8 +329,9 @@ def schedule_resume(sid):
 @campaigns_bp.route('/schedules/<int:sid>/cancel', methods=['POST'])
 @login_required
 def schedule_cancel(sid):
-    schedule = CampaignSchedule.query.filter_by(
-        id=sid, org_id=_org().id).first_or_404()
+    schedule = schedules_svc.get_for_user(_org(), sid, current_user)
+    if schedule is None:
+        abort(404)
     schedules_svc.cancel_schedule(schedule, actor_id=current_user.id)
     flash('Schedule cancelled.', 'success')
     return redirect(url_for('campaigns.schedules'))
