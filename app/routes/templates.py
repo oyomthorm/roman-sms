@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 
 from app.models import MessageTemplate
@@ -15,7 +15,7 @@ def _org():
 @templates_bp.route('/')
 @login_required
 def index():
-    items = svc.list_templates(_org())
+    items = svc.list_templates(_org(), user=current_user)
     return render_template('templates/list.html', templates=items)
 
 
@@ -28,6 +28,7 @@ def new():
                 _org(),
                 name=request.form.get('name', ''),
                 body=request.form.get('body', ''),
+                department=current_user.department,
             )
         except svc.TemplateError as e:
             flash(str(e), 'danger')
@@ -40,13 +41,16 @@ def new():
 @templates_bp.route('/<int:tid>/edit', methods=['GET', 'POST'])
 @login_required
 def edit(tid):
-    t = org_scoped(MessageTemplate).filter_by(id=tid).first_or_404()
+    t = svc.get_for_user(_org(), tid, current_user)
+    if t is None:
+        abort(404)
     if request.method == 'POST':
         try:
             svc.update_template(
                 _org(), tid,
                 name=request.form.get('name', ''),
                 body=request.form.get('body', ''),
+                user=current_user,
             )
         except svc.TemplateError as e:
             flash(str(e), 'danger')
@@ -59,8 +63,11 @@ def edit(tid):
 @templates_bp.route('/<int:tid>/delete', methods=['POST'])
 @login_required
 def delete(tid):
+    t = svc.get_for_user(_org(), tid, current_user)
+    if t is None:
+        abort(404)
     try:
-        svc.delete_template(_org(), tid)
+        svc.delete_template(_org(), tid, user=current_user)
         flash('Template deleted.', 'success')
     except svc.TemplateError as e:
         flash(str(e), 'danger')

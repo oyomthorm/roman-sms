@@ -18,20 +18,26 @@ def create_template(org, *, name, body, department=None):
     return t
 
 
-def update_template(org, tid, *, name, body):
+def update_template(org, tid, *, name, body, user=None):
     t = MessageTemplate.query.filter_by(id=tid, org_id=org.id).first()
     if not t:
         raise TemplateError('Template not found.')
+    if user is not None and getattr(user, 'department', None) is not None:
+        if t.department not in (user.department, None):
+            raise TemplateError('Template not found.')
     t.name = name.strip()
     t.body = body.strip()
     db.session.commit()
     return t
 
 
-def delete_template(org, tid):
+def delete_template(org, tid, *, user=None):
     t = MessageTemplate.query.filter_by(id=tid, org_id=org.id).first()
     if not t:
         raise TemplateError('Template not found.')
+    if user is not None and getattr(user, 'department', None) is not None:
+        if t.department not in (user.department, None):
+            raise TemplateError('Template not found.')
     db.session.delete(t)
     db.session.commit()
     audit('template_delete', t.name)
@@ -47,3 +53,18 @@ def list_templates(org, user=None):
     query = MessageTemplate.query.filter_by(org_id=org.id)
     query = department_filter(query, MessageTemplate, user)
     return query.order_by(MessageTemplate.id.desc()).all()
+
+def get_for_user(org, tid, user):
+    """Fetch a single template by id, returning None if not visible.
+
+    Returns None when:
+      - no template with this id in this org
+      - user.department is set and template.department is a different dept
+    """
+    t = MessageTemplate.query.filter_by(id=tid, org_id=org.id).first()
+    if t is None:
+        return None
+    if user is not None and getattr(user, 'department', None) is not None:
+        if t.department not in (user.department, None):
+            return None
+    return t
