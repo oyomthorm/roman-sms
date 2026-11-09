@@ -24,8 +24,7 @@ def _org():
 @campaigns_bp.route('/')
 @login_required
 def index():
-    campaigns = (org_scoped(Campaign)
-                 .order_by(Campaign.id.desc()).limit(100).all())
+    campaigns = svc.list_for_org(_org(), user=current_user)
     return render_template('campaigns/list.html', campaigns=campaigns)
 
 
@@ -44,8 +43,8 @@ def personalized_new():
     handler handles the submit.
     """
     org = _org()
-    templates = templates_svc.list_templates(org)
-    groups = groups_svc.list_groups(org)
+    templates = templates_svc.list_templates(org, user=current_user)
+    groups = groups_svc.list_groups(org, user=current_user)
     districts_by_region = geo_svc.list_by_region()
     return render_template(
         'campaigns/new.html',
@@ -61,8 +60,8 @@ def personalized_new():
 @login_required
 def new():
     org = _org()
-    templates = templates_svc.list_templates(org)
-    groups = groups_svc.list_groups(org)
+    templates = templates_svc.list_templates(org, user=current_user)
+    groups = groups_svc.list_groups(org, user=current_user)
     districts_by_region = geo_svc.list_by_region()
 
     if request.method == 'POST':
@@ -172,6 +171,7 @@ def new():
                     district_id=district_id,
                     template_id=int(template_id) if template_id else None,
                     created_by=current_user.id,
+                    user=current_user,
                 )
             except schedules_svc.ScheduleError as e:
                 flash(str(e), 'danger')
@@ -209,6 +209,7 @@ def new():
                 personalized_rows=personalized_rows,
                 template_id=int(template_id) if template_id else None,
                 created_by=current_user.id,
+                user=current_user,
             )
         except svc.CampaignError as e:
             flash(str(e), 'danger')
@@ -229,7 +230,9 @@ def new():
 @campaigns_bp.route('/<int:cid>')
 @login_required
 def detail(cid):
-    campaign = org_scoped(Campaign).filter_by(id=cid).first_or_404()
+    campaign = svc.get_for_user(_org(), cid, current_user)
+    if campaign is None:
+        abort(404)
     logs = (MessageLog.query.filter_by(campaign_id=campaign.id)
             .order_by(MessageLog.id.desc()).limit(200).all())
     breakdown = svc.delivery_breakdown(campaign.id)
@@ -241,7 +244,9 @@ def detail(cid):
 @campaigns_bp.route('/<int:cid>/cancel', methods=['POST'])
 @login_required
 def cancel(cid):
-    campaign = org_scoped(Campaign).filter_by(id=cid).first_or_404()
+    campaign = svc.get_for_user(_org(), cid, current_user)
+    if campaign is None:
+        abort(404)
     if svc.cancel_campaign(campaign, actor_id=current_user.id):
         flash('Campaign cancelled.', 'success')
     else:

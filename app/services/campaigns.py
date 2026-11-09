@@ -225,3 +225,18 @@ def delivery_breakdown(campaign_id):
             .group_by(MessageLog.status)
             .all())
     return {status: count for status, count in rows}
+
+def get_for_user(org, cid, user):
+    """Fetch a single campaign by id, returning None if not visible.
+
+    Returns None when:
+      - no campaign with this id in this org
+      - user.department is set and campaign.department is a different dept
+    """
+    campaign = Campaign.query.filter_by(id=cid, org_id=org.id).first()
+    if campaign is None:
+        return None
+    if user is not None and getattr(user, 'department', None) is not None:
+        if campaign.department not in (user.department, None):
+            return None
+    return campaign
