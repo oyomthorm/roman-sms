@@ -57,6 +57,9 @@ class CampaignSchedule(db.Model):
     next_run_at = db.Column(db.DateTime, index=True)
     last_run_at = db.Column(db.DateTime)
     runs_completed = db.Column(db.Integer, default=0)
+    # #44: credits reserved at schedule creation. NULL means legacy schedule
+    # (created before #44); those continue to debit at fire time.
+    credits_reserved = db.Column(db.Integer, nullable=True)
     runs_skipped = db.Column(db.Integer, default=0)
     total_sent = db.Column(db.Integer, default=0)
     total_failed = db.Column(db.Integer, default=0)
