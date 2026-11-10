@@ -101,9 +101,9 @@ class GroupsScreen extends ConsumerWidget {
                         return Column(
                           children: [
                             ListTile(
-                              leading: CircleAvatar(
+                              leading: const CircleAvatar(
                                 backgroundColor: RomanSmsTheme.lightGreen,
-                                child: Icon(Icons.group,
+                                child: const Icon(Icons.group,
                                     color: RomanSmsTheme.primaryGreen),
                               ),
                               title: Text(

@@ -33,7 +33,7 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 24,
                           backgroundColor: RomanSmsTheme.lightGreen,
                           child: const Icon(Icons.person, color: RomanSmsTheme.primaryGreen, size: 30),

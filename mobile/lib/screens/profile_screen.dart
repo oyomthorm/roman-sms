@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +32,7 @@ class ProfileScreen extends ConsumerWidget {
           Center(
             child: Column(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 40,
                   backgroundColor: RomanSmsTheme.lightGreen,
                   child: const Icon(Icons.business,
