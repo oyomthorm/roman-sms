@@ -19,13 +19,17 @@ import 'screens/chat_detail_screen.dart';
 import 'widgets/app_shell.dart';
 import 'state/auth_provider.dart';
 
+final _authStatusProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider.select((s) => s.isAuthenticated));
+});
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final isLoggedIn = ref.watch(_authStatusProvider);
 
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final isLoggedIn = authState.isAuthenticated;
+      // isLoggedIn captured from outer scope
       final path = state.uri.path;
       // Public (unauthenticated) routes
       final isPublic =

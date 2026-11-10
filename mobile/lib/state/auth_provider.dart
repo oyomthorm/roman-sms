@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/client.dart';
@@ -80,13 +80,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       String errMsg = "Unknown error";
       if (e is DioException) {
         if (e.type == DioExceptionType.connectionTimeout) {
-          errMsg = "Connection Timeout. The phone cannot reach the laptop.";
+          errMsg = "Connection timed out. Please check your internet connection and try again.";
         } else if (e.type == DioExceptionType.connectionError) {
-          errMsg = "Connection Refused. Windows Firewall is blocking the port.";
+          errMsg = "Cannot reach the server. Please check your internet connection and try again.";
+        } else if (e.response != null && e.response?.statusCode == 401) {
+          errMsg = "Invalid email or password.";
         } else if (e.response != null) {
-          errMsg = "Server returned error ${e.response?.statusCode}";
+          errMsg = "Server error (${e.response?.statusCode}). Please try again later.";
         } else {
-          errMsg = e.message ?? "Network error";
+          errMsg = "Something went wrong. Please try again.";
         }
       }
       state = state.copyWith(isLoading: false, error: errMsg);
