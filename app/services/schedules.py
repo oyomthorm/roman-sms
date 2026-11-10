@@ -121,6 +121,34 @@ def create_schedule(org, *, name, body, times,
 
     scheduled_times = _validate_times(times)
 
+    # #44: estimate recipients now and pre-reserve credits for all runs.
+    # The school pays upfront; the reservation guarantees funds for every
+    # fire, even if they spend the rest of their balance between now and then.
+    estimate_contacts = _resolve_recipients(org.id, group_id, district_id)
+    if not estimate_contacts:
+        raise ScheduleError(
+            'No eligible recipients for this group/district. '
+            'Cannot create a schedule with zero recipients.')
+    estimate_segments_per_run = sum(
+        segments(render(org, body, c)) for c in estimate_contacts)
+    total_reservation = estimate_segments_per_run * len(scheduled_times)
+
+    try:
+        check_can_send(org, total_reservation)
+    except EntitlementError as e:
+        raise ScheduleError(str(e))
+
+    try:
+        wallet_svc.debit(
+            org.id, total_reservation,
+            reason='schedule_reserve',
+            note=(f'Schedule "{name}" - {len(estimate_contacts)} '
+                  f'recipients x {len(scheduled_times)} run(s)'),
+            actor_id=created_by,
+        )
+    except wallet_svc.InsufficientCredits as e:
+        raise ScheduleError(str(e))
+
     schedule = CampaignSchedule(
         org_id=org.id,
         created_by=created_by,
@@ -133,6 +161,7 @@ def create_schedule(org, *, name, body, times,
         sender_id=org.brand_name,
         scheduled_times=json.dumps(scheduled_times),
         status='active',
+        credits_reserved=total_reservation,
     )
     schedule.next_run_at = _next_run_at(scheduled_times)
     db.session.add(schedule)
@@ -176,6 +205,20 @@ def resume_schedule(schedule, *, actor_id=None):
 def cancel_schedule(schedule, *, actor_id=None):
     if schedule.status in ('cancelled', 'completed'):
         return False
+
+    # #44: refund any remaining reservation. Legacy schedules
+    # (credits_reserved IS NULL) never held a reservation; skip.
+    if schedule.credits_reserved and schedule.credits_reserved > 0:
+        wallet_svc.credit(
+            schedule.org_id, schedule.credits_reserved,
+            reason='schedule_cancel_refund',
+            reference=f'schedule:{schedule.id}',
+            note=f'Schedule cancelled with {schedule.credits_reserved} '
+                 f'credits still reserved',
+            actor_id=actor_id,
+        )
+        schedule.credits_reserved = 0
+
     schedule.status = 'cancelled'
     db.session.commit()
     audit('schedule_cancel', f'id={schedule.id}',
@@ -239,6 +282,17 @@ def claim_due_schedule():
         row.next_run_at = _next_run_at(times)
         if not times:  # no scheduled_times at all -> truly orphaned
             row.status = 'completed'
+            # #44: refund any remaining reservation on orphan-complete.
+            if row.credits_reserved and row.credits_reserved > 0:
+                wallet_svc.credit(
+                    row.org_id, row.credits_reserved,
+                    reason='schedule_complete_refund',
+                    reference=f'schedule:{row.id}',
+                    note=f'Schedule completed with {row.credits_reserved} '
+                         f'credits still reserved',
+                    actor_id=None,
+                )
+                row.credits_reserved = 0
         db.session.commit()
         return None
 
@@ -275,7 +329,7 @@ def materialize_run(schedule_id, fired_iso=None):
         pause_schedule(schedule, reason='Organization suspended')
         return
 
-    contacts = _resolve_recipients(org.id, schedule)
+    contacts = _resolve_recipients(org.id, schedule.group_id, schedule.district_id)
     if not contacts:
         schedule.runs_skipped = (schedule.runs_skipped or 0) + 1
         db.session.commit()
@@ -284,11 +338,45 @@ def materialize_run(schedule_id, fired_iso=None):
     rendered = [(c, render(org, schedule.body, c)) for c in contacts]
     total_segments = sum(segments(m) for _, m in rendered)
 
-    try:
-        check_can_send(org, total_segments)
-    except EntitlementError as e:
-        pause_schedule(schedule, reason=str(e)[:255])
-        return
+    # #44: two paths. Legacy (credits_reserved IS NULL): debit at fire.
+    # New (#44): credits already reserved at creation; check against
+    # reservation, do not debit.
+    is_legacy = schedule.credits_reserved is None
+
+    if not is_legacy:
+        # #44 path: check actual against remaining reservation.
+        if total_segments > schedule.credits_reserved:
+            # Contacts grew beyond what the school reserved. Skip this
+            # run, refund the full remaining reservation, pause, warn.
+            refund_amount = schedule.credits_reserved
+            wallet_svc.credit(
+                org.id, refund_amount,
+                reason='schedule_overage_refund',
+                reference=f'schedule:{schedule.id}',
+                note=(f'Run skipped: {total_segments} recipients '
+                      f'exceeds {refund_amount} reserved'),
+                actor_id=schedule.created_by,
+            )
+            schedule.credits_reserved = 0
+            schedule.runs_skipped = (schedule.runs_skipped or 0) + 1
+            schedule.status = 'paused'
+            schedule.pause_reason = (
+                f'Recipients grew to {total_segments}, but only '
+                f'{refund_amount} credits were reserved. '
+                f'Re-create the schedule with current contacts.')[:255]
+            db.session.commit()
+            audit('schedule_overage',
+                  f'schedule={schedule.id} actual={total_segments} '
+                  f'reserved={refund_amount}',
+                  org_id=org.id, actor_id=schedule.created_by)
+            return
+    else:
+        # Legacy path: original behavior.
+        try:
+            check_can_send(org, total_segments)
+        except EntitlementError as e:
+            pause_schedule(schedule, reason=str(e)[:255])
+            return
 
     campaign = Campaign(
         org_id=org.id,
@@ -307,18 +395,26 @@ def materialize_run(schedule_id, fired_iso=None):
     db.session.add(campaign)
     db.session.flush()
 
-    try:
-        wallet_svc.debit(
-            org.id, total_segments, reason='sms_send',
-            reference=f'campaign:{campaign.id}',
-            note=f'Scheduled run (schedule {schedule.id})',
-            actor_id=schedule.created_by,
-        )
+    if is_legacy:
+        # Legacy path: debit at fire time.
+        try:
+            wallet_svc.debit(
+                org.id, total_segments, reason='sms_send',
+                reference=f'campaign:{campaign.id}',
+                note=f'Scheduled run (schedule {schedule.id})',
+                actor_id=schedule.created_by,
+            )
+            campaign.credits_debited = total_segments
+        except wallet_svc.InsufficientCredits as e:
+            db.session.rollback()
+            pause_schedule(schedule, reason=str(e)[:255])
+            return
+    else:
+        # #44 path: credits already reserved. Just record the actual
+        # on the campaign and decrement the reservation.
         campaign.credits_debited = total_segments
-    except wallet_svc.InsufficientCredits as e:
-        db.session.rollback()
-        pause_schedule(schedule, reason=str(e)[:255])
-        return
+        schedule.credits_reserved = max(
+            0, (schedule.credits_reserved or 0) - total_segments)
 
     for contact, msg in rendered:
         db.session.add(MessageLog(
@@ -335,12 +431,21 @@ def materialize_run(schedule_id, fired_iso=None):
     schedule.runs_completed = (schedule.runs_completed or 0) + 1
     schedule.total_sent = (schedule.total_sent or 0) + len(contacts)
     # Fix #49: mark completed only when no scheduled times remain.
-    # Do NOT use `if not schedule.next_run_at` -- next_run_at is None
-    # whenever all remaining times are in the past, even if some are
-    # still due to fire. times_list is the authoritative "are there any
-    # runs left" check.
     if not schedule.times_list:
         schedule.status = 'completed'
+        # #44: refund any reservation left over (e.g. contacts shrank).
+        if (not is_legacy) and schedule.credits_reserved \
+                and schedule.credits_reserved > 0:
+            leftover = schedule.credits_reserved
+            wallet_svc.credit(
+                org.id, leftover,
+                reason='schedule_complete_refund',
+                reference=f'schedule:{schedule.id}',
+                note=(f'Schedule completed; {leftover} credits '
+                      f'still reserved after final run'),
+                actor_id=schedule.created_by,
+            )
+            schedule.credits_reserved = 0
 
     db.session.commit()
 
@@ -350,13 +455,17 @@ def materialize_run(schedule_id, fired_iso=None):
           org_id=org.id, actor_id=schedule.created_by)
 
 
-def _resolve_recipients(org_id, schedule):
-    """Current contacts matching the schedule's filters, minus opt-outs."""
+def _resolve_recipients(org_id, group_id=None, district_id=None):
+    """Current contacts matching the filters, minus opt-outs.
+
+    Takes group_id/district_id directly (not a schedule object) so
+    create_schedule can estimate recipients before the schedule exists.
+    """
     q = Contact.query.filter_by(org_id=org_id, opted_out=False)
-    if schedule.group_id:
-        q = q.filter_by(group_id=schedule.group_id)
-    if schedule.district_id:
-        q = q.filter_by(district_id=schedule.district_id)
+    if group_id:
+        q = q.filter_by(group_id=group_id)
+    if district_id:
+        q = q.filter_by(district_id=district_id)
     contacts = q.all()
     blocked = {r[0] for r in db.session.query(OptOut.phone).all()}
     return [c for c in contacts if c.phone not in blocked]
