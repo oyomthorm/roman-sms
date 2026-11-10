@@ -27,6 +27,7 @@
         <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Role</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Department</th>
+        <th class="px-5 py-3 font-semibold text-slate-700" data-a6-status>Status</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Last login</th>
         <th class="px-5 py-3"></th>
       </tr>
@@ -49,11 +50,47 @@
           {% elif u.department == 'dean' %}Dean
           {% elif u.department == 'ht' %}Head Teacher
           {% else %}<span class="text-slate-400">Shared</span>{% endif %}
+        </td>        <td class="px-5 py-3" data-a6-status>
+          {% if u.status == 'active' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">active</span>
+          {% elif u.status == 'suspended' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">suspended</span>
+          {% elif u.status == 'terminated' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-800">terminated</span>
+          {% else %}
+            <span class="text-xs text-slate-600">{{ u.status }}</span>
+          {% endif %}
         </td>
         <td class="px-5 py-3 text-slate-500 text-xs">
           {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else '—' }}
         </td>
         <td class="px-5 py-3 text-right whitespace-nowrap">
+          {% if u.id != current_user.id %}
+            {% if u.status == 'active' %}
+            <form method="post"
+                  action="{{ url_for('school.user_suspend', uid=u.id) }}"
+                  class="inline"
+                  onsubmit="return confirm('Suspend {{ u.email }}? They will not be able to send.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="text-amber-700 hover:underline text-xs mr-3">Suspend</button>
+            </form>
+            <form method="post"
+                  action="{{ url_for('school.user_terminate', uid=u.id) }}"
+                  class="inline"
+                  onsubmit="return confirm('Terminate {{ u.email }}? They will not be able to log in.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="text-red-600 hover:underline text-xs mr-3">Terminate</button>
+            </form>
+            {% else %}
+            <form method="post"
+                  action="{{ url_for('school.user_reactivate', uid=u.id) }}"
+                  class="inline"
+                  onsubmit="return confirm('Reactivate {{ u.email }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="text-emerald-700 hover:underline text-xs mr-3">Reactivate</button>
+            </form>
+            {% endif %}
+          {% endif %}
           <a href="{{ url_for('school.user_edit', uid=u.id) }}"
              class="text-emerald-700 hover:underline text-xs mr-3">Edit</a>
           <form method="post"
@@ -77,7 +114,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="6" class="p-6 text-center text-slate-500">
+        <td colspan="7" class="p-6 text-center text-slate-500">
           No users yet. Add one to get started.
         </td>
       </tr>

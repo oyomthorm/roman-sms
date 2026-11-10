@@ -65,6 +65,16 @@ def new():
     districts_by_region = geo_svc.list_by_region()
 
     if request.method == 'POST':
+        # #46: suspended users cannot initiate new sends (send-now or schedule).
+        if getattr(current_user, 'status', 'active') != 'active':
+            flash('Your account is suspended. '
+                  'Contact your school admin.', 'danger')
+            return render_template(
+                'campaigns/new.html',
+                templates=templates, groups=groups,
+                districts_by_region=districts_by_region,
+                balance=get_balance(org.id))
+
         mode = request.form.get('mode', 'now')   # 'now' or 'schedule'
         recipient_source = (request.form.get('recipient_source')
                             or 'group').strip()

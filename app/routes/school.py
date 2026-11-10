@@ -115,3 +115,40 @@ def user_reset_password(uid):
     except orgs_svc.OrgError as e:
         flash(str(e), 'danger')
     return redirect(url_for('school.users'))
+@school_bp.route('/users/<int:uid>/suspend', methods=['POST'])
+@login_required
+@school_admin_required
+def user_suspend(uid):
+    org = current_user.organization
+    try:
+        orgs_svc.suspend_user(org, uid, actor_id=current_user.id)
+        flash('User suspended.', 'success')
+    except orgs_svc.OrgError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('school.users'))
+
+
+@school_bp.route('/users/<int:uid>/terminate', methods=['POST'])
+@login_required
+@school_admin_required
+def user_terminate(uid):
+    org = current_user.organization
+    try:
+        orgs_svc.terminate_user(org, uid, actor_id=current_user.id)
+        flash('User terminated.', 'success')
+    except orgs_svc.OrgError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('school.users'))
+
+
+@school_bp.route('/users/<int:uid>/reactivate', methods=['POST'])
+@login_required
+@school_admin_required
+def user_reactivate(uid):
+    org = current_user.organization
+    try:
+        orgs_svc.reactivate_user(org, uid, actor_id=current_user.id)
+        flash('User reactivated.', 'success')
+    except orgs_svc.OrgError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('school.users'))
