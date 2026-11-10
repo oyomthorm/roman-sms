@@ -199,19 +199,25 @@ def claim_due_schedule():
     now_utc = datetime.utcnow()
     now_local = _local_now()
 
+    # Fix #49: also select rows with next_run_at IS NULL, so an orphaned
+    # active schedule (crashed between claim and materialize) can self-heal.
+    _due_filter = db.or_(
+        CampaignSchedule.next_run_at <= now_utc,
+        CampaignSchedule.next_run_at.is_(None),
+    )
     try:
         row = (CampaignSchedule.query
                .filter(CampaignSchedule.status == 'active')
-               .filter(CampaignSchedule.next_run_at <= now_utc)
-               .order_by(CampaignSchedule.next_run_at.asc())
+               .filter(_due_filter)
+               .order_by(CampaignSchedule.next_run_at.asc().nullsfirst())
                .with_for_update(skip_locked=True)
                .first())
     except Exception:
         db.session.rollback()
         row = (CampaignSchedule.query
                .filter(CampaignSchedule.status == 'active')
-               .filter(CampaignSchedule.next_run_at <= now_utc)
-               .order_by(CampaignSchedule.next_run_at.asc())
+               .filter(_due_filter)
+               .order_by(CampaignSchedule.next_run_at.asc().nullsfirst())
                .first())
 
     if not row:
@@ -231,7 +237,7 @@ def claim_due_schedule():
     if due is None:
         # next_run_at was stale; recompute and move on.
         row.next_run_at = _next_run_at(times)
-        if not row.next_run_at:
+        if not times:  # no scheduled_times at all -> truly orphaned
             row.status = 'completed'
         db.session.commit()
         return None
@@ -239,8 +245,9 @@ def claim_due_schedule():
     row.scheduled_times = json.dumps(remaining)
     row.last_run_at = now_utc
     row.next_run_at = _next_run_at(remaining)
-    if not row.next_run_at:
-        row.status = 'completed'
+    # Fix #49: do NOT set status='completed' here. If this is the last
+    # run, materialize_run() will set it after firing. Setting it here
+    # makes materialize_run's status check ('active' only) skip the run.
     db.session.commit()
 
     return row.id, due
@@ -327,6 +334,13 @@ def materialize_run(schedule_id, fired_iso=None):
 
     schedule.runs_completed = (schedule.runs_completed or 0) + 1
     schedule.total_sent = (schedule.total_sent or 0) + len(contacts)
+    # Fix #49: mark completed only when no scheduled times remain.
+    # Do NOT use `if not schedule.next_run_at` -- next_run_at is None
+    # whenever all remaining times are in the past, even if some are
+    # still due to fire. times_list is the authoritative "are there any
+    # runs left" check.
+    if not schedule.times_list:
+        schedule.status = 'completed'
 
     db.session.commit()
 
