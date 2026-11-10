@@ -43,6 +43,14 @@ class User(UserMixin, db.Model):
     org_id = db.Column(db.Integer, db.ForeignKey('organization.id'),
                        nullable=False, index=True)
     is_active_flag = db.Column('is_active', db.Boolean, default=True)
+    # #46: lifecycle status. 'active' | 'suspended' | 'terminated'.
+    # Kept in sync with is_active_flag by suspend/terminate/reactivate:
+    #   active      -> is_active_flag=True  (login allowed, send allowed)
+    #   suspended   -> is_active_flag=True  (login allowed, send blocked at route)
+    #   terminated  -> is_active_flag=False (login blocked)
+    status = db.Column(db.String(20), nullable=False, default='active',
+                       server_default='active', index=True)
+    status_changed_at = db.Column(db.DateTime, nullable=True)
     department = db.Column(db.String(40), nullable=True, index=True)
     last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
