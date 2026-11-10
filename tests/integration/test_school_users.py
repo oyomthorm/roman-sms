@@ -140,3 +140,40 @@ def test_org_isolation_via_edit(client, app, db, associate_admin, second_admin):
     _login(client, associate_admin.email, 'assocpass')
     resp = client.get(f'/school/users/{other_user.id}/edit')
     assert resp.status_code == 404
+
+def test_nav_users_link_visible_for_admin_only(
+        client, app, db, associate_admin, master_admin):
+    """base.html shows the Users nav link only for org-level school admins.
+
+    Covers the {% if current_user.role == 'associate_admin'
+    and not current_user.department %} guard in base.html.
+    """
+    # School admin sees the Users link (on a page they can reach)
+    _login(client, associate_admin.email, 'assocpass')
+    resp = client.get('/school/users')
+    assert resp.status_code == 200
+    assert b'/school/users' in resp.data
+
+    # Master does not (on master's landing page)
+    client.get('/logout')
+    _login(client, master_admin.email, 'masterpass')
+    resp2 = client.get('/master/')
+    if resp2.status_code == 404:
+        resp2 = client.get('/')
+    assert resp2.status_code == 200
+    assert b'/school/users' not in resp2.data
+
+
+def test_nav_users_link_hidden_for_dept_user(
+        client, app, db, associate_admin):
+    """A department-scoped user (role=user, dept=bursar) also sees no Users link."""
+    bursar = User(email='navb@test.local', full_name='NB',
+                  role='user', org_id=associate_admin.org_id,
+                  department='bursar')
+    bursar.set_password('navpass123')
+    db.session.add(bursar)
+    db.session.commit()
+    _login(client, 'navb@test.local', 'navpass123')
+    resp = client.get('/profile/')
+    assert resp.status_code == 200
+    assert b'/school/users' not in resp.data
