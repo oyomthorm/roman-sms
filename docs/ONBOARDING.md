@@ -61,8 +61,7 @@ associates. After that a written guide is fine.
    (fee reminders, weekly promotions), the schedule option lets them
    define days of the week and times of day, plus a start and end
    date. They can pause, resume, or cancel a schedule from
-   Campaigns → Schedules. Credits are debited per run, not reserved
-   up front.
+   Campaigns → Schedules. Credits are **reserved upfront** when the schedule is created, and the reservation is shown on the schedule detail page. Editing the times, body, name, or recipient filters automatically adjusts the reservation (refund the old, debit the new; delta only if the estimate changed). Cancelling refunds the remaining reservation. If the recipient count grows past the reservation between scheduling and firing, the run is skipped, the reservation is refunded, and the schedule is paused with a clear reason — the school never unknowingly overspends.
 
 7. **Explain the wallet.** Wallet shows balance in UGX and SMS, plus
    invoices and every transaction. When they need more, they choose a
