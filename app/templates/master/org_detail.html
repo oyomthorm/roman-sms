@@ -15,6 +15,9 @@
       {% else %}
         <span class="text-red-600">{{ org.status }}</span>
       {% endif %}
+      {% if org.vertical %}
+        · <span data-a7-vertical class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{{ org.vertical }}</span>
+      {% endif %}
     </p>
     {% if org.contact_email or org.contact_phone %}
     <p class="text-xs text-slate-500 mt-1">

@@ -85,7 +85,7 @@ def _refuse_if_protected(org):
 def create_associate(*, name, slug, brand_name, admin_email,
                      admin_password, admin_full_name=None,
                      contact_email=None, contact_phone=None,
-                     district_id=None,
+                     district_id=None, vertical=None,
                      actor_id=None):
     """
     Create an associate org and its first associate_admin.
@@ -122,6 +122,7 @@ def create_associate(*, name, slug, brand_name, admin_email,
         contact_email=(contact_email or '').strip() or None,
         contact_phone=(contact_phone or '').strip() or None,
         district_id=district_id or None,
+        vertical=(vertical if vertical in ('school', 'business') else None),
     )
     db.session.add(org)
     db.session.flush()
@@ -143,7 +144,7 @@ def create_associate(*, name, slug, brand_name, admin_email,
 
 def update_associate(org, *, name=None, brand_name=None,
                      contact_email=None, contact_phone=None,
-                     district_id=None,
+                     district_id=None, vertical=None,
                      actor_id=None):
     _refuse_if_protected(org)
 
@@ -170,6 +171,15 @@ def update_associate(org, *, name=None, brand_name=None,
 
     if district_id is not None:
         org.district_id = district_id or None
+
+    if vertical is not None:
+        # Empty string -> None (unclassified). Only 'school'/'business' accepted.
+        if vertical == '':
+            org.vertical = None
+        elif vertical in ('school', 'business'):
+            org.vertical = vertical
+        else:
+            raise OrgError('Vertical must be "school", "business", or unset.')
 
     db.session.commit()
     audit('org_update', f'org={org.slug}', org_id=org.id, actor_id=actor_id)

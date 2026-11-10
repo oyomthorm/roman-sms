@@ -248,6 +248,7 @@ def org_edit(oid):
                 contact_email=request.form.get('contact_email', ''),
                 contact_phone=request.form.get('contact_phone', ''),
                 district_id=district_id,
+                vertical=(request.form.get('vertical') or ''),
                 actor_id=current_user.id,
             )
         except orgs_svc.OrgError as e:
@@ -1052,9 +1053,11 @@ def signup_approve(rid):
     except ValueError:
         credits = None
 
+    vertical = (request.form.get('vertical') or '').strip() or None
     try:
         org, user, granted = signup_svc.approve(
-            req, actor=current_user, starter_credits=credits)
+            req, actor=current_user, starter_credits=credits,
+            vertical=vertical)
     except wallet_svc.InsufficientCredits as e:
         flash(f'Master wallet has insufficient credits: {e}', 'danger')
         return redirect(url_for('master.signup_detail', rid=rid))

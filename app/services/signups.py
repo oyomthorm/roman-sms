@@ -192,7 +192,7 @@ def pending_count():
 # Master: approve / reject
 # ----------------------------------------------------------------------
 
-def approve(req, *, actor, starter_credits=None):
+def approve(req, *, actor, starter_credits=None, vertical=None):
     """
     Create the Organization, its first User, and a starter credit grant
     in one transaction.
@@ -233,6 +233,7 @@ def approve(req, *, actor, starter_credits=None):
         contact_email=req.contact_email,
         contact_phone=req.contact_phone,
         district_id=req.district_id,
+        vertical=(vertical if vertical in ('school', 'business') else None),
     )
     db.session.add(org)
     db.session.flush()
