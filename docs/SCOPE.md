@@ -28,6 +28,21 @@ Three lists. Every feature request goes into exactly one.
 - Chat: DM with master, broadcast channel
 - Notifications: computed from conditions, dismissible
 
+**Recently shipped (2026-11-10 to 2026-11-13)**
+- Department isolation: users scoped to a department see only their
+  department's records plus shared records. Org admins (department=None)
+  see everything.
+- School-admin user management: associate_admin creates, edits, suspends,
+  terminates, reactivates, and deletes users within their org via
+  /school/users. Master no longer creates school users.
+- User lifecycle: suspend (login OK, send blocked) / terminate (no login)
+  / reactivate. Scheduled fires are not blocked by the creator's status.
+- Organization vertical: school / business / NULL, master-only. For
+  onboarding copy and analytics; no permissions or filters.
+- Schedule pre-reservation: credits reserved at create, refunded on
+  cancel/overage/completion, adjusted on edit.
+- Schedules CRUD: edit a schedule's times/body/name/filters after creation.
+  Delete only if never fired.
 **Infrastructure**
 - Worker sends with rate limits per org (minute and day)
 - Failed sends refund automatically
