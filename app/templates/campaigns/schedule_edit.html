@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ schedule.name }} — Roman SMS{% endblock %}
+{% block page_header %}Edit schedule{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl">
+  <div class="mb-6">
+    <a href="{{ url_for('campaigns.schedule_detail', sid=schedule.id) }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">
+      ← Back to schedule
+    </a>
+  </div>
+
+  <form method="post" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# Name #}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
+      <input name="name" required maxlength="150"
+             value="{{ schedule.name }}"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+    </div>
+
+    {# Body #}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Message body</label>
+      <textarea name="body" rows="5" required
+                class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-mono
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">{{ schedule.body }}</textarea>
+      <p class="text-xs text-slate-500 mt-1.5">
+        Placeholders: <code>{{ '{{name}}' }}</code>, <code>{{ '{{phone}}' }}</code>.
+      </p>
+    </div>
+
+    {# Send times #}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Send times</label>
+      <p class="text-xs text-slate-500 mb-3">
+        All times must be strictly in the future. Adding or removing times
+        adjusts the reservation.
+      </p>
+      {% set current_times = schedule.times_list %}
+      {% set times_shown = current_times if current_times else [''] %}
+      {% for t in times_shown %}
+      <div class="flex items-center gap-2 mb-2">
+        <input name="scheduled_times" type="datetime-local"
+               value="{{ t }}"
+               required
+               class="flex-1 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+      </div>
+      {% endfor %}
+      <button type="button"
+              onclick="var d=document.querySelector('.times-template');var c=d.cloneNode(true);c.classList.remove('times-template');this.parentNode.insertBefore(c,this);"
+              class="text-sm text-emerald-700 hover:underline mt-2">+ Add another time</button>
+      <div class="times-template flex items-center gap-2 mb-2" style="display:none">
+        <input name="scheduled_times" type="datetime-local"
+               class="flex-1 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm">
+      </div>
+    </div>
+
+    {# Recipients #}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Group</label>
+        <select name="group_id"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <option value="">All contacts</option>
+          {% for g, count in groups %}
+          <option value="{{ g.id }}" {% if schedule.group_id == g.id %}selected{% endif %}>
+            {{ g.name }} ({{ count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">District</label>
+        <select name="district_id"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+          <option value="">All districts</option>
+          {% for region, districts in districts_by_region %}
+          <optgroup label="{{ region }}">
+            {% for d in districts %}
+            <option value="{{ d.id }}" {% if schedule.district_id == d.id %}selected{% endif %}>
+              {{ d.name }}
+            </option>
+            {% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    {# Submit #}
+    <div class="flex items-center gap-3">
+      <button class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        Save changes
+      </button>
+      <a href="{{ url_for('campaigns.schedule_detail', sid=schedule.id) }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

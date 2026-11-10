@@ -17,6 +17,14 @@
     </p>
   </div>
   <div class="flex gap-2 shrink-0">
+    {% if schedule.status not in ('cancelled', 'completed') %}
+    <a href="{{ url_for('campaigns.schedule_edit', sid=schedule.id) }}"
+       class="inline-flex items-center justify-center gap-2
+              border border-slate-300 hover:bg-slate-50
+              text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+      Edit
+    </a>
+    {% endif %}
     {% if schedule.status == 'active' %}
     <form method="post" action="{{ url_for('campaigns.schedule_pause', sid=schedule.id) }}"
           class="flex-1 sm:flex-none">
@@ -50,6 +58,18 @@
       </button>
     </form>
     {% endif %}
+    {% if schedule.status not in ('active',) and not schedule.runs_completed %}
+    <form method="post" action="{{ url_for('campaigns.schedule_delete', sid=schedule.id) }}"
+          onsubmit="return confirm('Delete this schedule? This cannot be undone.')"
+          class="flex-1 sm:flex-none">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="w-full sm:w-auto inline-flex items-center justify-center gap-2
+                     border border-red-300 text-red-700
+                     hover:bg-red-50 text-sm font-medium px-4 py-2 rounded-lg transition">
+        Delete
+      </button>
+    </form>
+    {% endif %}
   </div>
 </div>
 
@@ -75,7 +95,7 @@
 {% endif %}
 
 {# Stats row #}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
   <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
     <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Status</div>
     <div class="mt-2">
@@ -124,6 +144,14 @@
       {{ '{:,}'.format(schedule.total_sent or 0) }}
     </div>
     <div class="text-xs text-slate-500 mt-0.5">across all runs</div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
+    <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Credits held</div>
+    <div class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+      {% if schedule.credits_reserved %}{{ "{:,}".format(schedule.credits_reserved) }}{% else %}—{% endif %}
+    </div>
+    <div class="text-xs text-slate-500 mt-0.5">reserved for future runs</div>
+  </div>
   </div>
 </div>
 

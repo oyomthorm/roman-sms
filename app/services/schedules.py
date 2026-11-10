@@ -509,3 +509,119 @@ def get_for_user(org, sid, user):
         if schedule.department not in (user.department, None):
             return None
     return schedule
+
+# --------------------------------------------------------------------------
+# Edit / delete (#16)
+# --------------------------------------------------------------------------
+
+def update_schedule(org, schedule, *, name, body, times,
+                    group_id=None, district_id=None, actor_id=None):
+    """Edit a schedule's definition.
+
+    Refunds the old reservation, re-estimates, and debits the new one.
+    Net wallet change = new_reservation - old_reservation (delta only
+    when the estimate changed).
+
+    Rejects edit if status is cancelled or completed (no runs left).
+    """
+    if schedule.status in ('cancelled', 'completed'):
+        raise ScheduleError(
+            f'Cannot edit a {schedule.status} schedule.')
+
+    name = (name or '').strip()
+    body = (body or '').strip()
+    if not name:
+        raise ScheduleError('Campaign name is required.')
+    if not body:
+        raise ScheduleError('Message body is required.')
+    scheduled_times = _validate_times(times)
+
+    estimate_contacts = _resolve_recipients(org.id, group_id, district_id)
+    if not estimate_contacts:
+        raise ScheduleError(
+            'No eligible recipients for this group/district. '
+            'Cannot save a schedule with zero recipients.')
+    estimate_segments_per_run = sum(
+        segments(render(org, body, c)) for c in estimate_contacts)
+    new_reservation = estimate_segments_per_run * len(scheduled_times)
+    old_reservation = schedule.credits_reserved or 0
+
+    # Refund old (only if a reservation was actually held)
+    refunded = False
+    if old_reservation > 0:
+        wallet_svc.credit(
+            org.id, old_reservation,
+            reason='schedule_cancel_refund',
+            reference=f'schedule:{schedule.id}',
+            note=f'Schedule edit refund ({old_reservation} held)',
+            actor_id=actor_id,
+        )
+        refunded = True
+
+    # Debit new (raises if insufficient)
+    try:
+        wallet_svc.debit(
+            org.id, new_reservation,
+            reason='schedule_reserve',
+            reference=f'schedule:{schedule.id}',
+            note=f'Schedule edit reserve ({new_reservation})',
+            actor_id=actor_id,
+        )
+    except wallet_svc.InsufficientCredits as e:
+        # Reverse the refund so the wallet is unchanged on failure
+        if refunded:
+            wallet_svc.debit(
+                org.id, old_reservation,
+                reason='adjustment',
+                reference=f'schedule:{schedule.id}',
+                note='Reversal of edit refund (new reserve failed)',
+                actor_id=actor_id,
+            )
+        raise ScheduleError(str(e))
+
+    # Apply field updates
+    schedule.name = name
+    schedule.body = body
+    schedule.scheduled_times = json.dumps(scheduled_times)
+    schedule.group_id = group_id
+    schedule.district_id = district_id
+    schedule.credits_reserved = new_reservation
+    schedule.next_run_at = _next_run_at(scheduled_times)
+    db.session.commit()
+
+    audit('schedule_edit',
+          f'id={schedule.id} old_reserved={old_reservation} '
+          f'new_reserved={new_reservation}',
+          org_id=org.id, actor_id=actor_id)
+    return schedule
+
+
+def delete_schedule(org, schedule, *, actor_id=None):
+    """Hard delete a schedule that has never fired and isn't active.
+
+    Active schedules must be cancelled first; fired schedules must be
+    cancelled to preserve run history. Refunds any remaining reservation.
+    """
+    if schedule.runs_completed and schedule.runs_completed > 0:
+        raise ScheduleError(
+            'Cannot delete a schedule that has already fired runs. '
+            'Cancel it instead.')
+    if schedule.status == 'active':
+        raise ScheduleError(
+            'Cannot delete an active schedule. Cancel it first.')
+
+    # Refund remaining reservation (paused/cancelled can hold)
+    if schedule.credits_reserved and schedule.credits_reserved > 0:
+        wallet_svc.credit(
+            org.id, schedule.credits_reserved,
+            reason='schedule_cancel_refund',
+            reference=f'schedule:{schedule.id}',
+            note=f'Schedule delete refund ({schedule.credits_reserved})',
+            actor_id=actor_id,
+        )
+
+    name = schedule.name
+    db.session.delete(schedule)
+    db.session.commit()
+    audit('schedule_delete', f'name={name}', org_id=org.id,
+          actor_id=actor_id)

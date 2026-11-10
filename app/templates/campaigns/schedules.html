@@ -85,6 +85,12 @@
           {{ s.runs_completed or 0 }}
         </td>
         <td class="px-5 py-3 text-right">
+          {% if s.status not in ('cancelled', 'completed') %}
+          <a href="{{ url_for('campaigns.schedule_edit', sid=s.id) }}"
+             class="text-sm font-medium text-emerald-700 hover:underline mr-3">
+            Edit
+          </a>
+          {% endif %}
           <a href="{{ url_for('campaigns.schedule_detail', sid=s.id) }}"
              class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
             Open →

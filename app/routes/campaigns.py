@@ -350,3 +350,61 @@ def schedule_cancel(sid):
     schedules_svc.cancel_schedule(schedule, actor_id=current_user.id)
     flash('Schedule cancelled.', 'success')
     return redirect(url_for('campaigns.schedules'))
+
+@campaigns_bp.route('/schedules/<int:sid>/edit', methods=['GET', 'POST'])
+@login_required
+def schedule_edit(sid):
+    org = _org()
+    schedule = schedules_svc.get_for_user(org, sid, current_user)
+    if schedule is None:
+        abort(404)
+    if schedule.status in ('cancelled', 'completed'):
+        flash(f'Cannot edit a {schedule.status} schedule.', 'danger')
+        return redirect(url_for('campaigns.schedule_detail', sid=sid))
+
+    if request.method == 'POST':
+        times = request.form.getlist('scheduled_times')
+        group_id_raw = request.form.get('group_id', '').strip()
+        district_id_raw = request.form.get('district_id', '').strip()
+        try:
+            schedules_svc.update_schedule(
+                org, schedule,
+                name=request.form.get('name', ''),
+                body=request.form.get('body', ''),
+                times=times,
+                group_id=(int(group_id_raw) if group_id_raw.isdigit()
+                          else None),
+                district_id=(int(district_id_raw) if district_id_raw.isdigit()
+                             else None),
+                actor_id=current_user.id,
+            )
+        except schedules_svc.ScheduleError as e:
+            flash(str(e), 'danger')
+        else:
+            flash('Schedule updated.', 'success')
+            return redirect(url_for('campaigns.schedule_detail', sid=sid))
+
+    groups = groups_svc.list_groups(org, user=current_user)
+    districts_by_region = geo_svc.list_by_region()
+    return render_template(
+        'campaigns/schedule_edit.html',
+        schedule=schedule, groups=groups,
+        districts_by_region=districts_by_region,
+        balance=get_balance(org.id))
+
+
+@campaigns_bp.route('/schedules/<int:sid>/delete', methods=['POST'])
+@login_required
+def schedule_delete(sid):
+    org = _org()
+    schedule = schedules_svc.get_for_user(org, sid, current_user)
+    if schedule is None:
+        abort(404)
+    try:
+        schedules_svc.delete_schedule(org, schedule,
+                                      actor_id=current_user.id)
+        flash('Schedule deleted.', 'success')
+        return redirect(url_for('campaigns.schedules'))
+    except schedules_svc.ScheduleError as e:
+        flash(str(e), 'danger')
+        return redirect(url_for('campaigns.schedule_detail', sid=sid))
