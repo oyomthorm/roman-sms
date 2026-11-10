@@ -32,6 +32,7 @@
         <div class="mt-0.5">
           {{ 'Administrator' if current_user.role == 'associate_admin' else 'User' }}
         </div>
+        <div class="mt-0.5 text-slate-500" id="profile-department">Department: {% if current_user.department == 'bursar' %}Bursar{% elif current_user.department == 'dos' %}Director of Studies{% elif current_user.department == 'dean' %}Dean{% elif current_user.department == 'ht' %}Head Teacher{% else %}Shared{% endif %}</div>
         {% endif %}
       </div>
 

@@ -235,6 +235,7 @@
         <th class="px-5 py-3 font-semibold text-slate-700">Email</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Role</th>
+        <th class="px-5 py-3 font-semibold text-slate-700" data-a4-department-col>Department</th>
         <th class="px-5 py-3 font-semibold text-slate-700">Last login</th>
         <th class="px-5 py-3"></th>
       </tr>
@@ -251,6 +252,7 @@
             <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">user</span>
           {% endif %}
         </td>
+        <td class="px-5 py-3 text-slate-700 text-xs">{% if u.department == "bursar" %}Bursar{% elif u.department == "dos" %}Director of Studies{% elif u.department == "dean" %}Dean{% elif u.department == "ht" %}Head Teacher{% else %}<span class="text-slate-400">Shared</span>{% endif %}</td>
         <td class="px-5 py-3 text-slate-500 text-xs">
           {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else '—' }}
         </td>

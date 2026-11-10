@@ -20,6 +20,24 @@
       The brand prefix is added automatically.
     </p>
   </div>
+  {# Read-only department context #}
+  <div>
+    <label class="block text-sm mb-1">Department <span class="text-slate-500">(read-only)</span></label>
+    <div class="rounded border bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      {% if current_user.department == 'bursar' %}Bursar
+      {% elif current_user.department == 'dos' %}Director of Studies
+      {% elif current_user.department == 'dean' %}Dean
+      {% elif current_user.department == 'ht' %}Head Teacher
+      {% else %}Shared (visible to all departments){% endif %}
+    </div>
+    <p class="text-xs text-slate-500 mt-1">
+      {% if current_user.department %}
+      This template is visible only to your department and to all-department users.
+      {% else %}
+      This template is visible to all departments in your school.
+      {% endif %}
+    </p>
+  </div>
   <button class="bg-slate-900 text-white px-6 py-2 rounded">Save</button>
   <a href="{{ url_for('templates.index') }}"
      class="text-slate-600 ml-2 text-sm">Cancel</a>
