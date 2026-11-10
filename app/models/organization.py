@@ -27,6 +27,10 @@ class Organization(db.Model):
         nullable=True, index=True)
 
     district = db.relationship('District')
+    # #45: business vertical. NULL = unclassified (default for new orgs).
+    # Values: 'school', 'business', or None. Master-only field.
+    # Affects: onboarding copy, analytics. NOT permissions or feature gates.
+    vertical = db.Column(db.String(20), nullable=True, index=True)
     
     @property
     def prefix(self):
