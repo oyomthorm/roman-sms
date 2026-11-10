@@ -46,8 +46,6 @@ Three lists. Every feature request goes into exactly one.
 
 - Automated payment gateway (Flutterwave / Pesapal / MTN MoMo API)
 - Registered sender IDs per associate (Phase 5; requires paying client)
-- Sub-users per associate (associate_admin can reset passwords but
-  cannot create additional users yet)
 - Dashboard export as PDF
 - Public API for associates
 - Two-factor auth
