@@ -152,3 +152,16 @@ def user_reactivate(uid):
     except orgs_svc.OrgError as e:
         flash(str(e), 'danger')
     return redirect(url_for('school.users'))
+
+@school_bp.route('/users/<int:uid>')
+@login_required
+@school_admin_required
+def user_detail(uid):
+    """Read-only activity summary for one user."""
+    org = current_user.organization
+    user = orgs_svc.get_user(org, uid)
+    if not user:
+        return render_template('errors/404.html'), 404
+    activity = orgs_svc.get_user_activity(org, uid)
+    return render_template('school/user_detail.html',
+                           org=org, user=user, activity=activity)

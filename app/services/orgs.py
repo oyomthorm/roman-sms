@@ -544,3 +544,47 @@ def reactivate_user(org, user_id, *, actor_id=None):
     audit('user_reactivate', f'org={org.slug} email={user.email}',
           org_id=org.id, actor_id=actor_id)
     return user
+
+# --------------------------------------------------------------------------
+# User detail helper (#47)
+# --------------------------------------------------------------------------
+
+def get_user(org, user_id):
+    """Fetch a single user in this org, or None."""
+    return User.query.filter_by(id=user_id, org_id=org.id).first()
+
+
+def get_user_activity(org, user_id):
+    """Aggregate activity for one user. Returns dict with counts + recent items."""
+    from datetime import datetime, timedelta
+    from app.models import Campaign, CampaignSchedule, AuditLog
+
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+    q_campaigns = Campaign.query.filter_by(org_id=org.id, created_by=user_id)
+    campaign_count = q_campaigns.count()
+    campaigns_30d = q_campaigns.filter(
+        Campaign.created_at > thirty_days_ago).count()
+
+    schedules_q = CampaignSchedule.query.filter_by(
+        org_id=org.id, created_by=user_id)
+    schedules_active = schedules_q.filter(
+        CampaignSchedule.status == 'active').count()
+
+    recent_campaigns = (
+        q_campaigns.order_by(Campaign.id.desc()).limit(10).all())
+    recent_schedules = (
+        schedules_q.order_by(CampaignSchedule.id.desc()).limit(10).all())
+    recent_audit = (
+        AuditLog.query
+        .filter_by(actor_id=user_id, org_id=org.id)
+        .order_by(AuditLog.id.desc()).limit(20).all())
+
+    return {
+        'campaign_count': campaign_count,
+        'campaigns_30d': campaigns_30d,
+        'schedules_active': schedules_active,
+        'recent_campaigns': recent_campaigns,
+        'recent_schedules': recent_schedules,
+        'recent_audit': recent_audit,
+    }
