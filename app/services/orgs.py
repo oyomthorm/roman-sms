@@ -11,6 +11,7 @@ Three org kinds:
   neither          — associates (paying clients)
 """
 import re
+from datetime import datetime
 from app.extensions import db
 from app.models import Organization, User, SendQueue
 from app.services.audit import log as audit
@@ -316,6 +317,8 @@ def create_user(org, *, email, full_name, password,
         role=role,
         org_id=org.id,
         department=department,
+        status='active',
+        is_active_flag=True,
     )
     user.set_password(password)
     db.session.add(user)
@@ -461,3 +464,73 @@ def delete_user(org, user_id, *, actor_id=None):
     audit('user_delete',
           f'org={org.slug} email={email}',
           org_id=org.id, actor_id=actor_id)
+
+# --------------------------------------------------------------------------
+# User lifecycle -- suspend/terminate/reactivate (#46)
+# --------------------------------------------------------------------------
+
+def suspend_user(org, user_id, *, actor_id=None):
+    """Set status='suspended'. Login stays allowed; sends are blocked at
+    routes/campaigns.py::new. Reactivate to restore send permission."""
+    _refuse_if_protected(org)
+    user = User.query.filter_by(id=user_id, org_id=org.id).first()
+    if not user:
+        raise OrgError('User not found in that organization.')
+    if user.id == actor_id:
+        raise OrgError('You cannot suspend yourself.')
+    if user.status == 'suspended':
+        raise OrgError('User is already suspended.')
+    if user.status == 'terminated':
+        raise OrgError('User is terminated. Reactivate them first.')
+    if user.role == 'associate_admin':
+        admin_count = User.query.filter_by(
+            org_id=org.id, role='associate_admin', status='active').count()
+        if admin_count <= 1:
+            raise OrgError('Cannot suspend the last active school admin.')
+    user.status = 'suspended'
+    user.status_changed_at = datetime.utcnow()
+    db.session.commit()
+    audit('user_suspend', f'org={org.slug} email={user.email}',
+          org_id=org.id, actor_id=actor_id)
+    return user
+
+
+def terminate_user(org, user_id, *, actor_id=None):
+    """Set status='terminated' AND is_active_flag=False (login blocked)."""
+    _refuse_if_protected(org)
+    user = User.query.filter_by(id=user_id, org_id=org.id).first()
+    if not user:
+        raise OrgError('User not found in that organization.')
+    if user.id == actor_id:
+        raise OrgError('You cannot terminate yourself.')
+    if user.status == 'terminated':
+        raise OrgError('User is already terminated.')
+    if user.role == 'associate_admin':
+        admin_count = User.query.filter_by(
+            org_id=org.id, role='associate_admin', status='active').count()
+        if admin_count <= 1:
+            raise OrgError('Cannot terminate the last active school admin.')
+    user.status = 'terminated'
+    user.status_changed_at = datetime.utcnow()
+    user.is_active_flag = False
+    db.session.commit()
+    audit('user_terminate', f'org={org.slug} email={user.email}',
+          org_id=org.id, actor_id=actor_id)
+    return user
+
+
+def reactivate_user(org, user_id, *, actor_id=None):
+    """Set status='active' AND is_active_flag=True (login allowed)."""
+    _refuse_if_protected(org)
+    user = User.query.filter_by(id=user_id, org_id=org.id).first()
+    if not user:
+        raise OrgError('User not found in that organization.')
+    if user.status == 'active':
+        raise OrgError('User is already active.')
+    user.status = 'active'
+    user.status_changed_at = datetime.utcnow()
+    user.is_active_flag = True
+    db.session.commit()
+    audit('user_reactivate', f'org={org.slug} email={user.email}',
+          org_id=org.id, actor_id=actor_id)
+    return user
