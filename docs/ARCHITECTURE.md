@@ -293,3 +293,253 @@ before the next round of features lands on the API. See ADR-019.
 See `CHANGELOG.md` 0.12.0 "Discovered, not fixed" for the list of
 endpoints and features deferred to 0.13.0+. Full parity is planned
 across 15 sequential rounds (ADR-021).
+
+## Model additions in the department/lifecycle arc (2026-11-10 → 2026-11-13)
+
+Five tables carry a nullable, indexed `department` column: `user`,
+`contact_group`, `message_template`, `campaign`, `campaign_schedule`.
+`NULL` means "shared" (visible to all departments).
+
+`user` additionally has:
+- `status` — `'active' | 'suspended' | 'terminated'` (NOT NULL, default `active`)
+- `status_changed_at` — when the last status transition happened
+
+`organization` has:
+- `vertical` — `'school' | 'business' | NULL` (NULL = unclassified)
+
+`campaign_schedule` has:
+- `credits_reserved` — integer, the credits held against future runs.
+  `NULL` means "legacy schedule" (created before the reservation model
+  existed); those debit at fire time like the pre-#44 behavior.
+
+## Department isolation
+
+Every tenant read that could leak across departments goes through one
+helper: `app.permissions.department_filter(query, model, user)`.
+
+- `user is None` or `user.department is None` → filter is a no-op (HT,
+  school admin, master all see everything in their org).
+- Otherwise the filter is `model.department == user.department OR
+  model.department IS NULL` — the user sees their department's records
+  plus shared records, never another department's.
+
+Write path: `current_user.department` is passed into every create
+service (`svc.create(..., department=current_user.department)`). A user
+with `department='bursar'` creates bursar-scoped records. A user with
+`department=None` creates shared (`NULL`) records. **No route accepts
+`department` from the form** — the department is always the creator's.
+That is a security invariant, not an accident.
+
+A5 (school-admin user CRUD) is the only way to set a user's department,
+and master can also set it via `/master/orgs/<id>/edit` after signup
+approval. See `DEPARTMENTS.md` for the Q1/Q2/Q3 answers (who manages
+users, who pays, when credits are debited).
+
+## User lifecycle
+
+`user.status` has three states with distinct enforcement:
+
+| State | Login | Send (create campaign / schedule) | Reversible |
+|---|---|---|---|
+| `active` | ✅ | ✅ | n/a |
+| `suspended` | ✅ | ❌ (blocked at `routes/campaigns.py::new`) | ✅ via reactivate |
+| `terminated` | ❌ (blocks at `routes/auth.py::login` via `is_active_flag=False`) | ❌ | ✅ via reactivate |
+
+`is_active_flag` (the pre-existing Boolean) is kept in sync:
+- suspend → `status='suspended'`, `is_active_flag=True`
+- terminate → `status='terminated'`, `is_active_flag=False`
+- reactivate → `status='active'`, `is_active_flag=True`
+
+**Scheduled fires are not blocked by the creator's status.** A schedule
+created by a bursar who later leaves the school still fires; the school
+committed to the send, and #44 reserved the credits for it. Only
+*initiating new sends* is blocked.
+
+Guards in `orgs_svc.suspend_user` / `terminate_user`:
+- Cannot suspend/terminate yourself
+- Cannot suspend/terminate the last active `associate_admin` in the org
+
+## Schedule reservation model (#44 + #16)
+
+**At create** (`schedules.create_schedule`):
+- Estimate recipient count from current contacts
+- Compute `segments_per_run = sum(segments(render(org, body, c)))`
+- Compute `total_reservation = segments_per_run × len(times)`
+- `check_can_send(org, total_reservation)` then `wallet_svc.debit(...)`
+  with `reason='schedule_reserve'`, `reference='schedule:<id>'`
+- Store `credits_reserved = total_reservation` on the row
+
+**At fire** (`schedules.materialize_run`):
+- If `credits_reserved is None` → legacy path: `check_can_send` + debit
+  at fire (unchanged pre-#44 behavior)
+- Else → #44 path:
+  - If `actual_segments > credits_reserved` → **overage**: skip the run,
+    refund the full remaining reservation (`schedule_overage_refund`),
+    pause the schedule with a clear reason
+  - Else → fire, `credits_reserved -= actual_segments`
+  - On the final run (`times_list == []`), refund any residual
+    reservation (`schedule_complete_refund`)
+
+**At cancel** (`schedules.cancel_schedule`):
+- Refund any remaining `credits_reserved` (`schedule_cancel_refund`), set to 0, mark cancelled
+
+**At edit** (`schedules.update_schedule`, #16):
+- Reject if status is `cancelled` or `completed`
+- Refund the old `credits_reserved` (`schedule_cancel_refund`)
+- Re-estimate, debit the new reservation (`schedule_reserve`)
+- If new-reserve raises `InsufficientCredits`, reverse the refund
+  (`adjustment` debit) so the wallet is net-zero on failure
+- Update fields, recompute `next_run_at`, commit, audit
+- **Net wallet change = new - old (delta only if changed)**
+
+**At delete** (`schedules.delete_schedule`, #16):
+- Reject if `status == 'active'` (cancel first)
+- Reject if `runs_completed > 0` (fired history must be preserved)
+- Refund any remaining `credits_reserved`, hard delete the row
+
+Why this shape rather than debit-at-fire: a school can schedule 500 SMS
+for Wednesday, spend their balance on Monday, and the schedule still
+fires on Wednesday because the credit was reserved. The `NULL` sentinel
+preserves pre-#44 schedules that were created before this model existed.
+
+## Single-write-gate pattern (working-style)
+
+When a session must modify several files atomically (e.g. a feature
+touching service + route + 2 templates + tests), the paste is structured:
+
+1. Read all target files into memory.
+2. Verify **all** anchor strings are present (throw → zero disk changes).
+3. Apply **all** mutations in memory.
+4. Verify the mutations are present in memory (throw → zero disk changes).
+5. Write all files.
+6. Verify the on-disk content.
+7. Run tests.
+
+Any `throw` before step 5 leaves the working tree untouched. This is the
+fix for "throw in a pasted line doesn't stop later lines" — the mutation
+is not reachable unless every prior guard passed.
+
+## Model additions in the department/lifecycle arc (2026-11-10 → 2026-11-13)
+
+Five tables carry a nullable, indexed `department` column: `user`,
+`contact_group`, `message_template`, `campaign`, `campaign_schedule`.
+`NULL` means "shared" (visible to all departments).
+
+`user` additionally has:
+- `status` — `'active' | 'suspended' | 'terminated'` (NOT NULL, default `active`)
+- `status_changed_at` — when the last status transition happened
+
+`organization` has:
+- `vertical` — `'school' | 'business' | NULL` (NULL = unclassified)
+
+`campaign_schedule` has:
+- `credits_reserved` — integer, the credits held against future runs.
+  `NULL` means "legacy schedule" (created before the reservation model
+  existed); those debit at fire time like the pre-#44 behavior.
+
+## Department isolation
+
+Every tenant read that could leak across departments goes through one
+helper: `app.permissions.department_filter(query, model, user)`.
+
+- `user is None` or `user.department is None` → filter is a no-op (HT,
+  school admin, master all see everything in their org).
+- Otherwise the filter is `model.department == user.department OR
+  model.department IS NULL` — the user sees their department's records
+  plus shared records, never another department's.
+
+Write path: `current_user.department` is passed into every create
+service (`svc.create(..., department=current_user.department)`). A user
+with `department='bursar'` creates bursar-scoped records. A user with
+`department=None` creates shared (`NULL`) records. **No route accepts
+`department` from the form** — the department is always the creator's.
+That is a security invariant, not an accident.
+
+A5 (school-admin user CRUD) is the only way to set a user's department,
+and master can also set it via `/master/orgs/<id>/edit` after signup
+approval. See `DEPARTMENTS.md` for the Q1/Q2/Q3 answers (who manages
+users, who pays, when credits are debited).
+
+## User lifecycle
+
+`user.status` has three states with distinct enforcement:
+
+| State | Login | Send (create campaign / schedule) | Reversible |
+|---|---|---|---|
+| `active` | ✅ | ✅ | n/a |
+| `suspended` | ✅ | ❌ (blocked at `routes/campaigns.py::new`) | ✅ via reactivate |
+| `terminated` | ❌ (blocks at `routes/auth.py::login` via `is_active_flag=False`) | ❌ | ✅ via reactivate |
+
+`is_active_flag` (the pre-existing Boolean) is kept in sync:
+- suspend → `status='suspended'`, `is_active_flag=True`
+- terminate → `status='terminated'`, `is_active_flag=False`
+- reactivate → `status='active'`, `is_active_flag=True`
+
+**Scheduled fires are not blocked by the creator's status.** A schedule
+created by a bursar who later leaves the school still fires; the school
+committed to the send, and #44 reserved the credits for it. Only
+*initiating new sends* is blocked.
+
+Guards in `orgs_svc.suspend_user` / `terminate_user`:
+- Cannot suspend/terminate yourself
+- Cannot suspend/terminate the last active `associate_admin` in the org
+
+## Schedule reservation model (#44 + #16)
+
+**At create** (`schedules.create_schedule`):
+- Estimate recipient count from current contacts
+- Compute `segments_per_run = sum(segments(render(org, body, c)))`
+- Compute `total_reservation = segments_per_run × len(times)`
+- `check_can_send(org, total_reservation)` then `wallet_svc.debit(...)`
+  with `reason='schedule_reserve'`, `reference='schedule:<id>'`
+- Store `credits_reserved = total_reservation` on the row
+
+**At fire** (`schedules.materialize_run`):
+- If `credits_reserved is None` → legacy path: `check_can_send` + debit
+  at fire (unchanged pre-#44 behavior)
+- Else → #44 path:
+  - If `actual_segments > credits_reserved` → **overage**: skip the run,
+    refund the full remaining reservation (`schedule_overage_refund`),
+    pause the schedule with a clear reason
+  - Else → fire, `credits_reserved -= actual_segments`
+  - On the final run (`times_list == []`), refund any residual
+    reservation (`schedule_complete_refund`)
+
+**At cancel** (`schedules.cancel_schedule`):
+- Refund any remaining `credits_reserved` (`schedule_cancel_refund`), set to 0, mark cancelled
+
+**At edit** (`schedules.update_schedule`, #16):
+- Reject if status is `cancelled` or `completed`
+- Refund the old `credits_reserved` (`schedule_cancel_refund`)
+- Re-estimate, debit the new reservation (`schedule_reserve`)
+- If new-reserve raises `InsufficientCredits`, reverse the refund
+  (`adjustment` debit) so the wallet is net-zero on failure
+- Update fields, recompute `next_run_at`, commit, audit
+- **Net wallet change = new - old (delta only if changed)**
+
+**At delete** (`schedules.delete_schedule`, #16):
+- Reject if `status == 'active'` (cancel first)
+- Reject if `runs_completed > 0` (fired history must be preserved)
+- Refund any remaining `credits_reserved`, hard delete the row
+
+Why this shape rather than debit-at-fire: a school can schedule 500 SMS
+for Wednesday, spend their balance on Monday, and the schedule still
+fires on Wednesday because the credit was reserved. The `NULL` sentinel
+preserves pre-#44 schedules that were created before this model existed.
+
+## Single-write-gate pattern (working-style)
+
+When a session must modify several files atomically (e.g. a feature
+touching service + route + 2 templates + tests), the paste is structured:
+
+1. Read all target files into memory.
+2. Verify **all** anchor strings are present (throw → zero disk changes).
+3. Apply **all** mutations in memory.
+4. Verify the mutations are present in memory (throw → zero disk changes).
+5. Write all files.
+6. Verify the on-disk content.
+7. Run tests.
+
+Any `throw` before step 5 leaves the working tree untouched. This is the
+fix for "throw in a pasted line doesn't stop later lines" — the mutation
+is not reachable unless every prior guard passed.
