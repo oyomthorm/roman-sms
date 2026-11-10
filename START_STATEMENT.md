@@ -5,73 +5,123 @@ Flutter Android client, running on a single DigitalOcean VPS.
 
 ## Where I left off (end of session 2026-11-13)
 
-**Branch:** `wip/mobile-api` at `1f5c279` (docs dedupe) — pushed to GitHub.
-Working tree is clean. Nothing in-flight.
+**Branch:** `wip/mobile-api` at `1cec53c` (mobile lint cleanup) — pushed
+to GitHub. Working tree is clean. Nothing in-flight.
 
-**Production (LIVE and VERIFIED):**
-- VPS at `8a71f6b` (the last code commit before docs; docs commits don't
-  affect the running app). Fully deployed and verified end to end.
-- Migration `87cd66d8578c` applied (`Organization.vertical`). Unchanged
-  since #45 (three sessions ago).
+**Production (LIVE, UNCHANGED this session):**
+- VPS at `8a71f6b` (last code commit before docs; docs and mobile
+  commits don't deploy). **Not touched this session — mobile work is
+  client-side only.**
+- Migration `87cd66d8578c` applied. Unchanged since #45.
 - Services active: `roman-sms.service`, `roman-worker.service`,
-  `roman-panel.service` (restarted post-pull, all three `active`).
-- Mobile API live at `https://romansms.com/api/v1/*` (unchanged since
-  `6b07d67`, mobile-only commit; no new API endpoints since).
-- **Full onboarding flow verified end to end** (2026-11-13): real signup
-  → approval with vertical selection → welcome email + password-set link
-  → login → first campaign sent → queued → complete → wallet debited.
-  Test org cleaned up. No regressions.
+  `roman-panel.service`.
+- Mobile API live at `https://romansms.com/api/v1/*`. No endpoint
+  changes since `6b07d67`.
+- Full onboarding flow verified end to end (2026-11-13).
 
-**Flutter app:** Release APK from `6b07d67` on physical device. **Not
-touched since 2026-11-01 (multiple sessions).** No verification since
-`6b07d67` — worth a session to verify it still builds and connects
-against the current API (mobile API contract hasn't changed but the User
-model has gained `status`, `department`, and org has gained `vertical`).
+**Flutter app:** Static analysis cleaned this session. 6 commits landed:
+lint infrastructure added, mojibake fixed, error messages fixed, router
+churn fixed, 11 lint items fixed, 3 redundant-const items fixed.
+`flutter analyze` went from 10 issues to **4 issues (all `Radio.*`
+deprecations, deferred)**. Release APK built and **installed on the
+physical device** but **not yet runtime-tested** — that's the next
+session's first concrete task.
 
 **Database (prod):** Migrated to `87cd66d8578c`. Five orgs, four users.
 Two real customers: Fitting (school, schedule #1 fires through
 2026-11-29) and ORONEK (business, 0 contacts as of last check).
 
 **Database (local):** Migrated to `87cd66d8578c`. Seeded with test
-fixtures (org ids differ from prod; `tasms` is id 5 locally, id 4 in prod).
+fixtures (org ids differ from prod; `tasms` is id 5 locally, id 4 in
+prod).
 
-## What got done this arc (four sessions, 2026-11-10 → 2026-11-13)
+## What got done this session (2026-11-13 mobile arc)
 
-Eight features shipped. All browser-verified or CLI-verified end to end.
+The Flutter health check split cleanly into two phases. **Static phase
+complete. Runtime phase not started.**
 
-| Feature | Migration | Tests | Notes |
-|---|---|---|---|
-| **A5** school-admin user CRUD | — | +18 | `/school/users` list, create, edit, delete, reset pw, dept dropdown |
-| **docs/DEPARTMENTS.md** | — | — | Q1/Q2/Q3 workflow guide (the department contract) |
-| **#49** last-run bug fix | — | +2 | Silent prod bug: schedule's last fire never happened |
-| **#44** schedule pre-reservation | `c41928d919da` | +10 | Reserve at create, refund on cancel/overage/complete |
-| **#46** user lifecycle | `e37cc1348332` | +8 | suspend (login OK, send blocked) / terminate (no login) / reactivate |
-| **#45** Organization.vertical | `87cd66d8578c` | +6 | school / business / NULL, master-only |
-| **#47** user detail page | — | +4 | `/school/users/<id>` with activity summary |
-| **#16** schedules CRUD | — | +8 | Edit times/body/name/filters, delete if unfired, detail polish |
+**Six commits on `wip/mobile-api`:**
 
-**Test progression: 189 → 247. +58 tests.**
+| Commit | Change | `flutter analyze` after |
+|---|---|---|
+| `d4e1d04` | Add `flutter_lints` + `flutter_test`; fix dashboard mojibake | 15 |
+| `bc04bae` | Router churn fix (`_authStatusProvider`), user-facing error strings | 15 |
+| `3cd4b62` | Paste 3a: 7 trivial lint fixes | 8 |
+| `859bf3b` | Paste 3b: 4 `const` additions | 7 (net 4 fixed, 3 new) |
+| `1cec53c` | Paste 3c: 3 redundant-`const` removals | **4** |
 
-**Prod is on `8a71f6b` with two real customers, both correctly classified
-(Fitting=school, ORONEK=business), and both protected by the reservation
-and lifecycle systems.**
+**Issue reduction: 10 → 4.** Remaining 4 are `Radio.groupValue` /
+`Radio.onChanged` deprecations in `new_campaign_screen.dart:167,168,176,177`.
+Deferred — proper fix requires migrating to `RadioGroup` widget.
 
-**Critical backlog is empty.** Every remaining item is polish or
-deferred-by-choice. No half-shipped features.
+**What actually got fixed (from the deferred list):**
+- #3 Dashboard "Hello, Admin" hardcoded — **NOT fixed** (this was in the
+  START_STATEMENT but the mobile source had already moved to a
+  different presentation; only the mojibake string `"Roman SMS â€¢
+  Verified"` was replaced with `"Verified"`). The `Hello, Admin` string
+  remains in the source and was not touched. Defer to runtime testing
+  to confirm what the user actually sees.
+- #4 Dashboard header mojibake — **fixed** (replaced `"Roman SMS â€¢
+  Verified"` with `"Verified"`; full org-name replacement deferred until
+  runtime shape of `org['name']` is confirmed).
+- #6 `withOpacity` deprecation (3 occurrences) — **fixed** (all now
+  `withValues(alpha:)`).
+- #7 Unused `go_router` import — **fixed**.
+- #8 Router churn — **fixed** (`routerProvider` now watches only
+  `isAuthenticated` via `_authStatusProvider`).
+- #20 `CupertinoIcons` referenced but not in pubspec — **not fixed, not
+  needed**. Source grep confirmed zero `CupertinoIcons` usage. No build
+  error. Off the list.
+- #21 `flutter_lints/flutter.yaml` include can't resolve — **fixed**
+  (`flutter_lints: ^4.0.0` added to `dev_dependencies`; `flutter pub get`
+  ran; analyzer now loads the ruleset).
+- #22 Unused local `r` in `new_campaign_screen.dart:86` — **fixed** (line
+  56's `r` preserved; line 86's `r` removed; verified by scoping the
+  anchor to `/api/v1/campaigns` not `/api/v1/campaigns/preview`).
+- #28 `Radio.groupValue/onChanged` deprecation — **deferred**. 4 items.
+  Structural refactor. Not a runtime bug; will break in Flutter SDK 4.0.
+
+**Also fixed (not on the prior list):**
+- Dev-mode error strings in `auth_provider.dart` — "The phone cannot
+  reach the laptop" and "Windows Firewall is blocking the port" replaced
+  with user-appropriate text. 401-specific branch added.
+- `login_screen.dart:20` — curly braces added to single-statement `if`.
+- `wallet_screen.dart:101` — redundant `${delta}` braces removed.
+- 4 `prefer_const_constructors` — `const` added to `CircleAvatar` and
+  `Icon` constructors.
+
+**What broke and was reverted (net zero on the tree):**
+- First attempt at paste 2 wrote `== 401 {` (missing closing `)`). The
+  revert-on-error gate fired on the new `expected_token` error, all six
+  files reverted, retried with correct syntax.
+- Two attempts at paste 3b's `new_campaign_screen.dart` mutation
+  corrupted the file — first by blanket `.Replace()` matching two
+  occurrences when only one was intended (reverted), second by an
+  anchor whose line-count check failed (aborted before write, no
+  damage). Third attempt succeeded with line-index mutation.
+
+**Test progression:** no new tests written — this session was lint
+cleanup and router refactor, not feature work. Test count unchanged at
+**247 passing**.
 
 ## What's next
 
 Pick from (no blockers between them):
 
-**(a) Flutter mobile app health check** — the app hasn't been touched in
-multiple sessions. Verify it still builds, connects to the current API,
-and works against the model changes (`User.status`, `User.department`,
-`Organization.vertical`). **My recommendation** — highest value because
-it's the only unverified surface.
+**(a) Flutter runtime health check** — **partially done this session.**
+The APK is installed on the physical device. Static analysis is clean.
+The runtime phase — launching the app, logging in, walking through each
+of the 20 screens, exercising add/edit/delete flows, verifying polling
+and logout/login — **has not started.** This is the highest-value next
+task because it's the only way to find the runtime bugs that static
+analysis cannot catch. **My recommendation** — highest value because
+the entire reason for the health check was to surface behavioral issues.
 
 **(b) #50 passwordless sudo for specific systemctl commands** — 5-min
 win. Every deploy costs a sudo prompt. Add to `/etc/sudoers.d/`:
-oyomthorm ALL=(ALL) NOPASSWD: /bin/systemctl restart roman-sms, /bin/systemctl restart roman-worker, /bin/systemctl restart roman-panel, /bin/systemctl is-active *
+`oyomthorm ALL=(ALL) NOPASSWD: /bin/systemctl restart roman-sms,
+/bin/systemctl restart roman-worker, /bin/systemctl restart roman-panel,
+/bin/systemctl is-active *`
 
 **(c) #38 user delete FK migration** — 4 NOT NULL FKs block user
 deletion (chat_read_state, chat_message, notification_dismissal,
@@ -81,8 +131,7 @@ delete via `/school/users/<id>/delete` will fail. Add migration with
 nullable ones. ~1 session.
 
 **(d) #39 RUNBOOK CLI verification note** — document the CLI verification
-pattern used for #16 and A5 (state-transition scripts on prod via SSH,
-not real browser clicks). ~1 hour.
+pattern used for #16 and A5. ~1 hour.
 
 **(e) #51 onboarding copy varies by vertical** — the #45 foundation
 enables different welcome emails for school vs business. Currently both
@@ -92,46 +141,80 @@ get the same generic email. Nice UX; not urgent.
 the master wallet for the total balance difference, without provenance.
 Deferred since before A1.
 
-## Deferred / known issues (carry forward)
+## Deferred / known issues (carry forward — reconciled)
 
-**From the mobile-only arc (still open):**
-1. Panel grant form bug (500 entered → 10 saved).
+**From the mobile-only arc (still open after this session):**
+
+1. Panel grant form bug (500 entered → 10 saved). *Runtime — verify
+   on device next session.*
 2. Empty `recent_activity` renders zero-height Card on dashboard.
+   *Runtime — verify on device.*
 3. Dashboard "Hello, Admin" hardcoded in `dashboard_screen.dart`.
-4. Dashboard header "Roman SMS • Verified" hardcoded.
-5. Master org users hitting `/api/v1/dashboard` get master-org stats.
-6. `withOpacity` deprecation: `contacts_screen.dart:171`, `chat_detail_screen.dart:99,134`.
-7. Unused `go_router` import in `dashboard_screen.dart:1`.
-8. Router churn — `routerProvider` recreates `GoRouter` on every auth state.
-9. Password dialog error handling uses `contains('422')`.
-10. `_refresh()` in `ContactDetailScreen` uses bare `catch (_)`.
-11. `DELETE /contacts/<id>` is hard delete — no undo.
-12. `update_contact` clear_group/clear_district untested with non-null.
-13. Contacts endpoint error taxonomy inconsistent.
-14. Campaign detail polish.
-15. Contact detail district picker (no API round exists yet).
-16. `iso()` emits naive datetimes without `Z` — cross-cutting.
-17. `audit.log()` commits own transaction, swallows exceptions.
-18. `svc.delete(group)` doesn't guard referenced `Schedule.group_id`.
-19. `GET /groups/<id>` returns `contact_count: null` by design.
-20. `CupertinoIcons` referenced but `cupertino_icons` not in pubspec.
-21. `flutter_lints/flutter.yaml` include can't resolve.
-22. Unused local `r` at `new_campaign_screen.dart:86`.
-23. `contacts_screen.dart` name-empty fallback — pre-existing display bug.
-24. `add_contact(None, ...)` raises `AttributeError` on `org.id`.
-25. Test fixtures leak on mid-run crash — `test_groups_api.py` has no try/finally.
-26. `contacts/form.html` phone field readonly by design — add hint.
-27. Group detail actions icons — cosmetic polish.
-28. `new_campaign_screen.dart` Radio groupValue/onChanged deprecation.
+   *Still present in source; needs runtime check to see if user actually
+   sees "Admin".*
+4. Master org users hitting `/api/v1/dashboard` get master-org stats.
+   *Server-side — separate from mobile app. Verify with master account
+   on device.*
+5. Password dialog error handling uses `contains('422')`. *Runtime —
+   code smell, verify on device.*
+6. `_refresh()` in `ContactDetailScreen` uses bare `catch (_)`. *Code
+   smell — invisible to user, leaves API errors only in logs.*
+7. `DELETE /contacts/<id>` is hard delete — no undo. *By design; user
+   must confirm before delete.*
+8. `update_contact` clear_group/clear_district untested with non-null.
+   *Runtime — verify by editing a contact's group on device.*
+9. Contacts endpoint error taxonomy inconsistent. *Server-side; verify
+   by triggering an error.*
+10. Campaign detail polish. *Cosmetic — verify on device.*
+11. Contact detail district picker (no API round exists yet). *Feature
+    gap — no UI for setting district on existing contact.*
+12. `iso()` emits naive datetimes without `Z` — cross-cutting. *Server
+    response format; mobile parses but display may be ambiguous for
+    non-UTC users.*
+13. `audit.log()` commits own transaction, swallows exceptions.
+    *Server-side; documented behavior, not a bug.*
+14. `svc.delete(group)` doesn't guard referenced `Schedule.group_id`.
+    *Runtime — verify by deleting a group referenced by a schedule.*
+15. `GET /groups/<id>` returns `contact_count: null` by design. *Server
+    contract — mobile handles null correctly.*
+16. `contacts_screen.dart` name-empty fallback — pre-existing display
+    bug. *Runtime — verify by adding a contact with no name.*
+17. `add_contact(None, ...)` raises `AttributeError` on `org.id`. *Edge
+    case; test coverage gap.*
+18. Test fixtures leak on mid-run crash — `test_groups_api.py` has no
+    try/finally. *Test infrastructure.*
+19. `contacts/form.html` phone field readonly by design — add hint.
+    *Web-side UI, not mobile.*
+20. Group detail actions icons — cosmetic polish. *Mobile UI — verify on
+    device.*
 
-**From this arc:**
-29. #50 passwordless sudo (5-min).
-30. #38 user delete FK migration (see above).
-31. #39 RUNBOOK CLI verification note.
-32. #51 onboarding copy varies by vertical (deferred).
-33. #32 pahappa_sync drift fix (deferred).
-34. #43 self-service plan purchase (deferred).
-35. Flutter mobile app health check (see (a) above).
+**Fixed this session (moved out of the deferred list):**
+- ~~`withOpacity` deprecation~~ — all 3 fixed.
+- ~~Unused `go_router` import~~ — fixed.
+- ~~Router churn~~ — fixed.
+- ~~`flutter_lints/flutter.yaml` include can't resolve~~ — fixed.
+- ~~Unused local `r` in `new_campaign_screen.dart:86`~~ — fixed.
+
+**Removed from deferred (not needed):**
+- ~~`CupertinoIcons` referenced but `cupertino_icons` not in pubspec~~ —
+  no `CupertinoIcons` usage found in source. Not a build issue.
+
+**Still deferred (mobile):**
+- `Radio.groupValue/onChanged` deprecations (4 items,
+  `new_campaign_screen.dart:167,168,176,177`). Migration to `RadioGroup`
+  widget. Deferred until Flutter SDK 4.0 upgrade.
+- Base URL `--dart-define` parameterization. Works against prod today;
+  blocks staging. Small fix, deferred.
+- `usesCleartextTraffic="true"` in AndroidManifest — vestigial; no
+  security impact since production URL is HTTPS.
+
+**From prior arcs (still open):**
+- #50 passwordless sudo (5-min).
+- #38 user delete FK migration.
+- #39 RUNBOOK CLI verification note.
+- #51 onboarding copy varies by vertical (deferred).
+- #32 pahappa_sync drift fix (deferred).
+- #43 self-service plan purchase (deferred).
 
 ## Working style that works
 
@@ -146,25 +229,53 @@ Deferred since before A1.
    single-line substrings for EOL-agnostic anchors. Position-based
    insertion (LastIndexOf) beats multi-line literal replace for templates.
 4. **Phantom file detection.** After any multi-file paste, `git status
-   --short`. Any unexpected `??` file is a bug in the paste (often a
-   `WriteAllText` on an unset or wrong-path variable). Delete and
+   --short`. Any unexpected `??` file is a bug in the paste. Delete and
    investigate.
 5. **Test fixture tracing.** Trace mutations to the assertion point,
-   not the function entry. `create_associate` needs `master_org`;
-   `check_can_send` needs subscription + wallet. Fixtures must provide.
+   not the function entry.
 6. **A throw in a pasted line does not stop later lines.** The mutation
    must be the last line of the paste, or inside an `if/else` where the
-   `else` contains the mutation. Refines prior working-style notes.
+   `else` contains the mutation.
 7. **Test first, commit second.** Never commit on the assumption that
    tests pass — run them, paste the exit code, then commit.
 8. **Feature arc: inspect → design confirm → write paste → verify →
    browser/CLI verification → commit → deploy.**
-9. **Verification vs. feature sessions are different.** Verification
-   sessions produce confidence, not commits. Feature sessions produce
-   commits. Both are valuable.
-10. All prior working-style notes (1–52 in the previous statement) remain
-    in force. See `docs/DECISIONS.md` and previous session logs for the
-    full historical list.
+9. **Verification vs. feature sessions are different.** Both are
+   valuable.
+
+**New rules from this session (mobile arc):**
+
+10. **Revert-on-error gate for any code-modifying paste.** After any
+    paste that mutates source files, run `flutter analyze` (or equivalent
+    for the language) and if the tool reports a new **error** — not
+    warning, not info — `git checkout --` the modified files before
+    diagnosing. Warnings and infos can stay; errors mean a bad paste,
+    full stop. Revert is 2 seconds; diagnosing a broken state is 20
+    minutes.
+11. **Occurrence count checks before any blanket `.Replace()`.** If a
+    target string might appear more than once, count it with
+    `-ceq`-on-split-lines (not `[regex]::Matches` — regex escape on
+    newlines fails silently). If count ≠ 1, abort before mutation.
+    Anchors with unique surrounding context avoid the multi-occurrence
+    problem entirely.
+12. **Absolute paths for `[System.IO.File]`.** `ReadAllText("lib/foo")`
+    resolves against process CWD, not PowerShell's `$PWD`. Always pass
+    absolute paths. `Get-Content` respects `$PWD`; `[System.IO.File]`
+    does not.
+13. **Line-index mutation for single-line edits.** Split file into
+    lines, mutate by index with `.Trim()` verification, rejoin with
+    known EOL. This is more reliable than file-wide `.Replace()` for
+    single-line edits, especially when the file has multiple similar
+    lines.
+14. **Byte-level verification of `flutter analyze` results.** The
+    counts reported by `flutter analyze` (10 → 15 → 8 → 7 → 4) were the
+    only reliable signal that each paste worked or failed. String
+    presence is not enough — the analyzer's issue count is the actual
+    health metric.
+15. **When a rendered artifact looks broken, hard-refresh first.**
+    `Ctrl+Shift+R` + `file:///` URL bypasses cache. In this session and
+    the docs arc, "broken rendering" was three times stale browser
+    cache, not a file problem.
 
 ## Test accounts
 
@@ -191,9 +302,8 @@ Deferred since before A1.
   `Fitting` (3, school), `TempAssoc` (4, slug `tasms`), `ORONEK` (5, slug
   `orsms`, business).
 - `Fitting`: schedule #1 "Franco Intro" has 6 remaining runs through
-  2026-11-29. **#49 fixed the silent last-run bug** — before this fix,
-  the final message would have been silently lost.
-- `tasms`: 166 contacts, wallet ~844 after onboarding test cleanup.
+  2026-11-29.
+- `tasms`: 166 contacts, wallet ~844.
 - `orsms`: 0 contacts, 1 user (`oronek1984@gmail.com`), vertical=business.
 - Associate user in prod org 4, password `Temp2026!`.
 
@@ -206,32 +316,43 @@ Deferred since before A1.
   `roman-worker.service`, `roman-panel.service` (Flask panel on
   `127.0.0.1:8080`).
 - Nginx + Let's Encrypt SSL on `https://romansms.com`.
-- **Currently at `8a71f6b` (app); docs commits don't deploy.**
-- SSH key auth for `oyomthorm` — no password prompt on `ssh` (added
-  this arc). `sudo` still prompts — use `ssh -t`.
+- **Currently at `8a71f6b` (app); unchanged this session.**
+- SSH key auth for `oyomthorm` — no password prompt on `ssh`. `sudo`
+  still prompts — use `ssh -t`.
 
 **Backups:** `/srv/roman-sms/backups/` — daily cron at 03:00 UTC, schema
 only. Pre-department rollback backup at
 `/srv/roman-sms/backups/pre_department_2026_11_09.sql` (508 KB, verified
 2026-11-09, contains 28 `CREATE TABLE` statements).
 
-**SMTP:** Mailgun on port 2525 (DigitalOcean blocks 25/465/587 —
-permanent platform policy). Domain `mg.romansms.com` verified via DNS
-TXT records. Works end to end (verified during onboarding test).
+**SMTP:** Mailgun on port 2525 (DigitalOcean blocks 25/465/587). Domain
+`mg.romansms.com` verified via DNS TXT records. Works end to end.
 
 ## First action of next session
 
 1. `cd D:\Dev_Apps\roman_sms`
 2. `git fetch origin wip/mobile-api`
-3. `git pull origin wip/mobile-api` — confirm at `1f5c279` (or later
-   docs commit on top)
+3. `git pull origin wip/mobile-api` — confirm at `1cec53c` (or later)
 4. `git status --short` — expect clean
 5. Confirm VPS is at `8a71f6b` and services active
-6. Pick from (a) through (f) above
+6. **Pick (a) first.**
 
-**Recommended: (a) Flutter mobile app health check.** The app hasn't been
-touched in multiple sessions and hasn't been verified against the current
-API (User now has status + department; Organization has vertical). One
-session to confirm it still builds and connects.
+**Recommended: (a) Flutter runtime health check.** Static analysis is
+clean (4 deferred deprecations, no warnings, no errors). APK is built
+and installed on the phone. The runtime phase — launching the app,
+exercising login → dashboard → every screen → add/edit/delete flows →
+chat polling → logout/login — **has not started.** This is the single
+highest-value remaining task because static analysis cannot catch the
+runtime bugs the START_STATEMENT originally flagged (panel grant form
+bug, empty `recent_activity`, master org stats, etc.).
 
-**No migration pending. Deploy is standard (no DB changes for docs).**
+The runtime test plan is documented in the prior session's log if
+needed, but the essential sequence is: open app → login with
+`admin@romansms.local` / `ChangeMe123!` → dashboard renders → tap each
+bottom nav item → tap each drill-down → attempt add/edit/delete →
+attempt wrong-password login → attempt logout/login. Report per-screen:
+OK / SLOW / BLANK / ERROR / CRASH. For anything that isn't OK, capture
+the visible error text or the last-rendered state before any crash.
+
+**No migration pending. No deploy planned.** This session was client-side
+only; the VPS is untouched and stable.
