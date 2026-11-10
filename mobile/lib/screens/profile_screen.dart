@@ -35,7 +35,7 @@ class ProfileScreen extends ConsumerWidget {
                 const CircleAvatar(
                   radius: 40,
                   backgroundColor: RomanSmsTheme.lightGreen,
-                  child: const Icon(Icons.business,
+                  child: Icon(Icons.business,
                       size: 40, color: RomanSmsTheme.primaryGreen),
                 ),
                 const SizedBox(height: 16),

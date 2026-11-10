@@ -103,7 +103,7 @@ class GroupsScreen extends ConsumerWidget {
                             ListTile(
                               leading: const CircleAvatar(
                                 backgroundColor: RomanSmsTheme.lightGreen,
-                                child: const Icon(Icons.group,
+                                child: Icon(Icons.group,
                                     color: RomanSmsTheme.primaryGreen),
                               ),
                               title: Text(
