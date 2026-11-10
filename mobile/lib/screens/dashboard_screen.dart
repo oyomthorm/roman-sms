@@ -1,4 +1,4 @@
-﻿import 'package:go_router/go_router.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -44,7 +44,7 @@ class DashboardScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text("Hello, Admin", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: RomanSmsTheme.textDark)),
-                            Text("Roman SMS â€¢ Verified", style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
+                            Text("Verified", style: GoogleFonts.inter(fontSize: 12, color: RomanSmsTheme.textMuted)),
                           ],
                         ),
                       ],

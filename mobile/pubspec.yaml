@@ -1,4 +1,4 @@
-﻿name: roman_sms
+name: roman_sms
 description: Roman SMS Mobile Application
 publish_to: 'none'
 version: 1.0.0+1
@@ -16,6 +16,11 @@ dependencies:
   dio: ^5.4.0
   flutter_secure_storage: ^9.0.0
   fl_chart: ^0.66.0 # For the line/bar chart seen in templates
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true

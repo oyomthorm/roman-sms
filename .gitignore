@@ -99,3 +99,6 @@ testkey.pub
 panel/.env
 # Word lock files (created when a .docx is open in Word)
 docs/~$*
+
+# Flutter analyze output (transient)
+mobile/analyze_output*.txt
