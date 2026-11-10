@@ -378,9 +378,174 @@
     header.topbar { flex-wrap: wrap; }
     header.topbar input.search { width: 100%; max-width: none; }
   }
+
+  /* ============ ICON SPRITE (invisible, referenced via <use>) ============ */
+  .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* Icons inside sidebar nav */
+  aside.sidebar a .icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    vertical-align: -3px;
+    margin-right: 4px;
+    color: var(--text-muted);
+    transition: color 0.1s;
+  }
+  aside.sidebar a:hover .icon { color: var(--primary); }
+  aside.sidebar a.active .icon { color: var(--primary); }
+
+  /* Icons inside section headers */
+  h1 .icon {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    vertical-align: -6px;
+    margin-right: 12px;
+    color: var(--primary);
+  }
+
+  /* Print: hide icons and screenshot wireframes to keep prose clean */
+  @media print {
+    .icon, .icon-sprite, .screenshot { display: none !important; }
+    h1 .icon { display: none !important; }
+  }
+
+  /* ============ CALLOUT GLYPHS ============ */
+  .callout .label::before {
+    display: inline-block;
+    margin-right: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    vertical-align: -1px;
+  }
+  .callout.warning .label::before { content: "⚠"; color: var(--warning); }
+  .callout.tip .label::before     { content: "✓"; color: #16a34a; }
+  .callout.admin .label::before   { content: "ⓘ"; color: #d97706; }
+
+  /* ============ SCREENSHOT WIREFRAME ============ */
+  .screenshot {
+    position: relative;
+    padding: 44px 16px 24px;
+    background: linear-gradient(135deg, #f9fafb 25%, transparent 25%, transparent 50%, #f9fafb 50%, #f9fafb 75%, transparent 75%);
+    background-size: 16px 16px;
+  }
+  .screenshot::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    height: 24px;
+    background: #e5e7eb;
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+  }
+  .screenshot::after {
+    content: "";
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    width: 50px;
+    height: 6px;
+    background: #9ca3af;
+    border-radius: 3px;
+    box-shadow:
+      0 0 0 0 #9ca3af,
+      60px 0 0 0 #d1d5db,
+      90px 0 0 0 #d1d5db,
+      120px 0 0 0 #d1d5db,
+      150px 0 0 0 #d1d5db;
+  }
+
+  /* ============ HIERARCHY RINGS (used in department isolation) ============ */
+  .ring-label { font-family: system-ui, sans-serif; font-weight: 600; }
 </style>
 </head>
 <body>
+
+<svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <!-- 0. Welcome / home -->
+  <symbol id="icon-welcome" viewBox="0 0 24 24">
+    <path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1V11z"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  </symbol>
+  <!-- 1. Getting set up / login -->
+  <symbol id="icon-login" viewBox="0 0 24 24">
+    <rect x="3" y="11" width="12" height="10" rx="1.5"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M7 11V7a4 4 0 0 1 8 0v4"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="9" cy="16" r="1.5" fill="currentColor"/>
+  </symbol>
+  <!-- 2. Dashboard -->
+  <symbol id="icon-dashboard" viewBox="0 0 24 24">
+    <rect x="3" y="3" width="8" height="8" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="13" y="3" width="8" height="5" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="13" y="10" width="8" height="11" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="3" y="13" width="8" height="8" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+  </symbol>
+  <!-- 3. Contacts -->
+  <symbol id="icon-contacts" viewBox="0 0 24 24">
+    <circle cx="9" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M2 21c0-4 3-7 7-7s7 3 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="17" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M15 21c0-3 2-5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <!-- 4. Groups -->
+  <symbol id="icon-groups" viewBox="0 0 24 24">
+    <rect x="3" y="4" width="8" height="7" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="13" y="4" width="8" height="7" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="3" y="13" width="8" height="7" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="13" y="13" width="8" height="7" rx="1.2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+  </symbol>
+  <!-- 5. Send / message -->
+  <symbol id="icon-send" viewBox="0 0 24 24">
+    <path d="M3 11l18-8-8 18-2-8-8-2z"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  </symbol>
+  <!-- 6. Schedule / clock -->
+  <symbol id="icon-schedule" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <!-- 7. Team / people -->
+  <symbol id="icon-team" viewBox="0 0 24 24">
+    <circle cx="8" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="17" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M15 20c0-2.2 1.8-4 4-4s3.5 1 4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <!-- 8. Billing / wallet -->
+  <symbol id="icon-billing" viewBox="0 0 24 24">
+    <rect x="2" y="6" width="20" height="13" rx="2"
+      fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M2 10h20" stroke="currentColor" stroke-width="2"/>
+    <circle cx="17" cy="15" r="1.5" fill="currentColor"/>
+  </symbol>
+  <!-- 9. Help / chat -->
+  <symbol id="icon-help" viewBox="0 0 24 24">
+    <path d="M4 4h16v12H8l-4 4V4z"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="9" cy="10" r="1" fill="currentColor"/>
+    <circle cx="12" cy="10" r="1" fill="currentColor"/>
+    <circle cx="15" cy="10" r="1" fill="currentColor"/>
+  </symbol>
+  <!-- 10. Troubleshooting / wrench -->
+  <symbol id="icon-troubleshooting" viewBox="0 0 24 24">
+    <path d="M14 6a4 4 0 1 1 4 4l-8 8a3 3 0 1 1-4-4l8-8a4 4 0 0 1 0 0z"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="7" cy="17" r="1.5" fill="currentColor"/>
+  </symbol>
+</svg>
 
 <header class="topbar">
   <span class="brand">Roman SMS</span>
@@ -394,17 +559,17 @@
 
 <aside class="sidebar">
   <div class="nav-label">Manual</div>
-  <a href="#welcome"><span class="num">0</span>Welcome</a>
-  <a href="#getting-set-up"><span class="num">1</span>Getting set up</a>
-  <a href="#the-dashboard"><span class="num">2</span>The dashboard</a>
-  <a href="#contacts"><span class="num">3</span>Adding contacts</a>
-  <a href="#groups"><span class="num">4</span>Organizing contacts</a>
-  <a href="#sending"><span class="num">5</span>Sending a message</a>
-  <a href="#scheduling"><span class="num">6</span>Scheduling a message</a>
-  <a href="#team"><span class="num">7</span>Your team</a>
-  <a href="#billing"><span class="num">8</span>Billing</a>
-  <a href="#help"><span class="num">9</span>Getting help</a>
-  <a href="#troubleshooting"><span class="num">10</span>Troubleshooting</a>
+  <a href="#welcome"><svg class="icon"><use href="#icon-welcome"/></svg><span class="num">0</span>Welcome</a>
+  <a href="#getting-set-up"><svg class="icon"><use href="#icon-login"/></svg><span class="num">1</span>Getting set up</a>
+  <a href="#the-dashboard"><svg class="icon"><use href="#icon-dashboard"/></svg><span class="num">2</span>The dashboard</a>
+  <a href="#contacts"><svg class="icon"><use href="#icon-contacts"/></svg><span class="num">3</span>Adding contacts</a>
+  <a href="#groups"><svg class="icon"><use href="#icon-groups"/></svg><span class="num">4</span>Organizing contacts</a>
+  <a href="#sending"><svg class="icon"><use href="#icon-send"/></svg><span class="num">5</span>Sending a message</a>
+  <a href="#scheduling"><svg class="icon"><use href="#icon-schedule"/></svg><span class="num">6</span>Scheduling a message</a>
+  <a href="#team"><svg class="icon"><use href="#icon-team"/></svg><span class="num">7</span>Your team</a>
+  <a href="#billing"><svg class="icon"><use href="#icon-billing"/></svg><span class="num">8</span>Billing</a>
+  <a href="#help"><svg class="icon"><use href="#icon-help"/></svg><span class="num">9</span>Getting help</a>
+  <a href="#troubleshooting"><svg class="icon"><use href="#icon-troubleshooting"/></svg><span class="num">10</span>Troubleshooting</a>
 </aside>
 
 <main class="content">
@@ -413,7 +578,7 @@
 <!-- SECTION 0: WELCOME                                            -->
 <!-- ============================================================ -->
 
-<h1 id="welcome">Welcome to Roman SMS</h1>
+<h1 id="welcome"><svg class="icon"><use href="#icon-welcome"/></svg>Welcome to Roman SMS</h1>
 
 <p>Roman SMS sends text messages to your school's or business's contacts — parents, guardians, staff, customers, members. You write a message, choose who receives it, and we deliver it.</p>
 
@@ -478,7 +643,7 @@
 
   <!-- Recipients -->
   <rect x="490" y="215" width="200" height="36" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
-  <text x="590" y="238" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" fill="#374151">📱 Recipients (parents, staff, customers)</text>
+  <text x="590" y="238" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" fill="#374151">RECIPIENTS  (parents · staff · customers)</text>
 
   <!-- Caption -->
   <text x="360" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" font-style="italic">You → Roman SMS → Operator → Recipients</text>
@@ -544,7 +709,7 @@
 <!-- SECTION 1: GETTING SET UP                                     -->
 <!-- ============================================================ -->
 
-<h1 id="getting-set-up">1. Getting set up</h1>
+<h1 id="getting-set-up"><svg class="icon"><use href="#icon-login"/></svg>1. Getting set up</h1>
 
 <p>This section is for the first time you use Roman SMS. If you have used it before and just need to log in, jump to <a href="#logging-in-again">Logging in again</a> at the end.</p>
 
@@ -645,7 +810,7 @@
 <!-- SECTION 2: THE DASHBOARD                                      -->
 <!-- ============================================================ -->
 
-<h1 id="the-dashboard">2. The dashboard</h1>
+<h1 id="the-dashboard"><svg class="icon"><use href="#icon-dashboard"/></svg>2. The dashboard</h1>
 
 <p>The dashboard is the first thing you see after logging in. It shows you, at a glance, how much you've sent and how much you have left. Nothing on this page changes anything — it's all read-only. To do something, use the menu on the left.</p>
 
@@ -772,7 +937,7 @@
 <!-- SECTION 3: ADDING CONTACTS                                    -->
 <!-- ============================================================ -->
 
-<h1 id="contacts">3. Adding contacts</h1>
+<h1 id="contacts"><svg class="icon"><use href="#icon-contacts"/></svg>3. Adding contacts</h1>
 
 <p>Contacts are the people you send messages to — parents, guardians, staff, customers, members. Before you can send a message to anyone, their phone number needs to be in your contact list.</p>
 
@@ -998,7 +1163,7 @@ Sarah Achieng,0773456789,Form 2 Parents,Kampala</code></pre>
 <!-- SECTION 4: ORGANIZING CONTACTS                                -->
 <!-- ============================================================ -->
 
-<h1 id="groups">4. Organizing contacts into groups</h1>
+<h1 id="groups"><svg class="icon"><use href="#icon-groups"/></svg>4. Organizing contacts into groups</h1>
 
 <p>A <strong>group</strong> is a named set of contacts. Every contact in your organization belongs to exactly one group. Groups are how you target your messages — you send to "Form 1 Parents" instead of "everyone in the school", or to "Regular customers" instead of "every number we have".</p>
 
@@ -1172,52 +1337,48 @@ Sarah Achieng,0773456789,Form 2 Parents,Kampala</code></pre>
 <h2>How department isolation works</h2>
 
 <div class="diagram">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" width="720" height="300">
-  <!-- Header labels -->
-  <text x="180" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e40af">BURSAR</text>
-  <text x="360" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e40af">DOS</text>
-  <text x="540" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e40af">SCHOOL ADMIN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380">
+  <defs>
+    <marker id="dept-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
 
-  <!-- Records row -->
-  <rect x="20" y="50" width="680" height="40" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
-  <text x="40" y="75" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#6b7280">RECORDS</text>
-  <text x="200" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">Bursar records</text>
-  <text x="350" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">DOS records</text>
-  <text x="480" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">HT records</text>
-  <text x="600" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">Shared records</text>
+  <!-- Title -->
+  <text x="360" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Who sees what — three concentric access scopes</text>
 
-  <!-- BURSAR row -->
-  <rect x="20" y="110" width="680" height="50" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="40" y="140" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#166534">BURSAR SEES</text>
-  <text x="200" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
-  <text x="350" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
-  <text x="480" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
-  <text x="600" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <!-- SCHOOL ADMIN = outer ring -->
+  <circle cx="360" cy="215" r="150" fill="#fef3c7" fill-opacity="0.35" stroke="#d97706" stroke-width="2.5" stroke-dasharray="6,3"/>
+  <text x="360" y="62" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#92400e">SCHOOL ADMIN · sees everything</text>
 
-  <!-- DOS row -->
-  <rect x="20" y="175" width="680" height="50" rx="6" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
-  <text x="40" y="205" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e3a8a">DOS SEES</text>
-  <text x="200" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
-  <text x="350" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
-  <text x="480" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
-  <text x="600" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <!-- Shared records = middle ring (visible to all roles) -->
+  <circle cx="360" cy="215" r="118" fill="#f0fdf4" fill-opacity="0.55" stroke="#16a34a" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="360" y="107" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#166534">SHARED · visible to every role</text>
 
-  <!-- ADMIN row -->
-  <rect x="20" y="240" width="680" height="50" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
-  <text x="40" y="270" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#92400e">ADMIN SEES</text>
-  <text x="200" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
-  <text x="350" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
-  <text x="480" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
-  <text x="600" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <!-- Department-specific records = inner circles (bursar, DOS) -->
+  <circle cx="300" cy="215" r="52" fill="#dcfce7" fill-opacity="0.85" stroke="#16a34a" stroke-width="2"/>
+  <text x="300" y="212" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#166534">BURSAR</text>
+  <text x="300" y="228" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#16a34a">own records</text>
+
+  <circle cx="420" cy="215" r="52" fill="#dbeafe" fill-opacity="0.85" stroke="#1e40af" stroke-width="2"/>
+  <text x="420" y="212" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1e3a8a">DOS</text>
+  <text x="420" y="228" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#1e40af">own records</text>
+
+  <!-- Legend at bottom -->
+  <line x1="60" y1="330" x2="660" y2="330" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="80" y="355" font-family="system-ui,sans-serif" font-size="11" fill="#374151">A <tspan font-weight="700">bursar</tspan> can see: own bursar records + shared (green areas)</text>
+  <text x="80" y="372" font-family="system-ui,sans-serif" font-size="11" fill="#374151">A <tspan font-weight="700">DOS</tspan> can see: own DOS records + shared (green areas)</text>
+  <text x="420" y="355" font-family="system-ui,sans-serif" font-size="11" fill="#374151">An <tspan font-weight="700">admin</tspan> can see all</text>
+  <text x="420" y="372" font-family="system-ui,sans-serif" font-size="11" fill="#374151">of the above, plus other departments'</text>
 </svg>
-<div class="caption">A bursar sees bursar records and shared records, never the DOS's. A school administrator sees everything. The department isolation system enforces this on every read.</div>
+<div class="caption">The bursar's reach (green inner circle + shared green ring) is a subset of the admin's reach (the whole outer orange ring). Department isolation is enforced on every read — a bursar physically cannot fetch a DOS record.</div>
 </div>
 
 <!-- ============================================================ -->
 <!-- SECTION 5: SENDING A MESSAGE                                  -->
 <!-- ============================================================ -->
 
-<h1 id="sending">5. Sending a message</h1>
+<h1 id="sending"><svg class="icon"><use href="#icon-send"/></svg>5. Sending a message</h1>
 
 <p>This is the core of Roman SMS. You've added contacts (<a href="#contacts">Section 3</a>) and organized them into groups (<a href="#groups">Section 4</a>). Now you send a message.</p>
 
@@ -1457,7 +1618,7 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <!-- SECTION 6: SCHEDULING A MESSAGE                               -->
 <!-- ============================================================ -->
 
-<h1 id="scheduling">6. Scheduling a message</h1>
+<h1 id="scheduling"><svg class="icon"><use href="#icon-schedule"/></svg>6. Scheduling a message</h1>
 
 <p>Scheduling lets you write a message now and have it sent later — once, or repeatedly on a schedule. This is useful for:</p>
 
@@ -1519,51 +1680,68 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <h2>How a reservation flows over time</h2>
 
 <div class="diagram">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" width="720" height="320">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" width="720" height="420">
   <defs>
-    <marker id="time-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="time-arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
     </marker>
   </defs>
 
   <!-- Title -->
-  <text x="360" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Reservation: 6,000 credits (500 recipients × 3 segments × 4 runs)</text>
+  <text x="360" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Reservation over time: 6,000 credits held, consumed 1,500 at each run</text>
 
-  <!-- Timeline axis -->
-  <line x1="40" y1="180" x2="680" y2="180" stroke="#6b7280" stroke-width="2" marker-end="url(#time-arrow)"/>
-  <text x="688" y="185" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">time</text>
+  <!-- Left axis label -->
+  <text x="70" y="200" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#6b7280" transform="rotate(-90, 70, 200)">WALLET BALANCE</text>
 
-  <!-- Milestone markers -->
-  <circle cx="80" cy="180" r="8" fill="#1e40af"/>
-  <text x="80" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1e40af">Create</text>
-  <text x="80" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">-6,000</text>
+  <!-- Balance line: descending step chart -->
+  <!-- y=60 is 6,000 credits; y=340 is 0 credits. Each step drops 70px. -->
+  <polyline points="120,60 240,60 240,130 400,130 400,200 540,200 540,270 640,270 640,340"
+    fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linejoin="round"/>
 
-  <circle cx="240" cy="180" r="8" fill="#16a34a"/>
-  <text x="240" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 1</text>
-  <text x="240" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+  <!-- Filled area under the line (reservation held) -->
+  <polygon points="120,60 240,60 240,130 400,130 400,200 540,200 540,270 640,270 640,340 120,340"
+    fill="#dbeafe" fill-opacity="0.4"/>
 
-  <circle cx="400" cy="180" r="8" fill="#16a34a"/>
-  <text x="400" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 2</text>
-  <text x="400" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+  <!-- Balance value labels at each drop -->
+  <text x="180" y="55"  text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#1e40af">6,000</text>
+  <text x="320" y="125" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#1e40af">4,500</text>
+  <text x="470" y="195" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#1e40af">3,000</text>
+  <text x="590" y="265" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#1e40af">1,500</text>
+  <text x="660" y="350" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#16a34a">0</text>
 
-  <circle cx="540" cy="180" r="8" fill="#16a34a"/>
-  <text x="540" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 3</text>
-  <text x="540" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+  <!-- Time axis -->
+  <line x1="100" y1="350" x2="680" y2="350" stroke="#6b7280" stroke-width="1.5" marker-end="url(#time-arrow2)"/>
+  <text x="690" y="355" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">time</text>
 
-  <circle cx="640" cy="180" r="8" fill="#16a34a"/>
-  <text x="640" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 4</text>
-  <text x="640" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+  <!-- Event markers on the time axis -->
+  <circle cx="120" cy="350" r="6" fill="#1e40af"/>
+  <text x="120" y="375" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#1e40af">Create</text>
+  <text x="120" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-6,000 held</text>
 
-  <!-- Reservation bar under timeline -->
-  <rect x="80" y="230" width="560" height="30" rx="4" fill="#dbeafe" stroke="#1e40af" stroke-width="1"/>
-  <text x="360" y="250" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1e3a8a">6,000 credits held as reservation</text>
+  <circle cx="240" cy="350" r="6" fill="#16a34a"/>
+  <text x="240" y="375" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#16a34a">Run 1</text>
+  <text x="240" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#16a34a">-1,500 consumed</text>
 
-  <!-- Wallet state labels -->
-  <text x="360" y="290" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">Wallet balance reduced by 6,000 at creation. Each run consumes 1,500 from the reservation — no additional wallet charge.</text>
+  <circle cx="400" cy="350" r="6" fill="#16a34a"/>
+  <text x="400" y="375" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#16a34a">Run 2</text>
+  <text x="400" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#16a34a">-1,500 consumed</text>
 
-  <text x="360" y="308" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a" font-style="italic">Cancel = remaining reservation refunded. Complete = residual refunded if actual &lt; reserved.</text>
+  <circle cx="540" cy="350" r="6" fill="#16a34a"/>
+  <text x="540" y="375" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#16a34a">Run 3</text>
+  <text x="540" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#16a34a">-1,500 consumed</text>
+
+  <circle cx="640" cy="350" r="6" fill="#16a34a"/>
+  <text x="640" y="375" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#16a34a">Run 4</text>
+  <text x="640" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#16a34a">-1,500 consumed · 0 left</text>
+
+  <!-- Legend box top-right -->
+  <rect x="480" y="40" width="200" height="60" rx="6" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="490" y1="60" x2="520" y2="60" stroke="#1e40af" stroke-width="2.5"/>
+  <text x="528" y="63" font-family="system-ui,sans-serif" font-size="10" fill="#374151">Wallet available balance</text>
+  <rect x="490" y="78" width="30" height="12" fill="#dbeafe" fill-opacity="0.4" stroke="#dbeafe"/>
+  <text x="528" y="88" font-family="system-ui,sans-serif" font-size="10" fill="#374151">Credits held in reservation</text>
 </svg>
-<div class="caption">Schedule credits are reserved at creation. Each fire consumes from the reservation without touching the wallet again. Cancel and complete refund what's left.</div>
+<div class="caption">The wallet balance drops by 6,000 at creation, then stays flat between runs. Each run consumes 1,500 from the held reservation — no new debit hits the wallet. Cancel or complete refunds what's left.</div>
 </div>
 
 <h3>How the reservation is used up over time</h3>
@@ -1718,7 +1896,7 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <!-- SECTION 7: YOUR TEAM                                          -->
 <!-- ============================================================ -->
 
-<h1 id="team">7. Your team — adding and managing staff</h1>
+<h1 id="team"><svg class="icon"><use href="#icon-team"/></svg>7. Your team — adding and managing staff</h1>
 
 <div class="callout admin">
 <span class="label">Admin only</span>
@@ -1963,7 +2141,7 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <!-- SECTION 8: BILLING                                            -->
 <!-- ============================================================ -->
 
-<h1 id="billing">8. Billing — credits, plans, and invoices</h1>
+<h1 id="billing"><svg class="icon"><use href="#icon-billing"/></svg>8. Billing — credits, plans, and invoices</h1>
 
 <div class="callout admin">
 <span class="label">Admin only</span>
@@ -2135,7 +2313,7 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <!-- SECTION 9: GETTING HELP                                       -->
 <!-- ============================================================ -->
 
-<h1 id="help">9. Getting help</h1>
+<h1 id="help"><svg class="icon"><use href="#icon-help"/></svg>9. Getting help</h1>
 
 <p>Sometimes things go wrong in ways the manual doesn't cover, or the fix is something only the operator can do. This section is about how to get help — quickly, and with the least back-and-forth.</p>
 
@@ -2245,7 +2423,7 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <!-- SECTION 10: TROUBLESHOOTING                                   -->
 <!-- ============================================================ -->
 
-<h1 id="troubleshooting">10. Troubleshooting</h1>
+<h1 id="troubleshooting"><svg class="icon"><use href="#icon-troubleshooting"/></svg>10. Troubleshooting</h1>
 
 <p>When something isn't working, look for the problem in the list below. The problems are alphabetical. Each entry tells you the most likely cause, what to do, and when to stop and ask the operator.</p>
 
