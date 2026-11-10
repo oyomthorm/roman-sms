@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roman SMS — Admin Quick Reference</title>
+<style>
+  @page { size: A4; margin: 8mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 8.5pt;
+    line-height: 1.3;
+    color: #1a1a1a;
+    background: #f5f5f5;
+    padding: 6mm;
+  }
+  .sheet {
+    background: white;
+    width: 194mm;
+    margin: 0 auto;
+    padding: 6mm 7mm;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid #0a5c8c;
+    padding-bottom: 3mm;
+    margin-bottom: 4mm;
+  }
+  h1 { font-size: 15pt; color: #0a5c8c; font-weight: 700; letter-spacing: -0.3px; }
+  header .sub { font-size: 8pt; color: #666; text-align: right; line-height: 1.3; }
+  header .sub strong { color: #1a1a1a; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3mm;
+  }
+  .block {
+    border: 1px solid #d0d8de;
+    border-radius: 2mm;
+    padding: 2.5mm 3mm;
+    background: #fafcfd;
+  }
+  .block h2 {
+    font-size: 9pt;
+    color: #0a5c8c;
+    margin-bottom: 1.5mm;
+    display: flex;
+    align-items: center;
+    gap: 1.5mm;
+  }
+  .block h2 svg { width: 4mm; height: 4mm; flex-shrink: 0; }
+  .block p, .block li { font-size: 8pt; color: #333; margin-bottom: 1mm; }
+  .block ul { padding-left: 3mm; list-style-type: none; }
+  .block ul li::before { content: "▸ "; color: #0a5c8c; font-size: 7pt; }
+  .block .key { color: #c0392b; font-weight: 600; }
+  .block .good { color: #1e7a46; font-weight: 600; }
+  .block .ref { color: #666; font-size: 7pt; font-style: italic; }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 1mm;
+    margin: 1.5mm 0;
+    font-size: 7pt;
+  }
+  .flow-step {
+    flex: 1;
+    background: #e8f0f5;
+    border: 1px solid #b8d0dd;
+    border-radius: 1mm;
+    padding: 1mm;
+    text-align: center;
+    color: #0a5c8c;
+    font-weight: 600;
+  }
+  .flow-arrow { color: #0a5c8c; font-size: 8pt; }
+
+  .callout {
+    background: #fff3cd;
+    border-left: 3px solid #f0ad4e;
+    padding: 1.5mm 2mm;
+    font-size: 7.5pt;
+    margin-top: 1.5mm;
+    color: #7a5c00;
+    border-radius: 1mm;
+  }
+  .callout.danger {
+    background: #fde8e8;
+    border-left-color: #c0392b;
+    color: #7a1a1a;
+  }
+  .callout.success {
+    background: #e8f5ec;
+    border-left-color: #1e7a46;
+    color: #1a4a2a;
+  }
+
+  .reservation-visual {
+    display: flex;
+    gap: 1mm;
+    margin: 1.5mm 0;
+    font-size: 6.5pt;
+  }
+  .week { flex: 1; text-align: center; }
+  .week .bar { height: 8mm; background: #0a5c8c; border-radius: 1mm; }
+  .week .bar.used { background: #ccc; }
+  .week .lbl { color: #666; margin-top: 0.5mm; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7pt;
+    margin-top: 1mm;
+  }
+  table th {
+    text-align: left;
+    background: #e8f0f5;
+    color: #0a5c8c;
+    padding: 0.8mm 1.5mm;
+    font-weight: 600;
+    border-bottom: 1px solid #b8d0dd;
+  }
+  table td {
+    padding: 0.8mm 1.5mm;
+    border-bottom: 1px solid #eee;
+  }
+  table td.yes { color: #1e7a46; font-weight: 600; }
+  table td.no { color: #c0392b; font-weight: 600; }
+
+  footer {
+    margin-top: 3mm;
+    padding-top: 2mm;
+    border-top: 1px solid #d0d8de;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7pt;
+    color: #666;
+  }
+  footer strong { color: #1a1a1a; }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .sheet { box-shadow: none; margin: 0; padding: 0; }
+    .block { background: white; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header>
+  <h1>Roman SMS — Admin Quick Reference</h1>
+  <div class="sub">
+    For the school administrator or business owner<br>
+    <strong>romansms.com</strong> · full guide: <em>Roman SMS User Manual</em>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- BLOCK 1: Sidebar / orientation -->
+  <div class="block">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a5c8c" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Your map of the app
+    </h2>
+    <ul>
+      <li><strong>Dashboard</strong> — balance &amp; usage</li>
+      <li><strong>Contacts</strong> — people you message</li>
+      <li><strong>Groups</strong> — classes, customers</li>
+      <li><strong>Campaigns</strong> — sent &amp; scheduled</li>
+      <li><strong>Templates</strong> — reusable messages</li>
+      <li><strong>Billing</strong> — wallet &amp; invoices</li>
+      <li><strong>Chat</strong> — support</li>
+      <li><strong>School users</strong> <span class="ref">(admin)</span></li>
+      <li><strong>Settings</strong> <span class="ref">(admin)</span></li>
+    </ul>
+  </div>
+
+  <!-- BLOCK 2: Wallet -->
+  <div class="block">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a5c8c" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+      Your wallet
+    </h2>
+    <p><strong>Credits</strong> = money for SMS. 1 credit = 1 SMS segment (~160 chars).</p>
+    <p><strong>Days left</strong> on the dashboard estimates runway at current spend.</p>
+    <p>Low balance → <strong>contact the operator</strong> via Chat. No "Buy" button exists.</p>
+    <div class="callout success">
+      <strong>Plan expired?</strong> Your credits are safe — they don't expire. But you can't <em>send</em> until renewed.
+    </div>
+  </div>
+
+  <!-- BLOCK 3: Sending modes -->
+  <div class="block">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a5c8c" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Three ways to send
+    </h2>
+    <ul>
+      <li><strong>Standard</strong> — one body, one group. <em>Most sends.</em></li>
+      <li><strong>Personalized</strong> — CSV with per-row values in <code>{{name}}</code>, <code>{{balance}}</code>. Cost = sum of per-row segments.</li>
+      <li><strong>Paste numbers</strong> — up to 500 pasted numbers, one-off. Skips opt-outs.</li>
+    </ul>
+    <p class="ref">Counter shows cost <em>before</em> you send. Includes brand prefix.</p>
+  </div>
+
+  <!-- BLOCK 4: Scheduling -->
+  <div class="block">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a5c8c" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Scheduling: credits are <em>reserved</em> upfront
+    </h2>
+    <p>Creating a schedule <strong>debits the total cost</strong> from your wallet now — not when it fires.</p>
+    <div class="reservation-visual">
+      <div class="week"><div class="bar used"></div><div class="lbl">Wk 1</div></div>
+      <div class="week"><div class="bar used"></div><div class="lbl">Wk 2</div></div>
+      <div class="week"><div class="bar"></div><div class="lbl">Wk 3</div></div>
+      <div class="week"><div class="bar"></div><div class="lbl">Wk 4</div></div>
+    </div>
+    <p class="ref">Solid = consumed. Blue = held for future runs.</p>
+    <div class="callout">
+      <strong>Cancel</strong> = refund remaining. <strong>Delete</strong> only if never fired.
+    </div>
+  </div>
+
+  <!-- BLOCK 5: Users -->
+  <div class="block">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a5c8c" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Managing staff
+    </h2>
+    <table>
+      <tr><th>Action</th><th>Login</th><th>Send</th><th>Undo</th></tr>
+      <tr><td>Suspend</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td></tr>
+      <tr><td>Terminate</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td></tr>
+      <tr><td>Delete</td><td class="no">no</td><td class="no">no</td><td class="no">no</td></tr>
+    </table>
+    <div class="callout danger">
+      <strong>Delete loses audit history.</strong> Prefer terminate for real people.
+    </div>
+    <p class="ref">Cannot remove the last admin. Cannot create admin + department (choose one).</p>
+  </div>
+
+  <!-- BLOCK 6: Billing flow -->
+  <div class="block">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a5c8c" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Getting more credits
+    </h2>
+    <div class="flow">
+      <div class="flow-step">Ask via Chat</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">Invoice issued</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">You pay</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">Operator marks paid</div>
+    </div>
+    <p>Credits land in your wallet. Plan renews. You can send.</p>
+    <p class="ref">Invoices are permanent snapshots — the price you saw is the price you paid, forever.</p>
+  </div>
+
+</div>
+
+<footer>
+  <span><strong>Stuck?</strong> Open <strong>Chat</strong> — it's the fastest route to the operator.</span>
+  <span>Operator <em>cannot:</em> undo sent SMS · reverse opt-outs · restore deleted users.</span>
+</footer>
+
+</div>
+</body>
+</html>
