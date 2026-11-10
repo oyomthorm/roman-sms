@@ -1,4 +1,90 @@
 # Changelog
+
+## [Unreleased] - 2026-11-10 to 2026-11-13
+
+### Added
+- **Department isolation (A1-A5).** `department` field on `user`,
+  `contact_group`, `message_template`, `campaign`, `campaign_schedule`
+  (all nullable, indexed). Read filter via
+  `permissions.department_filter(query, model, user)`: a user with
+  `department=X` sees X + shared (NULL); `department=None` sees everything.
+  Routes pass `user=current_user` to every read service. No route accepts
+  `department` from the form - the value is always the creator's own.
+- **School-admin user CRUD (A5).** `/school/users` list, create, edit,
+  delete, reset password. Department dropdown on create. Master no longer
+  creates school users; the school's own associate_admin does.
+- **User lifecycle (#46).** `User.status` (active/suspended/terminated) +
+  `status_changed_at`. Suspend blocks new sends at `/campaigns/new` but
+  allows login. Terminate sets `is_active_flag=False` (login blocked).
+  Reactivate restores. Guards: cannot suspend/terminate self, cannot
+  suspend/terminate the last active associate_admin in the org.
+- **User detail page (#47).** `/school/users/<id>` - identity card, four
+  stat cards (campaigns, campaigns 30d, active schedules, audit events),
+  recent campaigns, recent schedules, recent audit activity.
+- **Organization.vertical (#45).** `school` / `business` / NULL.
+  Master-only - set on signup approval via radio buttons, editable via
+  `/master/orgs/<id>/edit`. Never shown to the school's own users.
+  Affects onboarding copy and analytics only; no permissions or filters.
+- **Schedule pre-reservation of credits (#44).**
+  `CampaignSchedule.credits_reserved` (nullable - NULL means legacy
+  pre-reservation schedule). Create debits the total upfront
+  (`reason='schedule_reserve'`). Worker fires without re-debiting.
+  Cancel refunds remaining (`schedule_cancel_refund`). Overage at fire
+  skips the run, refunds fully (`schedule_overage_refund`), pauses with
+  a clear reason. Underage refunds the difference
+  (`schedule_complete_refund`). See ADR-023 and ADR-027.
+- **Schedules CRUD (#16).** Edit a schedule's times/body/name/recipient
+  filters with automatic reservation adjustment (refund old, debit new;
+  delta only if changed). Delete only if never fired and not active.
+  Detail page shows "Credits held" stat card and Edit/Delete buttons.
+  See ADR-023.
+- **Personalized campaign sends (#33, prior session).** CSV upload +
+  per-row `{{column}}` template merge. `services/personalization.py`,
+  `renderer.render_personalized`. Web-only.
+
+### Fixed
+- **#49 - last scheduled run silently skipped.** `claim_due_schedule`
+  marked a schedule `completed` before `materialize_run` could fire the
+  last time. Also fixed: multi-time schedules whose remaining times were
+  all in the past were marked completed prematurely (`next_run_at`
+  vs `times_list`). Caught by reproduction test, fixed, deployed.
+- `is_active_flag` and `status` are kept in sync by
+  suspend/terminate/reactivate.
+
+### Changed
+- `wallet.credit()` accepts schedule refund reasons:
+  `schedule_cancel_refund`, `schedule_partial_refund`,
+  `schedule_complete_refund`, `schedule_overage_refund`.
+- Schedules created before the reservation model (credits_reserved NULL)
+  continue to debit at fire time. Zero disruption during the #44 migration.
+
+### Documentation
+- `docs/DEPARTMENTS.md` (Q1/Q2/Q3 workflow guide)
+- `docs/ONBOARDING_FLOW.md` (verified signup -> first-send chain)
+- `docs/RUNBOOK.md`, `docs/DEPLOY.md`, `docs/ARCHITECTURE.md`,
+  `docs/DECISIONS.md` (ADR-023 through ADR-028) refreshed
+- `docs/PERMISSIONS.md` (user lifecycle, school-admin CRUD matrix)
+- `docs/ONBOARDING.md` (reservation model corrected)
+- `docs/BACKLOG.md` (shipped-this-arc section, new deferred list)
+- `docs/README.md` (index and reading order)
+- `START_STATEMENT.md` rewritten for 2026-11-13 state
+- Root-level `ARCHITECTURE.md`, `CHANGELOG.md`, `DECISIONS.md` (byte-identical
+  duplicates of `docs/` versions) removed
+
+### Migrations
+- `c41928d919da` - campaign_schedule.credits_reserved
+- `e37cc1348332` - user.status, user.status_changed_at
+- `87cd66d8578c` - organization.vertical
+
+### Verified
+- Full onboarding flow (signup -> approve with vertical -> welcome email
+  -> password set -> login -> first campaign -> wallet debit) tested end
+  to end against prod on 2026-11-13.
+- 247 tests passing (was 189 at start of A1).
+- Two real customers in prod: Fitting (school), ORONEK (business), both
+  correctly classified and protected by the reservation/lifecycle systems.
+
+---
 ## [0.12.0] — Mobile API deployed; signup, wallet, plans fixes; Flutter client working
 
 ### Deployed
