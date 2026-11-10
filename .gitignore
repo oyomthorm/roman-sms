@@ -97,3 +97,5 @@ scripts/VPS ROOT.txt
 testkey
 testkey.pub
 panel/.env
+# Word lock files (created when a .docx is open in Word)
+docs/~$*
