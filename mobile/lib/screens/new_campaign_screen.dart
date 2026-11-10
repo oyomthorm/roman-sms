@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -83,7 +83,7 @@ class _NewCampaignScreenState extends ConsumerState<NewCampaignScreen> {
         if (_recipientSource == 'paste') 'pasted_numbers': _pasteController.text,
       };
 
-      final r = await ApiClient.instance.dio.post(
+      await ApiClient.instance.dio.post(
         '/api/v1/campaigns',
         data: payload,
         options: Options(headers: {'Idempotency-Key': _generateIdempotencyKey()}),

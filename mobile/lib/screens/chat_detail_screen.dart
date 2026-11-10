@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -96,7 +96,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             bottomLeft: !isMe ? const Radius.circular(0) : const Radius.circular(16),
                           ),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5, offset: const Offset(0, 2)),
                           ],
                         ),
                         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
@@ -131,7 +131,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 const EdgeInsets.only(bottom: 12, left: 16, right: 16, top: 12),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
             ),
             child: Row(
               children: [
