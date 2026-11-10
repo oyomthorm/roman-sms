@@ -13,7 +13,7 @@
        class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
               text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition
               w-full sm:w-auto order-2 sm:order-1">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
       </svg>
       Import
@@ -22,7 +22,7 @@
        class="inline-flex items-center justify-center gap-2 border border-slate-300 hover:bg-slate-50
               text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition
               w-full sm:w-auto order-3 sm:order-2">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/>
       </svg>
       Export
@@ -42,7 +42,7 @@
 <form method="get" class="space-y-2 sm:space-y-0 sm:flex sm:flex-col lg:flex-row sm:gap-2 mb-4">
   <div class="relative flex-1">
     <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-         fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+         fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round"
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
     </svg>
@@ -128,7 +128,7 @@
           <div class="flex items-center justify-end gap-2">
             <a href="{{ url_for('contacts.edit', cid=c.id) }}"
                class="text-slate-500 hover:text-slate-900 transition p-1" title="Edit">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round"
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
@@ -137,7 +137,7 @@
             <form method="post" action="{{ url_for('contacts.optout', cid=c.id) }}" class="inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="text-slate-500 hover:text-amber-600 transition p-1" title="Opt out">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                 </svg>
@@ -149,7 +149,7 @@
                   onsubmit="return confirm('Delete this contact?')">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="text-slate-500 hover:text-red-600 transition p-1" title="Delete">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
                 </svg>
@@ -219,7 +219,7 @@
 
 {% else %}
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-16 px-4">
-  <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+  <svg class="w-14 h-14 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
     <path stroke-linecap="round" stroke-linejoin="round"
           d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/>
   </svg>
