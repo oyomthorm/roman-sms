@@ -38,6 +38,11 @@ EXTERNAL_CREDIT_REASONS = {
     'pahappa_sync',             # reconciliation with live Pahappa balance
     'refund',                   # reversal of a failed send
     'adjustment',               # dev / test correction
+    # Schedule pre-reservation refunds (see docs/DEPARTMENTS.md §3, #44)
+    'schedule_cancel_refund',   # schedule cancelled, reservation returned
+    'schedule_partial_refund',  # contacts shrank between reserve and fire
+    'schedule_complete_refund', # completed with reservation still held
+    'schedule_overage_refund',  # contacts grew; run skipped, full refund
 }
 
 
