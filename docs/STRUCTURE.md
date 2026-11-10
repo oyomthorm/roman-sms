@@ -2,7 +2,7 @@
 
 A one-page map of where everything lives. Read this before grepping.
 
-**Recon date:** 2026-11-08 (branch `wip/mobile-api` @ `a671430`).
+**Recon date:** 2026-11-13 (branch `wip/mobile-api` @ `b816341`).
 
 ## Repository layout
 
@@ -39,8 +39,8 @@ call the same services. Nothing enforces a rule twice.
 | `app/permissions.py` | `master_required`, `org_admin_required`, `org_scoped` | |
 | `app/cli.py` | Flask CLI commands - 16 registered in `register_cli(app)` | See CLI section |
 | `app/models/` | 12 modules, 25 `db.Model` classes | |
-| `app/services/` | 30 modules, every business rule | |
-| `app/routes/` | 17 HTML blueprints | |
+| `app/services/` | 31 modules, every business rule (added `personalization.py` for #33) | |
+| `app/routes/` | 18 HTML blueprints (added `school.py` for A5) | |
 | `app/api/v1/` | 12 files, JSON API for Flutter | |
 | `app/templates/` | Jinja2 templates (46 files) | |
 | `app/static/` | CSS/JS | |
@@ -65,6 +65,15 @@ call the same services. Nothing enforces a rule twice.
 (`class User(UserMixin, db.Model)`). `current_user` is a `User` with Flask-Login
 methods (`is_authenticated`, `get_id`, `role`, `org_id`). Any serializer or
 service touching `current_user` should treat it as a `User`, not a raw row.
+
+**Fields added in the A1-#16 arc (2026-11-10 to 2026-11-13):**
+- `User.department` (String, nullable, indexed), `User.status` (String,
+  default 'active'), `User.status_changed_at` (DateTime, nullable)
+- `Organization.vertical` (String, nullable, indexed; 'school'|'business'|NULL)
+- `Contact_group.department`, `Message_template.department`,
+  `Campaign.department`, `Campaign_schedule.department` (all String,
+  nullable, indexed)
+- `Campaign_schedule.credits_reserved` (Integer, nullable; NULL = legacy)
 
 **Import order gotcha** (CHANGELOG 0.7.0): `app/models/__init__.py` imports
 `District` first and calls `configure_mappers()` - this fails loudly on any
@@ -98,6 +107,7 @@ future import-order mistake.
 | `billing` | `/billing` | `billing.py` |
 | `reports` | `/reports` | `reports.py` |
 | `profile` | `/profile` | `profile.py` |
+| `school` | `/school` | `school.py` - school-admin user CRUD |
 | `settings` | `/settings` | `settings.py` |
 | `notifications` | `/notifications` | `notifications.py` |
 | `public` | `/` (opt-out, reset) | `public.py` |
@@ -128,11 +138,16 @@ future import-order mistake.
 
 ## Migrations - `migrations/versions/`
 
-Three revisions, linear chain:
+Six revisions, linear chain:
 
     5e5fea16ea4e (base)
     +-- 00404835aeb7
-        +-- 6c7a338d1274 (head - Contact.group_id NOT NULL, ContactImport.skipped_no_group)
+        +-- 6c7a338d1274 (Contact.group_id NOT NULL, ContactImport.skipped_no_group)
+            +-- e5997cc4f270 (A1: 5 department columns on user, contact_group,
+                             message_template, campaign, campaign_schedule)
+                +-- c41928d919da (#44: campaign_schedule.credits_reserved)
+                    +-- e37cc1348332 (#46: user.status, user.status_changed_at)
+                        +-- 87cd66d8578c (#45: organization.vertical, head)
 
 Check with `flask db current` before any deploy that touches models.
 
@@ -159,7 +174,7 @@ New commands go inside `register_cli` with the same decorator shape.
 Grouped by route blueprint: `auth/`, `billing/`, `campaigns/`, `chat/`,
 `contacts/`, `dashboard/`, `errors/`, `groups/`, `landing/`, `master/` (15 files -
 largest), `notifications/`, `profile/`, `public/`, `reports/`, `settings/`,
-`signup/`, `templates/`. Plus `base.html` (shell).
+`school/`, `signup/`, `templates/`. Plus `base.html` (shell).
 
 ## Tests - `tests/`
 
@@ -201,4 +216,4 @@ before any staging deploy (ADR-022). `INTERNET` permission must be in
 - `app/templates/` is a **directory**, `app/routes/templates.py` is a **route module**,
   and `services/templates_svc.py` is the **service**. Three different things.
 - `PATCH /api/v1/contacts/<id>` etc. exist; but `PATCH /api/v1/campaigns/<id>` does not.
-- Migration head on prod = `6c7a338d1274`. Verify with `flask db current` before trusting.
+- Migration head on prod = `87cd66d8578c`. Verify with `flask db current` before trusting.
