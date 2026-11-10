@@ -156,8 +156,18 @@ def test_create_campaign_without_user(app, db, subscribed_associate):
 # Schedule create with department
 # ---------------------------------------------------------------------------
 
-def test_create_schedule_sets_department_from_user(app, db, org, bursar):
+def test_create_schedule_sets_department_from_user(
+        app, db, master_org, subscribed_associate):
+    """#44: schedule creation reserves credits, which requires an active
+    subscription + wallet + at least one contact. Uses subscribed_associate
+    for sub + wallet; creates a bursar and a contact inline."""
     from datetime import datetime, timedelta
+
+    org = subscribed_associate
+    bursar = UserFactory(org=org, role='associate_admin',
+                         department='bursar')
+    ContactFactory(org=org, phone='256700000099', name='R')
+
     future = (datetime.utcnow() + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M')
     sched = schedules_svc.create_schedule(
         org,
