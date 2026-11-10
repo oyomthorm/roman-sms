@@ -1,0 +1,2487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roman SMS — Administrator Manual</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --text: #1f2937;
+    --text-muted: #6b7280;
+    --primary: #1e40af;
+    --primary-light: #dbeafe;
+    --accent: #0ea5e9;
+    --warning: #dc2626;
+    --warning-bg: #fef2f2;
+    --warning-border: #fecaca;
+    --tip-bg: #f0fdf4;
+    --tip-border: #bbf7d0;
+    --admin-bg: #fef3c7;
+    --admin-border: #fde68a;
+    --code-bg: #f3f4f6;
+    --radius: 8px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--bg);
+    font-size: 16px;
+  }
+
+  /* ============ HEADER ============ */
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  header.topbar .brand {
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  header.topbar .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  header.topbar .spacer { flex: 1; }
+
+  header.topbar input.search {
+    width: 320px;
+    max-width: 40vw;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    background: var(--bg);
+    transition: border-color 0.15s;
+  }
+  header.topbar input.search:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--surface);
+  }
+
+  header.topbar .search-result-count {
+    color: var(--text-muted);
+    font-size: 13px;
+    min-width: 100px;
+  }
+
+  /* ============ LAYOUT ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 60px);
+  }
+
+  aside.sidebar {
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+  }
+
+  aside.sidebar .nav-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    margin-top: 16px;
+  }
+  aside.sidebar .nav-label:first-child { margin-top: 0; }
+
+  aside.sidebar a {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background 0.1s;
+  }
+  aside.sidebar a:hover {
+    background: var(--bg);
+  }
+  aside.sidebar a.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  aside.sidebar a .num {
+    display: inline-block;
+    width: 24px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  aside.sidebar a.active .num { color: var(--primary); }
+
+  main.content {
+    padding: 32px 48px 96px;
+    max-width: 900px;
+  }
+
+  /* ============ TYPOGRAPHY ============ */
+  h1 {
+    font-size: 32px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+    color: var(--text);
+  }
+  h2 {
+    font-size: 24px;
+    margin: 56px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary-light);
+    color: var(--text);
+  }
+  h3 {
+    font-size: 18px;
+    margin: 32px 0 12px;
+    color: var(--text);
+  }
+  h4 {
+    font-size: 16px;
+    margin: 24px 0 8px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  p { margin: 0 0 16px; }
+
+  a { color: var(--primary); }
+
+  ul, ol { margin: 0 0 16px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+
+  strong { font-weight: 600; }
+
+  code {
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    font-size: 0.9em;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #111827;
+  }
+
+  kbd {
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* ============ CALLOUTS ============ */
+  .callout {
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    margin: 16px 0 24px;
+    border-left: 4px solid;
+    font-size: 15px;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .callout.warning {
+    background: var(--warning-bg);
+    border-color: var(--warning);
+  }
+  .callout.warning .label { color: var(--warning); }
+  .callout.tip {
+    background: var(--tip-bg);
+    border-color: #16a34a;
+  }
+  .callout.tip .label { color: #16a34a; }
+  .callout.admin {
+    background: var(--admin-bg);
+    border-color: #d97706;
+  }
+  .callout.admin .label { color: #d97706; }
+
+  /* ============ SCREENSHOT PLACEHOLDER ============ */
+  .screenshot {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 24px 16px;
+    margin: 24px 0;
+    text-align: center;
+    background: linear-gradient(135deg, #f9fafb 25%, transparent 25%, transparent 50%, #f9fafb 50%, #f9fafb 75%, transparent 75%);
+    background-size: 16px 16px;
+  }
+  .screenshot::before {
+    content: "📷 SCREENSHOT";
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .screenshot .desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ============ TABLES ============ */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 15px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  th {
+    background: #f9fafb;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #f9fafb; }
+
+  /* ============ SVG DIAGRAM ============ */
+  .diagram {
+    margin: 24px 0;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    overflow-x: auto;
+  }
+  .diagram svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+  }
+  .diagram .caption {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  /* ============ STEP LIST ============ */
+  ol.steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+  }
+  ol.steps > li {
+    position: relative;
+    padding: 12px 0 12px 48px;
+    counter-increment: step;
+    margin-bottom: 0;
+  }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ============ SEARCH HIGHLIGHT ============ */
+  .search-hit {
+    background: #fef08a;
+    padding: 2px 0;
+  }
+
+  /* ============ PRINT STYLES ============ */
+  @media print {
+    header.topbar, aside.sidebar, .search-result-count { display: none !important; }
+    .layout { display: block; }
+    main.content { padding: 0; max-width: none; }
+    body { background: white; font-size: 11pt; }
+    h1 { font-size: 22pt; }
+    h2 { font-size: 16pt; page-break-after: avoid; border-color: #999; }
+    h3 { font-size: 13pt; page-break-after: avoid; }
+    .callout, table, .diagram { page-break-inside: avoid; }
+    .screenshot { border-color: #ccc; }
+    a { color: black; text-decoration: none; }
+    a[href]::after { content: ""; }
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    main.content { padding: 24px 20px 64px; }
+    header.topbar { flex-wrap: wrap; }
+    header.topbar input.search { width: 100%; max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Roman SMS</span>
+  <span class="subtitle">Administrator Manual</span>
+  <span class="spacer"></span>
+  <input class="search" type="search" placeholder="Search the manual…" id="manual-search" aria-label="Search the manual">
+  <span class="search-result-count" id="search-result-count"></span>
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="nav-label">Manual</div>
+  <a href="#welcome"><span class="num">0</span>Welcome</a>
+  <a href="#getting-set-up"><span class="num">1</span>Getting set up</a>
+  <a href="#the-dashboard"><span class="num">2</span>The dashboard</a>
+  <a href="#contacts"><span class="num">3</span>Adding contacts</a>
+  <a href="#groups"><span class="num">4</span>Organizing contacts</a>
+  <a href="#sending"><span class="num">5</span>Sending a message</a>
+  <a href="#scheduling"><span class="num">6</span>Scheduling a message</a>
+  <a href="#team"><span class="num">7</span>Your team</a>
+  <a href="#billing"><span class="num">8</span>Billing</a>
+  <a href="#help"><span class="num">9</span>Getting help</a>
+  <a href="#troubleshooting"><span class="num">10</span>Troubleshooting</a>
+</aside>
+
+<main class="content">
+
+<!-- ============================================================ -->
+<!-- SECTION 0: WELCOME                                            -->
+<!-- ============================================================ -->
+
+<h1 id="welcome">Welcome to Roman SMS</h1>
+
+<p>Roman SMS sends text messages to your school's or business's contacts — parents, guardians, staff, customers, members. You write a message, choose who receives it, and we deliver it.</p>
+
+<p>This manual is for the person who runs Roman SMS for your organization: the school administrator or the business owner. If you are a staff member who only sends messages, you can read Sections 3 through 6 and skip the rest.</p>
+
+<h2>What you can do with Roman SMS</h2>
+
+<ul>
+  <li><strong>Send messages to everyone, one group, or one district.</strong> One message, many recipients.</li>
+  <li><strong>Send a different message to each person</strong>, using names or balances you have in a spreadsheet.</li>
+  <li><strong>Schedule messages to go out later</strong>, so you don't have to be at a computer when they need to send.</li>
+  <li><strong>Keep contacts organized</strong> in groups — "Form 1 Parents", "Class 6", "Staff", "Regular customers".</li>
+  <li><strong>Import contacts from a spreadsheet</strong> in one step, and see exactly which rows went in and which were skipped.</li>
+  <li><strong>Add your own staff</strong>, each with their own login and their own department.</li>
+  <li><strong>Track every message and every credit</strong> you spend.</li>
+  <li><strong>Chat directly with us</strong> if you need help.</li>
+</ul>
+
+<h2>How Roman SMS fits together</h2>
+
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" width="720" height="260">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e40af"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"/>
+    </marker>
+  </defs>
+
+  <!-- You (admin) -->
+  <rect x="20" y="90" width="140" height="70" rx="8" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+  <text x="90" y="118" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#1e3a8a">You</text>
+  <text x="90" y="138" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#1e40af">Administrator</text>
+
+  <!-- Arrow: You -> Roman SMS -->
+  <line x1="160" y1="125" x2="240" y2="125" stroke="#1e40af" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="200" y="115" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">compose</text>
+
+  <!-- Roman SMS box -->
+  <rect x="240" y="40" width="200" height="170" rx="8" fill="#ffffff" stroke="#0ea5e9" stroke-width="2"/>
+  <text x="340" y="70" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#0369a1">Roman SMS</text>
+  <text x="340" y="92" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#0369a1">Messages · Contacts · Schedules</text>
+  <text x="340" y="112" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#0369a1">Wallet · Staff · Reports</text>
+  <rect x="260" y="140" width="160" height="50" rx="6" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="1"/>
+  <text x="340" y="162" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#0369a1">Background worker</text>
+  <text x="340" y="178" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#0ea5e9">sends queued messages</text>
+
+  <!-- Arrow: Roman SMS -> Operator -->
+  <line x1="440" y1="125" x2="520" y2="125" stroke="#1e40af" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="480" y="115" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">hand off</text>
+
+  <!-- Operator box -->
+  <rect x="520" y="90" width="140" height="70" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="590" y="118" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#92400e">Operator</text>
+  <text x="590" y="138" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#d97706">and SMS gateway</text>
+
+  <!-- Arrow: Operator -> Recipients -->
+  <line x1="590" y1="160" x2="590" y2="215" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrow-muted)"/>
+  <text x="620" y="190" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">delivers to</text>
+
+  <!-- Recipients -->
+  <rect x="490" y="215" width="200" height="36" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
+  <text x="590" y="238" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" fill="#374151">📱 Recipients (parents, staff, customers)</text>
+
+  <!-- Caption -->
+  <text x="360" y="20" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" font-style="italic">You → Roman SMS → Operator → Recipients</text>
+</svg>
+<div class="caption">Roman SMS sits between you and the SMS network. You compose; the platform queues; the worker dispatches; the operator delivers to phones.</div>
+</div>
+
+<h2>What Roman SMS is not</h2>
+
+<ul>
+  <li><strong>It does not receive messages.</strong> Your recipients cannot reply back through Roman SMS. If they want to reach you, they use your school phone number or your email.</li>
+  <li><strong>It does not do email, voice calls, or social media.</strong> Only text messages.</li>
+  <li><strong>It does not sell you credits automatically.</strong> You contact the operator to buy more. (Section 8 explains how this works.)</li>
+</ul>
+
+<h2>A word about credits</h2>
+
+<p>Every message you send costs <strong>credits</strong>. One credit sends one <strong>segment</strong> — a segment is roughly 160 characters (or 70 characters if your message has non-English characters like emoji). A long message becomes two segments and costs two credits; a very long one becomes three, and so on.</p>
+
+<p>Your organization's <strong>brand prefix</strong> — a short identifier like "FITTING:" — is added to the front of every message and counts toward the length. The message screen shows you the exact cost before you send, so you never get a surprise.</p>
+
+<p>Your balance lives in your <strong>wallet</strong>. When you buy a plan, credits go into your wallet. Every message you send takes credits out. You can see the balance and the history any time.</p>
+
+<h2>How to use this manual</h2>
+
+<p>Each section covers one part of the system. You can read them in order, or jump to the one you need.</p>
+
+<table>
+  <thead>
+    <tr><th>I want to…</th><th>Read</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Log in for the first time</td><td><a href="#getting-set-up">Section 1 — Getting set up</a></td></tr>
+    <tr><td>Understand what I'm seeing on the home page</td><td><a href="#the-dashboard">Section 2 — The dashboard</a></td></tr>
+    <tr><td>Add contacts, one at a time or from a file</td><td><a href="#contacts">Section 3 — Adding contacts</a></td></tr>
+    <tr><td>Organize my contacts</td><td><a href="#groups">Section 4 — Organizing contacts</a></td></tr>
+    <tr><td>Send a message now</td><td><a href="#sending">Section 5 — Sending a message</a></td></tr>
+    <tr><td>Send a message later (or on a schedule)</td><td><a href="#scheduling">Section 6 — Scheduling a message</a></td></tr>
+    <tr><td>Add my staff members</td><td><a href="#team">Section 7 — Your team</a></td></tr>
+    <tr><td>Check my balance, buy credits, see invoices</td><td><a href="#billing">Section 8 — Billing</a></td></tr>
+    <tr><td>Get help from the operator</td><td><a href="#help">Section 9 — Getting help</a></td></tr>
+    <tr><td>Fix a problem</td><td><a href="#troubleshooting">Section 10 — Troubleshooting</a></td></tr>
+  </tbody>
+</table>
+
+<h3>Conventions used in this manual</h3>
+
+<ul>
+  <li><strong>Bold text</strong> is a button, link, or field label on the screen.</li>
+  <li><code>Monospaced text</code> is something you type exactly as shown.</li>
+  <li><span style="display:inline-block;padding:2px 8px;background:#fef3c7;border-radius:4px;font-size:12px;font-weight:700;color:#d97706;border:1px solid #fde68a;">ADMIN ONLY</span> marks a section only the administrator can use. If you are a staff member, you can skip it.</li>
+  <li>📷 screenshot placeholders show where a picture would help; the text describes the screen well enough without it.</li>
+</ul>
+
+<h2>Who to contact</h2>
+
+<p>If you need help — you can't log in, you think a message didn't send, you need to buy credits — contact the operator. The fastest way is the <strong>Chat</strong> page inside Roman SMS. It goes straight to us.</p>
+
+</main>
+</div>
+
+<footer style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;border-top:1px solid #e5e7eb;background:#fff;">
+  Roman SMS Administrator Manual · Version 2026-11-13 · Built for <a href="https://romansms.com">romansms.com</a>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============ SCROLL SPY ============
+  const navLinks = document.querySelectorAll('aside.sidebar a[href^="#"]');
+  const sections = Array.from(navLinks).map(a => document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+
+  function updateActive() {
+    const scrollPos = window.scrollY + 100;
+    let active = sections[0];
+    for (const s of sections) {
+      if (s.offsetTop <= scrollPos) active = s;
+    }
+    if (!active) return;
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + active.id);
+    });
+  }
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+
+  // ============ SEARCH ============
+  const searchInput = document.getElementById('manual-search');
+  const resultCount = document.getElementById('search-result-count');
+  const originalHTML = new Map();
+  document.querySelectorAll('main.content p, main.content li, main.content td').forEach((el, i) => {
+    originalHTML.set(el, el.innerHTML);
+  });
+
+  function clearHighlights() {
+    originalHTML.forEach((html, el) => { el.innerHTML = html; });
+  }
+
+  function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  let searchTimer = null;
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 120);
+  });
+
+  function runSearch() {
+    const q = searchInput.value.trim();
+    if (q.length < 2) {
+      clearHighlights();
+      resultCount.textContent = '';
+      return;
+    }
+    const re = new RegExp('(' + escapeRegExp(q) + ')', 'gi');
+    let hits = 0;
+    originalHTML.forEach((html, el) => {
+      if (re.test(html)) {
+        hits += (html.match(re) || []).length;
+        el.innerHTML = html.replace(re, '<mark class="search-hit">$1</mark>');
+      } else {
+        el.innerHTML = html;
+      }
+      re.lastIndex = 0;
+    });
+    resultCount.textContent = hits ? hits + ' match' + (hits === 1 ? '' : 'es') : 'no matches';
+  }
+
+  // Ctrl/Cmd+F focus on search
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    }
+  });
+})();
+</script>
+
+
+<!-- ============================================================ -->
+<!-- SECTION 1: GETTING SET UP                                     -->
+<!-- ============================================================ -->
+
+<h1 id="getting-set-up">1. Getting set up</h1>
+
+<p>This section is for the first time you use Roman SMS. If you have used it before and just need to log in, jump to <a href="#logging-in-again">Logging in again</a> at the end.</p>
+
+<h2>How you get an account</h2>
+
+<p>Roman SMS is not a sign-up-and-go service. The operator creates your organization and your login personally. This is deliberate: it means someone has checked that your organization is real, that your brand prefix is available, and that your first login will work.</p>
+
+<p>The sequence is:</p>
+
+<ol class="steps">
+  <li><strong>You apply.</strong> On the Roman SMS website, click <strong>Sign up</strong> and fill in the form — your organization's name, a short name for the web address (the "slug"), your name, your email, your phone, and your address. Submit.</li>
+  <li><strong>You receive a confirmation email.</strong> This just tells you the application was received. It does not give you a login yet.</li>
+  <li><strong>The operator reviews and approves.</strong> Usually within a working day. If there is a problem with the application, the operator contacts you by email or phone before approving.</li>
+  <li><strong>You receive a welcome email with a link.</strong> The link lets you set your password for the first time. <strong>It expires in 24 hours.</strong> If it expires, contact the operator to send a new one.</li>
+  <li><strong>You set your password.</strong> See the next section.</li>
+</ol>
+
+<h2>Setting your password for the first time</h2>
+
+<p>The welcome email contains a link that looks something like <code>https://romansms.com/auth/password-reset/…</code>. Click it (or paste it into your browser).</p>
+
+<p>You land on a page asking for a new password. Type it twice.</p>
+
+<h3>What makes a good password</h3>
+
+<ul>
+  <li>At least 8 characters. Longer is better.</li>
+  <li>Something you don't use on any other website. If someone guesses your Roman SMS password, they could send messages on your school's behalf and spend your credits.</li>
+  <li>Not a name, a birthday, or a simple word.</li>
+</ul>
+
+<div class="screenshot">
+  <div class="desc">The password-set page</div>
+</div>
+
+<p>Click <strong>Set password</strong>. You are taken to the login page. Log in with the email address the operator has on file and your new password.</p>
+
+<div class="callout warning">
+<span class="label">If the link has expired</span>
+<p>More than 24 hours have passed. The page will say so when you click. Contact the operator — they can send a fresh link from their side. Do not try to guess a workaround; the link is designed to expire for security, and a new one takes less than a minute to send.</p>
+</div>
+
+<h2>What to check the first time you log in</h2>
+
+<p>Once you are logged in, take a moment to check a few things.</p>
+
+<h3>Your organization's name and brand prefix</h3>
+
+<p>Look at the top of the page. You should see your school's or business's name. The brand prefix — the short identifier added to every message you send — is shown on the message screen. Confirm with the operator that this is right before you send your first campaign. The brand prefix is what your recipients see in front of your message; if it's wrong, they might not recognize the sender.</p>
+
+<h3>Your wallet balance</h3>
+
+<p>On the dashboard (see <a href="#the-dashboard">Section 2</a>), find your wallet balance. This is how many credits you have. If it says 0, you need to buy credits (<a href="#billing">Section 8</a>) before you can send.</p>
+
+<h3>Your staff list</h3>
+
+<p>If you're the administrator, you can add your staff members (<a href="#team">Section 7</a>). If you're a staff member, ask your administrator to add you if you haven't been added yet.</p>
+
+<h2 id="logging-in-again">Logging in again</h2>
+
+<p>Every visit after the first:</p>
+
+<ol class="steps">
+  <li>Go to <code>https://romansms.com</code>.</li>
+  <li>Click <strong>Log in</strong> in the top-right.</li>
+  <li>Enter your email and password.</li>
+  <li>Click <strong>Log in</strong>.</li>
+</ol>
+
+<p>You will be taken to your dashboard.</p>
+
+<h3>If you forgot your password</h3>
+
+<p>Click <strong>Forgot password?</strong> on the login page. Enter your email. You'll receive a link to set a new password. If you don't receive it within a few minutes, check your spam folder, then contact the operator.</p>
+
+<h3>If your account is not active</h3>
+
+<p>You'll see a message saying your account has been suspended or terminated. Contact your school's administrator if you are a staff member, or the operator if you are the administrator. Someone has deliberately changed your access, and they're the only one who can change it back.</p>
+
+<h2>What you can and cannot do</h2>
+
+<p>Your account has a <strong>role</strong>, which determines what you can see and do. There are three roles:</p>
+
+<table>
+  <thead>
+    <tr><th>Role</th><th>What you can do</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Master</strong></td><td>The operator. You don't have this role unless you run Roman SMS itself.</td></tr>
+    <tr><td><strong>School or business administrator</strong></td><td>Full control of your organization. Can manage users, buy credits, see all data, and send to anyone.</td></tr>
+    <tr><td><strong>Staff member</strong></td><td>Can send messages, manage contacts, and use the system, but cannot manage other users or see billing. If you have a <strong>department</strong>, you only see contacts and campaigns belonging to your department or shared across the school.</td></tr>
+  </tbody>
+</table>
+
+<p>You can see your own role on your <strong>Profile</strong> page. If you think your role is wrong, contact the operator — roles are set when the account is created and don't change often.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: THE DASHBOARD                                      -->
+<!-- ============================================================ -->
+
+<h1 id="the-dashboard">2. The dashboard</h1>
+
+<p>The dashboard is the first thing you see after logging in. It shows you, at a glance, how much you've sent and how much you have left. Nothing on this page changes anything — it's all read-only. To do something, use the menu on the left.</p>
+
+<div class="screenshot">
+  <div class="desc">The dashboard with the sidebar on the left</div>
+</div>
+
+<h2>The sidebar</h2>
+
+<p>The menu on the left is how you get around. What you see depends on your role.</p>
+
+<h3>Everyone sees</h3>
+
+<ul>
+  <li><strong>Dashboard</strong> — this page.</li>
+  <li><strong>Contacts</strong> — your contact list and imports.</li>
+  <li><strong>Groups</strong> — your groups of contacts.</li>
+  <li><strong>Campaigns</strong> — messages you've sent and messages you've scheduled.</li>
+  <li><strong>Templates</strong> — saved message bodies you can reuse.</li>
+  <li><strong>Billing</strong> — your wallet and invoices.</li>
+  <li><strong>Chat</strong> — a direct line to the operator.</li>
+  <li><strong>Reports</strong> — delivery summaries and usage.</li>
+  <li><strong>Profile</strong> — your own account.</li>
+</ul>
+
+<h3>Administrators also see</h3>
+
+<ul>
+  <li><strong>School users</strong> — add, remove, and manage your staff.</li>
+  <li><strong>Settings</strong> — your organization's name and preferences, plus whether to share contacts with the operator's master contact pool.</li>
+</ul>
+
+<p><strong>Staff members with a department</strong> (e.g. a bursar, a DOS) see a smaller list. They don't see "School users" or "Settings", and "Contacts", "Groups", "Campaigns", and "Templates" show only their own department's items plus shared items.</p>
+
+<h2>The top of the page</h2>
+
+<p>Above the sidebar, across the top, you'll see:</p>
+
+<ul>
+  <li><strong>Your organization's name</strong> — on the left, or next to a small logo.</li>
+  <li><strong>The notification bell</strong> — the count of new notifications.</li>
+  <li><strong>Your email address</strong> — a dropdown with <strong>Profile</strong> and <strong>Log out</strong>.</li>
+</ul>
+
+<h2>The dashboard itself</h2>
+
+<p>The dashboard is a grid of boxes. Which boxes you see depends on whether you have any activity yet.</p>
+
+<h3>Wallet balance</h3>
+
+<p>The most important number on the page. This is how many credits you have available to send messages.</p>
+
+<ul>
+  <li><strong>Big number:</strong> your current balance.</li>
+  <li><strong>Days remaining:</strong> an estimate based on how fast you've been spending. If you usually send 200 credits a week, this tells you how many weeks your balance will last.</li>
+</ul>
+
+<div class="callout tip">
+<span class="label">Tip</span>
+<p>If your balance is low and you need to send, buy credits before you try. See <a href="#billing">Section 8</a>.</p>
+</div>
+
+<div class="screenshot">
+  <div class="desc">The wallet balance box</div>
+</div>
+
+<h3>Messages sent (last 30 days)</h3>
+
+<p>How many messages you've sent in the last 30 days. This is the count that consumes credits. Below it, three related numbers:</p>
+
+<ul>
+  <li><strong>Delivered</strong> — messages confirmed to have reached the recipient's phone.</li>
+  <li><strong>Failed</strong> — messages that were never sent (network issue, provider error). These are refunded to your wallet automatically.</li>
+  <li><strong>Pending</strong> — messages still in the queue. Should go to zero within minutes of sending.</li>
+</ul>
+
+<h3>30-day trend</h3>
+
+<p>A simple chart showing messages sent per day over the last 30 days. Each bar is one day. Empty days show as empty bars, so the chart always shows the full month. Use this to spot patterns: are you sending every Friday? Did you skip a week?</p>
+
+<h3>Recent activity</h3>
+
+<p>A short list of what has happened recently in your organization: messages sent, campaigns scheduled, schedules cancelled, imports completed.</p>
+
+<h3>Notifications</h3>
+
+<p>At the top of the page, a bell with a number. Click it to see what needs your attention. Common notifications:</p>
+
+<ul>
+  <li><strong>Wallet is running low</strong> — you have enough for the next few messages but not many. Buy credits soon.</li>
+  <li><strong>Plan is expiring</strong> — your current plan's validity period is almost over.</li>
+  <li><strong>No contacts yet</strong> — you haven't added any contacts. Start with <a href="#contacts">Section 3</a>.</li>
+  <li><strong>An import has errors</strong> — a CSV you imported had rows that couldn't be added.</li>
+</ul>
+
+<p>Click any notification to go to the page where you can fix it. Click the <strong>×</strong> on a notification to dismiss it — you won't see it again unless the same condition comes back later.</p>
+
+<div class="callout tip">
+<span class="label">No inbox</span>
+<p>There is no "inbox" for notifications. They are recalculated every time you visit the page. If a problem goes away — say, you buy credits and the wallet is no longer low — the notification disappears on its own.</p>
+</div>
+
+<h2>What the dashboard does not show</h2>
+
+<ul>
+  <li><strong>Individual message contents</strong> — that's on each campaign's detail page.</li>
+  <li><strong>Individual contact details</strong> — that's on the Contacts page.</li>
+  <li><strong>Who sent what</strong> — that requires opening each campaign's detail page, or using the Reports page.</li>
+  <li><strong>Other organizations' data</strong> — you only see your own. Even the operator's numbers are not visible to you here.</li>
+</ul>
+
+<h2>If the dashboard looks wrong</h2>
+
+<h3>"My wallet balance is zero but I know I bought credits."</h3>
+<p>Wait a minute and refresh. If it's still zero, check the Billing page (<a href="#billing">Section 8</a>) — the transaction history will show whether the credits arrived. If they haven't, contact the operator.</p>
+
+<h3>"I've sent messages but the count is zero."</h3>
+<p>The 30-day count includes only messages that were successfully sent. Messages that failed at the dispatch stage and were refunded don't count. If you expect to see a send from today and it's not there yet, the messages may still be pending — check again in a few minutes.</p>
+
+<h3>"The days remaining number is way off."</h3>
+<p>It's an estimate based on recent spend. If you've just sent a large campaign, it will show a much shorter runway than usual, because it's assuming you'll keep sending at that rate. It recalculates as the days pass.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: ADDING CONTACTS                                    -->
+<!-- ============================================================ -->
+
+<h1 id="contacts">3. Adding contacts</h1>
+
+<p>Contacts are the people you send messages to — parents, guardians, staff, customers, members. Before you can send a message to anyone, their phone number needs to be in your contact list.</p>
+
+<p>You can add contacts one at a time, or many at once from a spreadsheet. Both are covered here.</p>
+
+<h2>Where contacts live</h2>
+
+<p>Every contact in your organization belongs to <strong>exactly one group</strong>. A group is a named set of contacts — "Form 1 Parents", "Class 6", "Staff", "Regular customers". Groups are covered in more detail in <a href="#groups">Section 4</a>, but the important thing to know here is: <strong>when you add a contact, you must pick which group they belong to</strong>.</p>
+
+<p>If you don't already have the group you want, you can create it as part of adding a contact. Roman SMS will offer to create a new group if the one you type doesn't exist yet.</p>
+
+<h2>Adding a single contact</h2>
+
+<ol class="steps">
+  <li>Open the <strong>Contacts</strong> page in the left menu.</li>
+  <li>Click <strong>Add contact</strong> (top-right of the page).</li>
+  <li>Fill in the form:
+    <ul style="margin-top:8px">
+      <li><strong>Name</strong> — optional. If you leave it blank, the contact is identified only by their phone number. Filling it in makes the contact easier to find later, and lets you use the name in personalized messages.</li>
+      <li><strong>Phone number</strong> — required. Enter it in Ugandan format: <code>0771234567</code>, <code>+256771234567</code>, or <code>256771234567</code> all work and become the same number.</li>
+      <li><strong>Group</strong> — required. Pick an existing group from the dropdown, or type a new name to create one.</li>
+      <li><strong>District</strong> — optional. Useful if you send messages by district (see <a href="#sending">Section 5</a>).</li>
+      <li><strong>Notes</strong> — optional, for your own reference. Only you and your staff see these; they are never sent to the contact.</li>
+    </ul>
+  </li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<p>You'll be taken back to the contacts list. Your new contact is at the top.</p>
+
+<div class="callout warning">
+<span class="label">Duplicate phone number</span>
+<p>If the phone number is already in your organization, Roman SMS will refuse the duplicate and show an error. This is deliberate — sending the same message twice to the same phone wastes credits. If you want to move an existing contact to a different group, edit that contact (<a href="#groups">Section 4</a>) rather than adding a new one.</p>
+</div>
+
+<h2>Importing contacts from a spreadsheet</h2>
+
+<p>If you have your contacts in Excel, Google Sheets, or another spreadsheet program, you can add them all at once instead of typing them one by one.</p>
+
+<h3>Preparing your spreadsheet</h3>
+
+<p>Save your spreadsheet as a <strong>CSV file</strong> (comma-separated values). Most spreadsheet programs have an option to save as CSV under "Save as" or "Export".</p>
+
+<p>Your CSV must have a column named <code>phone</code>. It can also have:</p>
+
+<table>
+  <thead>
+    <tr><th>Column</th><th>Required?</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>phone</code></td><td>Required</td><td>The contact's phone number.</td></tr>
+    <tr><td><code>name</code></td><td>Optional</td><td>The contact's name.</td></tr>
+    <tr><td><code>group</code></td><td>Recommended</td><td>If present, each row can specify its own group. If absent, you must pick one group for the whole file during import.</td></tr>
+    <tr><td><code>district</code></td><td>Optional</td><td>The contact's district.</td></tr>
+    <tr><td><code>opted_out</code></td><td>Optional</td><td>If a row is marked with <code>1</code> or <code>yes</code>, the contact is added but immediately marked as opted out.</td></tr>
+  </tbody>
+</table>
+
+<p>The first row of the CSV must be the column names. Example:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.5;"><code>name,phone,group,district
+Mary Nakato,0771234567,Form 1 Parents,Kampala
+John Ssekandi,0772345678,Form 1 Parents,Wakiso
+Sarah Achieng,0773456789,Form 2 Parents,Kampala</code></pre>
+
+<p>Any column names other than <code>name</code>, <code>phone</code>, <code>group</code>, <code>district</code>, <code>opted_out</code> are ignored during import. This means you can keep extra columns in your spreadsheet (like student names or fee balances) and import the same file — they won't hurt, they just won't be used here. (They <em>will</em> be used if you send personalized messages later. See <a href="#sending">Section 5</a>.)</p>
+
+<h3>Importing the file</h3>
+
+<ol class="steps">
+  <li>Open the <strong>Contacts</strong> page.</li>
+  <li>Click <strong>Import</strong> (top-right, next to Add contact).</li>
+  <li>Click <strong>Choose file</strong> and pick your CSV.</li>
+  <li>If your CSV does not have a <code>group</code> column, choose a <strong>default group</strong> to apply to all imported contacts.</li>
+  <li>Click <strong>Import</strong>.</li>
+</ol>
+
+<p>Roman SMS will process the file, add every valid row, and skip any row it can't add. <strong>You are taken to a report page</strong> that tells you exactly what happened.</p>
+
+<h2>The import report</h2>
+
+<p>The import report is the most useful page in the contact system. It tells you:</p>
+
+<ul>
+  <li><strong>How many contacts were added.</strong></li>
+  <li><strong>How many were skipped, and why.</strong> Every skipped row is recorded with the reason and its row number in your CSV.</li>
+</ul>
+
+<p>The reasons a row might be skipped:</p>
+
+<table>
+  <thead>
+    <tr><th>Reason</th><th>What it means</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Invalid phone number</strong></td><td>The number couldn't be recognized as a Ugandan phone number. Check the row — was there a typo?</td></tr>
+    <tr><td><strong>Already opted out</strong></td><td>The number is on the platform's opt-out list. Roman SMS respects this even if the contact is new to your organization.</td></tr>
+    <tr><td><strong>Duplicate within the file</strong></td><td>The same phone number appears twice in your CSV. Only the first occurrence is imported.</td></tr>
+    <tr><td><strong>Duplicate in the system</strong></td><td>This phone number is already in your organization's contact list. Roman SMS won't create a second copy.</td></tr>
+    <tr><td><strong>No group</strong></td><td>You didn't specify a group for this row and didn't choose a default group.</td></tr>
+  </tbody>
+</table>
+
+<p>At the top of the report, tabs let you filter by reason — click "Invalid phone" to see only the invalid rows, for example.</p>
+
+<div class="screenshot">
+  <div class="desc">The import report with its filter tabs and row counts</div>
+</div>
+
+<div class="callout tip">
+<span class="label">Download the error CSV</span>
+<p>Click the <strong>Download errors</strong> button at the top of the report to save a CSV of every skipped row. Fix the problems in your spreadsheet, then re-import only those rows. The imported contacts are already in the system; you don't need to re-import them.</p>
+</div>
+
+<p>The import report is saved forever. Come back to it any time by clicking <strong>Contacts → Imports</strong> — you'll see a list of every import your organization has ever done.</p>
+
+<h2>Opt-outs</h2>
+
+<p>An <strong>opt-out</strong> is a request from a contact to stop receiving messages from Roman SMS.</p>
+
+<div class="callout warning">
+<span class="label">Platform-wide</span>
+<p>Opt-outs are <strong>platform-wide</strong>: once a phone number opts out, it is opted out for every organization on Roman SMS, not just yours. This is a legal requirement in Uganda and we enforce it strictly.</p>
+</div>
+
+<h3>How people opt out</h3>
+
+<p>A contact can opt out three ways:</p>
+
+<ol>
+  <li><strong>You mark them opted out manually.</strong> Open the contact (<a href="#groups">Section 4</a>), click <strong>Opt out</strong>.</li>
+  <li><strong>You import them with <code>opted_out=1</code></strong> in your CSV.</li>
+  <li><strong>They opt out via the public landing page</strong> — a web link you or the operator can share with them.</li>
+</ol>
+
+<h3>What happens when someone opts out</h3>
+
+<ul>
+  <li>The phone number is added to the platform-wide opt-out list.</li>
+  <li>Any future campaign you send will skip that number, even if the number is still in your contact list.</li>
+  <li>The contact stays in your list — they are not deleted — but they are marked opted out and won't receive messages.</li>
+</ul>
+
+<p>You can see a contact's opt-out status on their detail page. There is no way to reverse an opt-out yourself. If a contact asks to be re-added (they changed their mind), contact the operator — this is rare and deliberate, because opt-outs are meant to be honored.</p>
+
+<h3>Why opt-outs matter</h3>
+
+<div class="callout warning">
+<span class="label">Important</span>
+<p>Sending to a phone number that has opted out is a violation of the Uganda Data Protection and Privacy Act and of your agreement with Roman SMS. If a recipient reports you, your organization can be suspended. <strong>Never try to work around an opt-out</strong> by adding the same phone number differently, using a different group, or asking someone else to add them. If the number is opted out, it stays opted out. Respect it.</p>
+</div>
+
+<h2>If your contacts list looks wrong</h2>
+
+<h3>"I imported 500 contacts but only 480 were added."</h3>
+<p>Click <strong>Contacts → Imports</strong>, open the most recent import, and look at the report. The 20 skipped rows have reasons. Fix them and re-import those rows only.</p>
+
+<h3>"A contact I added yesterday isn't showing up."</h3>
+<p>Check the group filter at the top of the contacts list. If you have more than one group, the list may be showing only one group's contacts. Change the filter to "All".</p>
+
+<h3>"I can't add a contact because it says the phone number is a duplicate."</h3>
+<p>The number is already in your organization, probably in a different group. Find them by searching for the number, open their detail page, and change their group if needed.</p>
+
+<h3>"I marked a contact opted out by mistake."</h3>
+<p>Contact the operator — opt-outs cannot be reversed by you, only by them.</p>
+
+<!-- ============================================================ -->
+<!-- DIAGRAM 2: SEGMENT ARITHMETIC                                 -->
+<!-- ============================================================ -->
+
+<h2>How a message becomes segments</h2>
+
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" width="720" height="340">
+  <defs>
+    <marker id="seg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <!-- Your text -->
+  <rect x="20" y="20" width="680" height="70" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+  <text x="40" y="48" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#6b7280">YOUR MESSAGE</text>
+  <text x="40" y="70" font-family="Courier,monospace" font-size="12" fill="#1f2937">"Dear parent, Term 2 fees are due this Friday. Pay via *165*3# or contact the bursar."</text>
+
+  <!-- Plus brand prefix -->
+  <text x="360" y="115" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#d97706">+ BRAND PREFIX</text>
+  <text x="360" y="135" text-anchor="middle" font-family="Courier,monospace" font-size="11" fill="#d97706">"FITTING: "</text>
+
+  <!-- Arrow down -->
+  <line x1="360" y1="145" x2="360" y2="175" stroke="#6b7280" stroke-width="2" marker-end="url(#seg-arrow)"/>
+
+  <!-- Combined message -->
+  <rect x="20" y="180" width="680" height="50" rx="8" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+  <text x="40" y="200" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1e3a8a">COMBINED (what gets billed)</text>
+  <text x="40" y="220" font-family="Courier,monospace" font-size="11" fill="#1e3a8a">"FITTING: Dear parent, Term 2 fees are due this Friday. Pay via *165*3# or..."</text>
+
+  <!-- Arrow down -->
+  <line x1="360" y1="230" x2="360" y2="260" stroke="#6b7280" stroke-width="2" marker-end="url(#seg-arrow)"/>
+
+  <!-- Segments -->
+  <rect x="20" y="265" width="180" height="55" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="110" y="285" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#166534">Segment 1</text>
+  <text x="110" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">~155 characters</text>
+
+  <rect x="215" y="265" width="180" height="55" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="305" y="285" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#166534">Segment 2</text>
+  <text x="305" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">~140 characters</text>
+
+  <rect x="410" y="265" width="180" height="55" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="500" y="285" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#991b1b">Segment 3</text>
+  <text x="500" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#dc2626">(not needed)</text>
+
+  <!-- Cost label -->
+  <text x="600" y="295" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#166534">= 2 credits</text>
+  <text x="600" y="312" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">per recipient</text>
+</svg>
+<div class="caption">A message is combined with the brand prefix, then split into segments. Each segment is one credit per recipient. The cost counter on the campaign form shows you this number before you send.</div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- SECTION 4: ORGANIZING CONTACTS                                -->
+<!-- ============================================================ -->
+
+<h1 id="groups">4. Organizing contacts into groups</h1>
+
+<p>A <strong>group</strong> is a named set of contacts. Every contact in your organization belongs to exactly one group. Groups are how you target your messages — you send to "Form 1 Parents" instead of "everyone in the school", or to "Regular customers" instead of "every number we have".</p>
+
+<p>You can have as many groups as you want. Common examples:</p>
+
+<ul>
+  <li><strong>School:</strong> "Form 1 Parents", "Form 2 Parents", "Class 6", "Staff", "PTA Members", "Old Students".</li>
+  <li><strong>Business:</strong> "VIP Customers", "Wholesale", "Retail", "Staff".</li>
+  <li><strong>Any organization:</strong> "Everyone" (put all your contacts in one group if you don't need finer control).</li>
+</ul>
+
+<h2>Creating a group</h2>
+
+<ol class="steps">
+  <li>Open the <strong>Groups</strong> page in the left menu.</li>
+  <li>Click <strong>New group</strong> (top-right).</li>
+  <li>Fill in:
+    <ul style="margin-top:8px">
+      <li><strong>Name</strong> — what the group is for. Short and clear is best.</li>
+      <li><strong>Description</strong> — optional. A sentence about what the group means, for your own reference.</li>
+    </ul>
+  </li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<p>The group appears in the list immediately with zero contacts. To add contacts to it, see below.</p>
+
+<div class="callout admin">
+<span class="label">Departments</span>
+<p>If your organization uses departments (school setups with a bursar, DOS, dean, and HT), the group belongs to <em>your</em> department unless you are the school administrator. Administrators create groups that everyone can see. Bursars create groups that only bursars and administrators can see. You can't change this at group creation — it's set automatically from your account.</p>
+</div>
+
+<div class="screenshot">
+  <div class="desc">The Groups list showing a few groups with contact counts</div>
+</div>
+
+<h2>Adding contacts to a group</h2>
+
+<h3>Add new contacts straight into a group</h3>
+<p>When you add a contact (<a href="#contacts">Section 3</a>), pick the group in the dropdown on the contact form. The contact goes straight into that group.</p>
+
+<h3>Move existing contacts into a group</h3>
+<ol class="steps">
+  <li>Open the contact (from the Contacts page — click the contact's name or email).</li>
+  <li>Click <strong>Edit</strong>.</li>
+  <li>Change the <strong>Group</strong> dropdown to the new group.</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+<p>The contact moves from their old group to the new one. They are never in two groups at once.</p>
+
+<h3>Move many contacts at once</h3>
+<p>Open the group you want to move contacts <em>out of</em>, or search for contacts by name/phone on the Contacts page. Roman SMS doesn't currently offer a "move all from group A to group B" bulk button — for large reorganizations, contact the operator for help. Small moves (up to a few dozen contacts) are fastest through the per-contact edit form.</p>
+
+<h2>Seeing who's in a group</h2>
+
+<p>Click any group on the Groups page to see:</p>
+
+<ul>
+  <li><strong>The list of contacts</strong> in that group.</li>
+  <li><strong>The total count</strong> at the top.</li>
+  <li><strong>A search box</strong> to find a specific contact within the group.</li>
+  <li><strong>An import button</strong> to add more contacts to this group from a CSV (same as <a href="#contacts">Section 3</a>, but pre-selected to this group).</li>
+</ul>
+
+<div class="screenshot">
+  <div class="desc">A group detail page showing contacts and search</div>
+</div>
+
+<h2>Renaming a group</h2>
+
+<ol class="steps">
+  <li>Open the Groups page.</li>
+  <li>Click the group's name.</li>
+  <li>Click <strong>Edit</strong> (top-right).</li>
+  <li>Change the name or description.</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<p>The contacts inside the group are unaffected. Anything that references the group (for instance, a scheduled campaign targeted at this group) will see the new name going forward.</p>
+
+<h2>Deleting a group</h2>
+
+<div class="callout warning">
+<span class="label">Read before deleting</span>
+<p>Deleting a group is a permanent action. There is no undo.</p>
+</div>
+
+<p>When you delete a group:</p>
+
+<ul>
+  <li><strong>The group itself is removed.</strong></li>
+  <li><strong>The contacts inside it are not deleted</strong> — they stay in your contact list — <strong>but they become ungrouped.</strong> An ungrouped contact cannot receive messages until you assign them to a group.</li>
+</ul>
+
+<p>In practice, this means: if you're reorganizing, move contacts to the new group first, then delete the old one. Otherwise you'll end up with contacts that can't be messaged until they're re-grouped.</p>
+
+<p>To delete:</p>
+
+<ol class="steps">
+  <li>Open the group.</li>
+  <li>Click <strong>Delete</strong> (top-right, or in the menu next to Edit).</li>
+  <li>Confirm.</li>
+</ol>
+
+<div class="callout warning">
+<span class="label">Scheduled campaigns and group deletion</span>
+<p>If a scheduled campaign uses this group, Roman SMS won't warn you — it will delete the group, and the schedule will be orphaned. The schedule may still fire using a snapshot of the recipients that were captured when the schedule was created, but it won't be able to pick up new contacts added later, and the schedule will show a missing group if you open it.</p>
+<p><strong>Cancel any scheduled campaigns that target a group before deleting the group.</strong> This is the safest habit. To check: open <strong>Campaigns → Scheduled</strong> and look at what each scheduled campaign targets.</p>
+</div>
+
+<div class="screenshot">
+  <div class="desc">The delete group confirmation dialog</div>
+</div>
+
+<h2>Groups and departments <span style="display:inline-block;padding:2px 8px;background:#fef3c7;border-radius:4px;font-size:11px;font-weight:700;color:#d97706;border:1px solid #fde68a;margin-left:8px;">ADMIN</span></h2>
+
+<p>If your school uses departments, the Groups page shows only:</p>
+
+<ul>
+  <li>Groups <strong>you</strong> created (belonging to your department, or shared if you are the school administrator).</li>
+  <li>Groups created by <strong>other school administrators</strong> (shared).</li>
+  <li><strong>Not</strong> groups created by bursars or deans if you are not one.</li>
+</ul>
+
+<p>This is the department isolation system at work. To see all groups, you need to be the school administrator. If you need to see a different department's groups for a specific reason, ask that department's staff member to share the contacts with you, or ask the school administrator to move contacts between groups.</p>
+
+<h2>Common group setups</h2>
+
+<h3>Small school (fewer than 200 contacts)</h3>
+<ul>
+  <li>One group per class: "Form 1", "Form 2", "Form 3", "Form 4".</li>
+  <li>One group for staff: "Staff".</li>
+  <li>One group for parents who aren't class-specific: "All Parents".</li>
+</ul>
+
+<h3>Large school</h3>
+<ul>
+  <li>One group per class: "Form 1A", "Form 1B", "Form 2A", ...</li>
+  <li>One group per stream or house, if you use them.</li>
+  <li>One group per role: "Parents", "Guardians", "Staff", "Alumni".</li>
+  <li>District groups only if you actually send by district — otherwise districts add noise.</li>
+</ul>
+
+<h3>Business</h3>
+<ul>
+  <li>One group per customer tier: "VIP", "Wholesale", "Retail".</li>
+  <li>One group for staff.</li>
+  <li>One group for past customers you might want to re-engage.</li>
+</ul>
+
+<h3>Just starting out</h3>
+<ul>
+  <li>One group called "Everyone" for all your contacts. Split into finer groups later when you actually need to send differently to different people.</li>
+</ul>
+
+<h2>If your groups list looks wrong</h2>
+
+<h3>"My groups list is shorter than I expected."</h3>
+<p>If you are not a school administrator, you only see your own department's groups plus shared ones. Other departments' groups are hidden. Ask your school administrator if you need to see them.</p>
+
+<h3>"A contact is in the wrong group."</h3>
+<p>Open the contact, click Edit, change the Group dropdown, save. Contacts are in one group at a time — the move is immediate.</p>
+
+<h3>"I deleted a group by mistake."</h3>
+<p>The group is gone. The contacts that were in it are now ungrouped. You'll need to recreate the group and move contacts into it individually. There is no undo.</p>
+
+<!-- ============================================================ -->
+<!-- DIAGRAM 4: DEPARTMENT ISOLATION                               -->
+<!-- ============================================================ -->
+
+<h2>How department isolation works</h2>
+
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" width="720" height="300">
+  <!-- Header labels -->
+  <text x="180" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e40af">BURSAR</text>
+  <text x="360" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e40af">DOS</text>
+  <text x="540" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e40af">SCHOOL ADMIN</text>
+
+  <!-- Records row -->
+  <rect x="20" y="50" width="680" height="40" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+  <text x="40" y="75" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#6b7280">RECORDS</text>
+  <text x="200" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">Bursar records</text>
+  <text x="350" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">DOS records</text>
+  <text x="480" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">HT records</text>
+  <text x="600" y="75" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">Shared records</text>
+
+  <!-- BURSAR row -->
+  <rect x="20" y="110" width="680" height="50" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="40" y="140" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#166534">BURSAR SEES</text>
+  <text x="200" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <text x="350" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
+  <text x="480" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
+  <text x="600" y="140" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+
+  <!-- DOS row -->
+  <rect x="20" y="175" width="680" height="50" rx="6" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+  <text x="40" y="205" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1e3a8a">DOS SEES</text>
+  <text x="200" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
+  <text x="350" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <text x="480" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#dc2626">✗</text>
+  <text x="600" y="205" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+
+  <!-- ADMIN row -->
+  <rect x="20" y="240" width="680" height="50" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="40" y="270" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#92400e">ADMIN SEES</text>
+  <text x="200" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <text x="350" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <text x="480" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+  <text x="600" y="270" font-family="system-ui,sans-serif" font-size="20" fill="#16a34a">✓</text>
+</svg>
+<div class="caption">A bursar sees bursar records and shared records, never the DOS's. A school administrator sees everything. The department isolation system enforces this on every read.</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: SENDING A MESSAGE                                  -->
+<!-- ============================================================ -->
+
+<h1 id="sending">5. Sending a message</h1>
+
+<p>This is the core of Roman SMS. You've added contacts (<a href="#contacts">Section 3</a>) and organized them into groups (<a href="#groups">Section 4</a>). Now you send a message.</p>
+
+<h2>Before you send: two things to check</h2>
+
+<p>Every time you send a message, check these two things first.</p>
+
+<h3>1. Do you have enough credits?</h3>
+<p>Your wallet balance is on the dashboard. Sending will fail if the balance is too low for the campaign you're about to send. If you need more, buy credits (<a href="#billing">Section 8</a>) first.</p>
+
+<h3>2. Is your brand prefix right?</h3>
+<p>The brand prefix — the short identifier at the front of every message — is shown on the message form. It's what recipients see before your message ("FITTING: Your fee reminder for Term 2..."). If it's wrong, contact the operator to change it <em>before</em> you send. Change requests take time, and a campaign sent with the wrong prefix can't be un-sent.</p>
+
+<h2>The three ways to send</h2>
+
+<p>Roman SMS supports three modes on the message form. Each is for a different situation.</p>
+
+<table>
+  <thead>
+    <tr><th>Mode</th><th>Use it when</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Standard</strong></td><td>One message, sent to everyone in a group or district. This is the everyday mode. Most of your sends will be this.</td></tr>
+    <tr><td><strong>Personalized</strong></td><td>A different message to each person, based on a spreadsheet you upload. Used when the message needs to be specific to each person ("Dear Mary, your daughter Alice's fee balance is UGX 45,000...").</td></tr>
+    <tr><td><strong>Paste numbers</strong></td><td>Up to 500 phone numbers you paste directly into the form. Used for one-off sends to a small list of people who aren't worth adding to the contact list.</td></tr>
+  </tbody>
+</table>
+
+<p>The form has a small selector at the top — pick the mode first, then fill in the details below.</p>
+
+<div class="screenshot">
+  <div class="desc">The New Campaign form with the three-mode selector at top</div>
+</div>
+
+<h2>Sending a Standard message</h2>
+
+<p>The simple, everyday case.</p>
+
+<ol class="steps">
+  <li>Open the <strong>Campaigns</strong> page.</li>
+  <li>Click <strong>New campaign</strong>.</li>
+  <li>The mode selector is set to <strong>Standard</strong> by default. Leave it.</li>
+  <li>In <strong>Body</strong>, type the message. This is what recipients will see after the brand prefix.</li>
+  <li>Choose <strong>who to send to</strong>:
+    <ul style="margin-top:8px">
+      <li><strong>Group</strong> — pick a group from the dropdown. Every contact in that group gets the message (skipping anyone who has opted out).</li>
+      <li><strong>District</strong> — pick a district to send only to contacts in that district.</li>
+      <li><strong>All contacts</strong> — send to everyone in your organization.</li>
+    </ul>
+  </li>
+  <li>Watch the <strong>cost counter</strong> below the message box. It updates as you type, showing the number of credits this message will cost per recipient and the total.</li>
+  <li>Click <strong>Send</strong>.</li>
+</ol>
+
+<p>The message goes into the queue. Within minutes (usually seconds), the dashboard shows it in the sent count and the campaign appears at the top of your Campaigns list.</p>
+
+<h3>What the cost counter is telling you</h3>
+
+<p>When you type, the counter shows something like:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>Length: 143 characters — 1 segment
+Recipients: 187
+Cost: 187 credits</code></pre>
+
+<p>That means: your message is one segment (short enough to fit in one SMS), you're sending to 187 people, and the total cost is 187 credits.</p>
+
+<p>If you type a longer message, the counter updates:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>Length: 312 characters — 2 segments
+Recipients: 187
+Cost: 374 credits</code></pre>
+
+<p>Two segments per recipient because the message is long enough to split into two SMS. 187 × 2 = 374 total credits.</p>
+
+<div class="callout tip">
+<span class="label">The counter includes the brand prefix</span>
+<p>This is important — the prefix counts toward the length, so a message that looks like 150 characters is actually 160 with the prefix, which might tip it from one segment to two. The counter shows the true cost, including the prefix, so you never get a surprise.</p>
+</div>
+
+<h3>Send now, or schedule for later?</h3>
+
+<p>The form has a <strong>"Send now / Schedule"</strong> toggle. Send now is the default. If you want to send the message later instead of immediately, switch to "Schedule". That's covered in <a href="#scheduling">Section 6</a>.</p>
+
+<h2>Sending personalized messages</h2>
+
+<p>When each recipient needs a different message.</p>
+
+<p><strong>When to use this.</strong> You have a spreadsheet with each person's name or balance or some other detail, and you want to include that detail in each message. Examples:</p>
+
+<ul>
+  <li>"Dear <strong>Mary</strong>, your daughter <strong>Alice</strong>'s fee balance is <strong>UGX 45,000</strong>, due <strong>20 November</strong>."</li>
+  <li>"Hi <strong>John</strong>, your order <strong>#12345</strong> is ready for pickup."</li>
+  <li>"Dear <strong>Sarah</strong>, your subscription expires in <strong>5 days</strong>."</li>
+</ul>
+
+<h3>Preparing your spreadsheet</h3>
+
+<p>Your CSV must have the same columns as a contact import (<a href="#contacts">Section 3</a>) — at minimum <code>phone</code> — plus any extra columns that appear in your template.</p>
+
+<p>Example CSV:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>name,phone,balance,due_date
+Mary Nakato,0771234567,45000,20 November
+John Ssekandi,0772345678,30000,20 November
+Sarah Achieng,0773456789,0,-</code></pre>
+
+<h3>Writing the message with placeholders</h3>
+
+<p>In the message body, use double curly braces to insert a column's value for each recipient:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>Dear {{name}}, your fee balance is UGX {{balance}}, due {{due_date}}.</code></pre>
+
+<p>For Mary, this becomes:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>FITTING: Dear Mary Nakato, your fee balance is UGX 45000, due 20 November.</code></pre>
+
+<p>Each recipient gets their own rendering. Any contact whose <code>name</code>, <code>balance</code>, or <code>due_date</code> is blank in the CSV gets that placeholder rendered as an empty string — so "Dear , your fee balance is..." can happen. Check your CSV for missing values before sending.</p>
+
+<h3>The cost of a personalized send</h3>
+
+<p>The counter on personalized sends is the sum of per-recipient segments, <strong>not</strong> "number of recipients × segments in the template". This is because the placeholder values are different lengths for different people — Mary Nakato is longer than John Doe, so Mary's message might be one segment and John's another.</p>
+
+<p>The counter shows the exact total. If a specific row is unusually long (say, a very long note), that one row might push into a second segment, adding one extra credit. The counter accounts for this.</p>
+
+<h3>Preview before you send</h3>
+
+<p>Click <strong>Preview</strong> to see the first few rows of your spreadsheet rendered with the template. This is your last chance to catch a typo in a column name or a mistake in the placeholder syntax before you commit credits.</p>
+
+<div class="callout warning">
+<span class="label">If the preview looks wrong</span>
+<p>If you see "Dear {{name}}" showing literally instead of "Dear Mary", your column name doesn't match. Check the CSV column headers, then the placeholder names in the body.</p>
+</div>
+
+<h3>Sending</h3>
+
+<p>Once the preview looks right, click <strong>Send</strong>. Same as Standard mode: the message goes into the queue and will fire shortly.</p>
+
+<h2>Sending to pasted numbers</h2>
+
+<p>The fastest mode for small, one-off lists.</p>
+
+<p><strong>When to use this.</strong> You have up to 500 phone numbers that you want to message once, and you don't want to add them to your contact list — a supplier list, a one-time event invite, a test send.</p>
+
+<ol class="steps">
+  <li>Switch the mode selector to <strong>Paste numbers</strong>.</li>
+  <li>Type or paste your phone numbers into the box, <strong>one per line</strong>. Spaces and blank lines are ignored.</li>
+  <li>Type your message in the <strong>Body</strong> field.</li>
+  <li>The counter updates as you paste — showing how many valid numbers were recognized.</li>
+  <li>Click <strong>Send</strong>.</li>
+</ol>
+
+<p><strong>What happens to pasted numbers:</strong></p>
+
+<ul>
+  <li><strong>Opt-outs are respected.</strong> Any number on the platform-wide opt-out list is skipped automatically.</li>
+  <li><strong>Duplicates are skipped.</strong> If you paste <code>0771234567</code> twice, it goes once.</li>
+  <li><strong>Invalid numbers are skipped.</strong> A number that isn't recognizable as a Ugandan phone number is ignored.</li>
+  <li><strong>The numbers are NOT added to your contacts.</strong> They are used for this campaign only. If you want to keep them for future sends, import them as contacts (<a href="#contacts">Section 3</a>) instead.</li>
+</ul>
+
+<div class="callout tip">
+<span class="label">The 500-number limit</span>
+<p>If you need to send to more than 500 numbers, import them as contacts first. Contacts get opt-out protection, deduplication, and can receive future sends without re-importing. Pasted numbers are meant for one-off use.</p>
+</div>
+
+<h2>After you send</h2>
+
+<p>Once you click Send, here's what happens.</p>
+
+<p><strong>Immediately:</strong> You are taken to the campaign detail page. The message status is "pending" and the queue shows it.</p>
+
+<p><strong>Within seconds to minutes:</strong> Roman SMS starts sending. The campaign detail page updates as messages go out. Most campaigns complete within a minute or two, faster for small sends, slower for very large ones (rate limits apply — you can't send more than your plan allows per minute).</p>
+
+<p><strong>When complete:</strong> The campaign status changes to "complete". You receive an email confirming the campaign finished, with the delivery count.</p>
+
+<h3>The campaign detail page</h3>
+
+<p>Open any campaign from the Campaigns list to see:</p>
+
+<ul>
+  <li><strong>Per-recipient status.</strong> Each contact who was in the campaign is listed with their delivery status — sent, delivered, or failed.</li>
+  <li><strong>Counts at the top.</strong> How many were sent, delivered, failed.</li>
+  <li><strong>The rendered body.</strong> For personalized sends, the actual text each recipient received.</li>
+  <li><strong>Timestamps.</strong> When the campaign was created, when each message was sent.</li>
+</ul>
+
+<div class="screenshot">
+  <div class="desc">A completed campaign detail page with delivery counts and the per-recipient list</div>
+</div>
+
+<h3>What delivered, failed, and pending mean</h3>
+
+<table>
+  <thead>
+    <tr><th>Status</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Delivered</strong></td><td>The phone confirmed receipt. This is the goal.</td></tr>
+    <tr><td><strong>Sent</strong></td><td>The message left Roman SMS's system and reached your service provider, but the recipient's phone hasn't confirmed delivery. Usually becomes "delivered" within seconds. Rarely stuck as "sent" — that means the phone was on but couldn't receive (out of coverage, network issue).</td></tr>
+    <tr><td><strong>Failed</strong></td><td>The message couldn't be sent. Usually means the phone number was invalid or the network rejected it. <strong>Failed messages are automatically refunded to your wallet.</strong> You don't pay for failures.</td></tr>
+    <tr><td><strong>Pending</strong></td><td>Still in the queue. Should go to zero within minutes.</td></tr>
+  </tbody>
+</table>
+
+<h2>Cancelling a campaign</h2>
+
+<p>You can cancel a campaign that's still in progress.</p>
+
+<ol class="steps">
+  <li>Open the campaign's detail page.</li>
+  <li>Click <strong>Cancel</strong>.</li>
+  <li>Confirm.</li>
+</ol>
+
+<p>Messages that have already been sent cannot be un-sent — SMS is instant. The cancellation stops messages that haven't been sent yet.</p>
+
+<div class="callout warning">
+<span class="label">Cancellation does not refund</span>
+<p>Every message that left the queue — whether it was delivered or not — has already used a credit. You only save credits by cancelling before the queue processes them. For most small campaigns, cancelling rarely helps unless you cancel within the first few seconds. For very large campaigns (thousands of recipients with minute-rate limits), you can cancel mid-send and save significant credits.</p>
+</div>
+
+<h2>What if the campaign doesn't fire</h2>
+
+<h3>Insufficient credits</h3>
+<p>The form usually catches this before you click Send, but if your balance dropped between page load and click, the send could fail. Check your wallet balance. Buy credits (<a href="#billing">Section 8</a>) and try again.</p>
+
+<h3>Your plan is expired</h3>
+<p>Subscriptions have a validity period. If your current plan has expired, you can't send until the operator renews it. Check the Billing page (<a href="#billing">Section 8</a>) for the plan status.</p>
+
+<h3>Your organization is suspended</h3>
+<p>If the operator has suspended your organization (this happens only in serious situations — billing problems, complaints, abuse), sending is blocked. Contact the operator.</p>
+
+<h3>Rate limiting</h3>
+<p>If you send multiple campaigns in quick succession, the second and third may wait for the rate limit to reset. This is normal — it protects the SMS network. Wait a minute and check again.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: SCHEDULING A MESSAGE                               -->
+<!-- ============================================================ -->
+
+<h1 id="scheduling">6. Scheduling a message</h1>
+
+<p>Scheduling lets you write a message now and have it sent later — once, or repeatedly on a schedule. This is useful for:</p>
+
+<ul>
+  <li><strong>Recurring reminders.</strong> Fee reminders every Friday. Staff meeting notices every Monday morning. A monthly newsletter.</li>
+  <li><strong>Time-sensitive messages.</strong> A message that needs to go out at 7 AM on a specific day, so parents see it before school starts.</li>
+  <li><strong>Sending when you can't be at a computer.</strong> Write it today, have it go out tomorrow while you're busy elsewhere.</li>
+</ul>
+
+<h2>Creating a scheduled message</h2>
+
+<ol class="steps">
+  <li>Open the <strong>Campaigns</strong> page.</li>
+  <li>Click <strong>New campaign</strong>.</li>
+  <li>Fill in the body and recipients, just like a regular message (<a href="#sending">Section 5</a> covers all of this).</li>
+  <li>Instead of leaving the mode selector on "Send now", switch it to <strong>Schedule</strong>.</li>
+  <li>Set the schedule:
+    <ul style="margin-top:8px">
+      <li><strong>Days of the week</strong> — check the days you want it to send. Check multiple days for a repeating schedule. To send once, leave all days unchecked and set a single date instead.</li>
+      <li><strong>Times</strong> — one or more times of day. A message can fire more than once per scheduled day (e.g. 8 AM and 5 PM).</li>
+      <li><strong>Start date</strong> — the earliest date this schedule is active.</li>
+      <li><strong>End date</strong> — the latest date. Leave blank for "until cancelled".</li>
+    </ul>
+  </li>
+  <li>Click <strong>Save</strong> (or <strong>Create schedule</strong>).</li>
+</ol>
+
+<p>The schedule appears at the top of <strong>Campaigns → Scheduled</strong>.</p>
+
+<div class="screenshot">
+  <div class="desc">The Schedule form showing days of the week and a times field</div>
+</div>
+
+<h2>What scheduling does to your wallet</h2>
+
+<div class="callout admin">
+<span class="label">This is the most important thing to understand about scheduling</span>
+<p>When you create a schedule, Roman SMS <strong>immediately reserves the total cost</strong> of every run in your wallet. The credits are debited at that moment, not when the schedule fires.</p>
+</div>
+
+<h3>Why this matters</h3>
+
+<p>Imagine you schedule a message to 500 people for next Wednesday, three segments each. Total cost: 1,500 credits. If Roman SMS waited until Wednesday to charge you, and you spent your balance on something else between now and then, the Wednesday send would fail silently — you'd think it went out, but it didn't.</p>
+
+<p>To prevent this, Roman SMS takes the 1,500 credits <strong>now</strong>. Your wallet shows a debit of 1,500 credits immediately. The message will go out on schedule because the money is already committed.</p>
+
+<h3>What "reserved" looks like on your wallet</h3>
+
+<p>When you look at your wallet after creating a schedule, you'll see a transaction like:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>-1,500 credits | Schedule reservation | Ref: schedule:42</code></pre>
+
+<p>That means 1,500 credits are held for schedule #42. They're not spent yet — they'll be spent when the schedule fires. If you cancel the schedule, you get them back.</p>
+
+<!-- ============================================================ -->
+<!-- DIAGRAM 3: RESERVATION TIMELINE                               -->
+<!-- ============================================================ -->
+
+<h2>How a reservation flows over time</h2>
+
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" width="720" height="320">
+  <defs>
+    <marker id="time-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="360" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Reservation: 6,000 credits (500 recipients × 3 segments × 4 runs)</text>
+
+  <!-- Timeline axis -->
+  <line x1="40" y1="180" x2="680" y2="180" stroke="#6b7280" stroke-width="2" marker-end="url(#time-arrow)"/>
+  <text x="688" y="185" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">time</text>
+
+  <!-- Milestone markers -->
+  <circle cx="80" cy="180" r="8" fill="#1e40af"/>
+  <text x="80" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1e40af">Create</text>
+  <text x="80" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">-6,000</text>
+
+  <circle cx="240" cy="180" r="8" fill="#16a34a"/>
+  <text x="240" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 1</text>
+  <text x="240" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+
+  <circle cx="400" cy="180" r="8" fill="#16a34a"/>
+  <text x="400" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 2</text>
+  <text x="400" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+
+  <circle cx="540" cy="180" r="8" fill="#16a34a"/>
+  <text x="540" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 3</text>
+  <text x="540" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+
+  <circle cx="640" cy="180" r="8" fill="#16a34a"/>
+  <text x="640" y="160" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#16a34a">Run 4</text>
+  <text x="640" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a">-1,500</text>
+
+  <!-- Reservation bar under timeline -->
+  <rect x="80" y="230" width="560" height="30" rx="4" fill="#dbeafe" stroke="#1e40af" stroke-width="1"/>
+  <text x="360" y="250" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1e3a8a">6,000 credits held as reservation</text>
+
+  <!-- Wallet state labels -->
+  <text x="360" y="290" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">Wallet balance reduced by 6,000 at creation. Each run consumes 1,500 from the reservation — no additional wallet charge.</text>
+
+  <text x="360" y="308" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#16a34a" font-style="italic">Cancel = remaining reservation refunded. Complete = residual refunded if actual &lt; reserved.</text>
+</svg>
+<div class="caption">Schedule credits are reserved at creation. Each fire consumes from the reservation without touching the wallet again. Cancel and complete refund what's left.</div>
+</div>
+
+<h3>How the reservation is used up over time</h3>
+
+<p>If you scheduled multiple runs (say, every Friday for 4 weeks), your wallet was reserved for all 4 runs at once. On the first Friday, the actual cost of that run — for the current list of recipients — is deducted from the reservation. The rest stays reserved for the remaining runs.</p>
+
+<p>If the schedule runs for 4 weeks at 500 recipients × 3 segments = 1,500 credits per run, that's 6,000 credits reserved up front. On Friday week 1, 1,500 credits are consumed from the reservation. On Friday week 2, another 1,500 consumed. Etc.</p>
+
+<p><strong>Nothing more is charged.</strong> You paid for all the runs when you created the schedule. The wallet does not debit again on each fire.</p>
+
+<h3>What if the reservation is wrong</h3>
+
+<p>Two things can happen between when you create a schedule and when it fires:</p>
+
+<p><strong>The list grew.</strong> You scheduled to send to "Form 1 Parents" which had 500 contacts. Someone adds 10 new parents before Friday. Now there are 510 contacts. The reservation was for 500 × 3 segments = 1,500 credits. The actual cost would be 510 × 3 = 1,530. Roman SMS will <strong>pause the schedule</strong> and refund the full reservation. You get an alert. This is deliberate — Roman SMS won't silently spend more than you reserved. To fix: cancel the schedule, re-create it with the current contact count.</p>
+
+<p><strong>The list shrank.</strong> Ten parents left the school, so the group now has 490 contacts. The actual cost is 490 × 3 = 1,470. The extra 30 credits are refunded back to your wallet after the run completes. You don't lose anything.</p>
+
+<h2>Editing a schedule</h2>
+
+<p>You can change a schedule after creating it. Changes allowed:</p>
+
+<ul>
+  <li>The <strong>message body</strong>.</li>
+  <li>The <strong>recipients</strong> (group or district).</li>
+  <li>The <strong>days and times</strong>.</li>
+  <li>The <strong>start and end dates</strong>.</li>
+</ul>
+
+<h3>What happens to the reservation when you edit</h3>
+
+<p>When you edit a schedule, Roman SMS:</p>
+
+<ol>
+  <li><strong>Refunds the old reservation entirely.</strong> The credits return to your available balance.</li>
+  <li><strong>Computes the new reservation</strong> based on the new details.</li>
+  <li><strong>Debits the new reservation.</strong> The new amount is held.</li>
+</ol>
+
+<p>The net effect on your wallet is the difference. If you had 1,500 credits reserved and your edit changes it to 1,800 credits, you pay 300 more. If your edit changes it to 1,200 credits, you get 300 back.</p>
+
+<div class="callout warning">
+<span class="label">If the new reservation is too expensive</span>
+<p>If the new reservation costs more than your current available balance, the edit fails and the old schedule is unchanged. Roman SMS refuses to leave you in a state where the reservation isn't fully funded.</p>
+</div>
+
+<p><strong>If you're just fixing a typo in the message body,</strong> the cost is unchanged and the wallet is unchanged. This is the common case.</p>
+
+<h2>Pausing and resuming a schedule</h2>
+
+<p><strong>Pause</strong> temporarily stops the schedule from firing without cancelling it. The reservation stays held — no credits are refunded — but no new runs will fire until you resume.</p>
+
+<p><strong>Resume</strong> puts the schedule back to active. The next scheduled time that hasn't passed yet is when the next fire will happen.</p>
+
+<p>Pause and resume don't affect your wallet. They just toggle whether the schedule is allowed to fire.</p>
+
+<p>Use pause when:</p>
+
+<ul>
+  <li>You're not sure about the message yet.</li>
+  <li>Something has changed and you want to think about it before the next run.</li>
+  <li>You need to temporarily stop sending without losing the reservation.</li>
+</ul>
+
+<h2>Cancelling a schedule</h2>
+
+<p>Cancelling a schedule:</p>
+
+<ol>
+  <li><strong>Stops future runs.</strong> The schedule will not fire again.</li>
+  <li><strong>Refunds the remaining reservation.</strong> Any credits that haven't been consumed by past runs are returned to your available balance.</li>
+  <li><strong>Keeps the schedule record.</strong> The schedule shows in your list with status "cancelled". You can see what was sent and when.</li>
+</ol>
+
+<p>Cancellation is the normal way to end a schedule. <strong>You almost always cancel rather than delete.</strong></p>
+
+<h2>Deleting a schedule</h2>
+
+<p>Deleting a schedule is different from cancelling. You can only delete a schedule that:</p>
+
+<ul>
+  <li><strong>Has never fired.</strong> If the schedule has fired at least once, you cannot delete it.</li>
+  <li><strong>Is not currently active.</strong> Pause or cancel it first.</li>
+</ul>
+
+<div class="callout warning">
+<span class="label">Cancel versus delete</span>
+<p>A fired schedule is history. If it sent messages, those messages exist and the campaign record shows them. Deleting the schedule would lose the record of what was sent and when. That's why Roman SMS won't let you delete a schedule that has sent anything.</p>
+<p>If you scheduled a message but never let it fire (you cancelled it before the first run), you can delete it. If it ever fired, cancel it — you'll keep the record.</p>
+</div>
+
+<h2>Viewing a schedule</h2>
+
+<p>Open any schedule from <strong>Campaigns → Scheduled</strong> to see:</p>
+
+<ul>
+  <li><strong>The message body.</strong></li>
+  <li><strong>Who it's going to</strong> (group, district, or all).</li>
+  <li><strong>The schedule</strong> — days of the week, times, start and end dates.</li>
+  <li><strong>The reservation status</strong> — how many credits are held, how many have been consumed.</li>
+  <li><strong>The run history</strong> — every time the schedule has fired, what it sent, and to how many recipients.</li>
+</ul>
+
+<div class="screenshot">
+  <div class="desc">A schedule detail page showing the reservation amount and run history</div>
+</div>
+
+<h2>When a schedule doesn't fire</h2>
+
+<h3>The reservation is overcommitted</h3>
+<p>If the contact list grew and the actual cost exceeds the reservation, the run is skipped and the schedule is paused. Check for an alert notification. Cancel and re-create the schedule with the new contact count.</p>
+
+<h3>The schedule is paused</h3>
+<p>Check its status on the detail page. If it's paused, click Resume.</p>
+
+<h3>Your plan expired</h3>
+<p>If your subscription expired between when you created the schedule and now, no new fires will happen until the plan is renewed. Contact the operator to renew.</p>
+
+<h3>Your wallet balance is negative</h3>
+<p>Due to some other action. The schedule itself is safe (its reservation is protected), but future manual sends and new schedules will fail. Top up.</p>
+
+<h2>A worked example</h2>
+
+<p>Suppose Fitting Secondary School wants to send a fee reminder to parents every Friday for the rest of the term. Term ends in 8 weeks.</p>
+
+<ol class="steps">
+  <li><strong>Set up the group.</strong> Assume "Form 1–4 Parents" group exists with 500 contacts.</li>
+  <li><strong>Write the message.</strong> "Dear parent, Term 2 fees are due this Friday. Pay via *165*3# or contact the bursar. Fitting Secondary School."</li>
+  <li><strong>Check the segment count.</strong> The counter says 2 segments per recipient.</li>
+  <li><strong>Create the schedule.</strong> Every Friday, 8:00 AM, starting this Friday, ending on the last Friday of the term.</li>
+  <li><strong>Total cost:</strong> 500 recipients × 2 segments × 8 weeks = 8,000 credits reserved.</li>
+  <li><strong>Confirm.</strong> Your wallet shows -8,000 credits. That money is held for the schedule.</li>
+</ol>
+
+<p>Over the next 8 weeks:</p>
+
+<ul>
+  <li>Week 1: Fires. 500 messages sent. 1,000 credits consumed from reservation. 7,000 credits still held.</li>
+  <li>Week 2: Fires. Another 1,000 consumed. 6,000 still held.</li>
+  <li>...</li>
+  <li>Week 8: Fires. 1,000 consumed. 0 held. Schedule completes.</li>
+</ul>
+
+<p>Total cost: 8,000 credits. Each Friday's message was paid for on the day you created the schedule. You don't think about it again.</p>
+
+<p>If a parent opts out in week 3, the message that Friday goes to 499 instead of 500 — cost 998 instead of 1,000. The 2-credit difference is refunded after that run.</p>
+
+<p>If Fitting adds 20 new parents in week 4, the message that Friday would need 1,040 credits instead of 1,000 — exceeding the reservation by 40. The Friday run is skipped, an alert fires, and the full remaining reservation is refunded. You (the bursar) fix it by cancelling and re-creating the schedule with the updated count.</p>
+
+
+<!-- ============================================================ -->
+<!-- SECTION 7: YOUR TEAM                                          -->
+<!-- ============================================================ -->
+
+<h1 id="team">7. Your team — adding and managing staff</h1>
+
+<div class="callout admin">
+<span class="label">Admin only</span>
+<p>If you are a staff member and not the school or business administrator, you can skip this section. You can't see the <strong>School users</strong> page and can't add anyone.</p>
+</div>
+
+<p>This section is for the person who runs your organization's Roman SMS account — the school administrator or the business owner. It covers creating staff logins, changing what they can see, and removing their access when they leave.</p>
+
+<h2>What a staff login is</h2>
+
+<p>Every person who uses Roman SMS gets their <strong>own login</strong>. There is no shared account. This is deliberate:</p>
+
+<ul>
+  <li><strong>Every message has an author.</strong> When someone sends a campaign, the campaign record shows who created it. This matters if a message goes out that shouldn't have.</li>
+  <li><strong>Departments can be scoped.</strong> A bursar sees only bursar data. A DOS sees only DOS data. Nobody accidentally sends a bursar reminder to a DOS group.</li>
+  <li><strong>Removing access is clean.</strong> When a staff member leaves, you terminate their login. Nothing else changes.</li>
+</ul>
+
+<p>A staff login is separate from a personal email or phone number. Your staff log in with the email address you set up for them on Roman SMS.</p>
+
+<h2>Roles, briefly</h2>
+
+<p>Roman SMS has two roles you can assign to your staff:</p>
+
+<table>
+  <thead>
+    <tr><th>Role</th><th>What they can do</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Associate administrator</strong></td><td>Full control of the organization. Can see all data, manage users, buy credits, add contacts and campaigns in any department. This is the same role you have (if you are reading this section, you are one).</td></tr>
+    <tr><td><strong>User</strong></td><td>Restricted to their own department's data plus shared records. Can send messages, manage contacts, but cannot manage other users or see billing.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warning">
+<span class="label">No admin with department</span>
+<p><strong>A third role — "associate administrator with a department" — is not allowed.</strong> The system won't let you create one. If you try, the form rejects it. The reason: an administrator can see every department's data, so scoping them to one department would be inconsistent. If you want someone to have admin control, they get everything. If you want them scoped, they're a regular user.</p>
+</div>
+
+<h2>What "department" means</h2>
+
+<p>A <strong>department</strong> is a scope for a staff member's visibility. If a user is in the "bursar" department, they see:</p>
+
+<ul>
+  <li>Their own department's contacts, groups, templates, campaigns, and schedules.</li>
+  <li>Anything marked "shared" (created by you, the administrator, or by other departments if explicitly shared).</li>
+  <li><strong>Not</strong> other departments' items.</li>
+</ul>
+
+<p>Departments are optional. A user with <strong>no department</strong> sees everything in the organization — same visibility as an administrator, just without the admin powers (no user management, no billing).</p>
+
+<p>For a school, common departments are <strong>bursar</strong>, <strong>DOS</strong> (Director of Studies), <strong>dean</strong>, and <strong>HT</strong> (Head Teacher). For a business, departments are less common — most businesses have every user seeing everything.</p>
+
+<div class="callout tip">
+<span class="label">If you're not sure</span>
+<p>Give the staff member a department. It's easier to widen access later than to narrow it after they've seen things they shouldn't have.</p>
+</div>
+
+<h2>Adding a staff member</h2>
+
+<ol class="steps">
+  <li>Open the <strong>School users</strong> page in the left menu.</li>
+  <li>Click <strong>New user</strong> (top-right).</li>
+  <li>Fill in:
+    <ul style="margin-top:8px">
+      <li><strong>Email</strong> — the address they'll log in with. Use a real address the person can access, because the welcome email goes there.</li>
+      <li><strong>Full name</strong> — their name. Shows in campaign records and audit trails.</li>
+      <li><strong>Password</strong> — either type one now (they can change it later) or leave blank and let the system send them a set-password link. <strong>Recommendation:</strong> leave it blank. A set-password link is safer and takes no more effort.</li>
+      <li><strong>Role</strong> — choose <strong>User</strong> for staff. Choose <strong>Associate administrator</strong> only if you want them to have full admin control.</li>
+      <li><strong>Department</strong> — optional. Pick the department they belong to, or leave blank for full access (regular users only — admins always have full access regardless).</li>
+    </ul>
+  </li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<p><strong>What happens next:</strong></p>
+
+<ul>
+  <li>If you set a password: the user gets a welcome email telling them their account is ready, but not their password. <strong>You must tell them the password yourself</strong> — in person, over the phone, or via another channel. Do not email it; email can be intercepted.</li>
+  <li>If you left password blank: the user gets a welcome email with a link to set their password. The link expires in 24 hours.</li>
+</ul>
+
+<div class="screenshot">
+  <div class="desc">The New user form showing the department dropdown</div>
+</div>
+
+<h3>Why leaving password blank is better</h3>
+
+<p>Every login should be set by its owner, not by someone else. When you leave the password blank:</p>
+
+<ul>
+  <li>The user sets a password only they know.</li>
+  <li>If it's intercepted, nothing happens — it's a password-set link, not a password.</li>
+  <li>You never need to have a plaintext password on file or in your head.</li>
+  <li>If the link expires before they use it, you can re-trigger it from the user detail page.</li>
+</ul>
+
+<h2>Editing a staff member</h2>
+
+<p>What you can change:</p>
+
+<ul>
+  <li><strong>Name</strong> — for display and audit purposes.</li>
+  <li><strong>Email</strong> — the login address. Changing this changes their login. If they're currently logged in, they'll still be logged in until they log out, but next time they log in they need the new email.</li>
+  <li><strong>Department</strong> — moves them from one scope to another. Their existing records keep the old department; new records carry the new one.</li>
+</ul>
+
+<p>What you <strong>cannot</strong> change:</p>
+
+<ul>
+  <li><strong>Role.</strong> A user created as a regular user stays a regular user until you delete and re-create them. See "Changing a user's role" below.</li>
+</ul>
+
+<h2>Changing a user's role</h2>
+
+<p>You can't. Not through the edit form. The role is set at creation and doesn't change.</p>
+
+<p><strong>If you need to change someone's role</strong>, the sequence is:</p>
+
+<ol>
+  <li><strong>Delete the existing user.</strong> This loses the connection between the user and their past actions — anything they did (created campaigns, edited contacts, changed settings) will show in the audit log as having been done by a deleted user.</li>
+  <li><strong>Create a new user</strong> with the new role. Send them a fresh welcome email.</li>
+</ol>
+
+<p>This is a real limitation and we're aware it's inconvenient. It exists because keeping a role change auditable (someone was a regular user yesterday and an admin today) is more complex than it looks. If you need this frequently, contact the operator.</p>
+
+<h2>Suspending, terminating, and deleting</h2>
+
+<p>Three distinct actions, each for a different situation. Don't confuse them.</p>
+
+<!-- ============================================================ -->
+<!-- DIAGRAM 5: SUSPEND / TERMINATE / DELETE COMPARISON            -->
+<!-- ============================================================ -->
+
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" width="720" height="260">
+  <!-- Header row -->
+  <text x="180" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#6b7280">SUSPEND</text>
+  <text x="360" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#6b7280">TERMINATE</text>
+  <text x="540" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#6b7280">DELETE</text>
+
+  <!-- Row 1: Can log in? -->
+  <rect x="20" y="40" width="680" height="40" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="40" y="65" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#374151">Can log in?</text>
+  <text x="180" y="65" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#16a34a">✓ Yes</text>
+  <text x="360" y="65" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#dc2626">✗ No</text>
+  <text x="540" y="65" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#dc2626">✗ No</text>
+
+  <!-- Row 2: Can send messages? -->
+  <rect x="20" y="90" width="680" height="40" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="40" y="115" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#374151">Can send messages?</text>
+  <text x="180" y="115" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#dc2626">✗ No</text>
+  <text x="360" y="115" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#dc2626">✗ No</text>
+  <text x="540" y="115" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#dc2626">✗ No</text>
+
+  <!-- Row 3: Existing schedules keep firing? -->
+  <rect x="20" y="140" width="680" height="40" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="40" y="165" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#374151">Existing schedules keep firing?</text>
+  <text x="180" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#16a34a">✓ Yes</text>
+  <text x="360" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#16a34a">✓ Yes</text>
+  <text x="540" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#16a34a">✓ Yes</text>
+
+  <!-- Row 4: Keeps audit history? -->
+  <rect x="20" y="190" width="680" height="40" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="40" y="215" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#374151">Keeps audit history?</text>
+  <text x="180" y="215" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#16a34a">✓ Yes</text>
+  <text x="360" y="215" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#16a34a">✓ Yes</text>
+  <text x="540" y="215" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#dc2626">✗ No — history loses attribution</text>
+
+  <!-- Row 5: Undo? -->
+  <rect x="20" y="240" width="680" height="40" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="40" y="265" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#374151">Undo?</text>
+  <text x="180" y="265" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#16a34a">Reactivate</text>
+  <text x="360" y="265" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#16a34a">Reactivate</text>
+  <text x="540" y="265" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#dc2626">Permanent</text>
+</svg>
+<div class="caption">Suspend is reversible. Terminate blocks login permanently but preserves history. Delete removes the user entirely — audit records that pointed to them lose their attribution.</div>
+</div>
+
+<h3>Suspend</h3>
+<p><strong>What it does:</strong> The user can still log in and see their data, but cannot send new messages or create new campaigns. Existing scheduled campaigns continue to fire on their behalf.</p>
+<p><strong>When to use:</strong> The user is on leave, on temporary restriction, or under investigation — but you might reinstate them.</p>
+<p><strong>How to suspend:</strong> Open the user detail page, click <strong>Suspend</strong>, confirm.</p>
+<p><strong>To undo:</strong> Click <strong>Reactivate</strong> on the same page.</p>
+
+<h3>Terminate</h3>
+<p><strong>What it does:</strong> The user cannot log in at all. They see an error message saying their account is inactive. Any existing scheduled campaigns they created continue to fire on their behalf (the school's commitment to those sends stands).</p>
+<p><strong>When to use:</strong> The user has left the school or business permanently and you want to fully revoke their access while preserving the audit trail (their past actions still show their name, not a deleted user).</p>
+<p><strong>How to terminate:</strong> Open the user detail page, click <strong>Terminate</strong>, confirm.</p>
+<p><strong>To undo:</strong> Click <strong>Reactivate</strong> — this is equivalent to creating a new active user with the same email and history.</p>
+
+<h3>Delete</h3>
+<div class="callout warning">
+<span class="label">Read carefully</span>
+<p>Delete removes the user row entirely. The user cannot log in, and their identity is gone from the system. <strong>Historical audit records that referenced this user now point to a missing user ID.</strong> Past campaigns they created show "unknown user" instead of their name.</p>
+</div>
+<p><strong>When to use:</strong> Rarely. Only when you genuinely need the row gone — a user created by mistake, or a duplicate account you want cleaned up.</p>
+<p><strong>How to delete:</strong> Open the user detail page, click <strong>Delete</strong>, confirm. This is a hard delete — no undo.</p>
+<p><strong>Prefer terminate over delete</strong> for actual users. Terminate achieves the same security outcome (the person can't log in) without destroying the audit trail.</p>
+
+<h2>Guards — what you can't do</h2>
+
+<p>The system prevents three things, deliberately:</p>
+
+<ul>
+  <li><strong>You cannot suspend, terminate, or delete yourself.</strong> This avoids an accidental lockout. To remove your own access, ask another administrator in your organization, or contact the operator.</li>
+  <li><strong>You cannot suspend, terminate, or delete the last active administrator.</strong> Your organization must always have at least one administrator.</li>
+  <li><strong>You cannot create an administrator with a department.</strong> See "Roles, briefly" earlier in this section.</li>
+</ul>
+
+<p>These guards protect against the most common lockout scenarios. They're not obstacles — they're the system doing its job.</p>
+
+<h2>If you get locked out</h2>
+
+<p>If your organization loses access to all its administrators — for example, the only admin left the school without handing over access — you cannot fix this yourself. Contact the operator.</p>
+
+<p>The operator can reset an existing administrator's password from their master console. They cannot create new users (that's your job), but they can restore access to an existing admin. This is the recovery path.</p>
+
+<div class="callout tip">
+<span class="label">Have two admins</span>
+<p>One is a single point of failure. Two is a safety margin. The second admin doesn't need to log in regularly — they just need to exist so that password recovery is possible if the primary admin is unavailable.</p>
+</div>
+
+<h2>Password resets</h2>
+
+<p>If a staff member forgets their password, you can reset it.</p>
+
+<ol class="steps">
+  <li>Open the user detail page.</li>
+  <li>Click <strong>Reset password</strong>.</li>
+  <li>Choose a new temporary password, or leave blank to send a reset link.</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<p><strong>If you set a temporary password:</strong> Tell the user via a secure channel — in person, over the phone, not email. Ask them to change it on first login.</p>
+
+<p><strong>If you send a reset link:</strong> The user gets an email with a link that expires in 24 hours. They click it and set their own new password.</p>
+
+<p>Password resets are routine. Nobody should feel embarrassed about forgetting a password — it happens. Reset takes a minute.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION 8: BILLING                                            -->
+<!-- ============================================================ -->
+
+<h1 id="billing">8. Billing — credits, plans, and invoices</h1>
+
+<div class="callout admin">
+<span class="label">Admin only</span>
+<p>If you are a staff member, you can see your organization's wallet balance but not the billing details. Skip this section.</p>
+</div>
+
+<p>This section explains how credits work, how to get more, and how to read the records that track every credit in and out of your organization.</p>
+
+<h2>Two words to know: wallet and plan</h2>
+
+<p><strong>Wallet</strong> — your organization's credit balance. Every message you send debits from this balance. The dashboard shows it. It never goes below zero.</p>
+
+<p><strong>Plan</strong> — a subscription that gives your organization permission to send messages for a period of time, up to certain rate limits. Every organization has a current plan. Without an active plan, you cannot send, even if you have credits in your wallet.</p>
+
+<p>The two work together. A plan says <em>how fast you can send</em>. Your wallet says <em>how much you can afford to send</em>. You need both to be healthy to send messages.</p>
+
+<h2>Where your credits come from</h2>
+
+<div class="callout admin">
+<span class="label">Not self-service</span>
+<p>Roman SMS does not sell credits on a self-service basis. There is no "Buy credits" button in the app. Instead, you contact the operator.</p>
+</div>
+
+<p>The flow is:</p>
+
+<ol class="steps">
+  <li><strong>You ask the operator</strong> — by chat (<a href="#help">Section 9</a>), phone, or email. Tell them what you need: how many messages you plan to send, roughly. They'll suggest a plan that fits.</li>
+  <li><strong>The operator issues an invoice</strong> — a document showing what you're buying, at what price, with what credits and validity period. It appears on your Billing → Invoices page.</li>
+  <li><strong>You pay</strong> — bank transfer, mobile money, however you've agreed with the operator. Pay to the account details on the invoice.</li>
+  <li><strong>The operator marks the invoice paid.</strong> At that moment: your plan is activated (or renewed), the credits are added to your wallet, and you can send.</li>
+</ol>
+
+<p>This usually happens within a few hours of payment. Sometimes faster, occasionally slower if the operator is away.</p>
+
+<p><strong>Why isn't it self-service?</strong> Because most customers prefer to talk through what they need — "I'm sending fee reminders to 500 parents every week for 8 weeks, what plan do I need?" is a conversation, not a click. And paying in Uganda usually means mobile money or bank transfer, which don't integrate cleanly with automatic purchase.</p>
+
+<h2>What happens when the plan expires</h2>
+
+<div class="callout tip">
+<span class="label">Your credits do not disappear</span>
+<p>A plan expiring does not delete your credits. Your wallet balance stays where it is. But you cannot send new messages or create new schedules until the plan is renewed.</p>
+</div>
+
+<p>When the plan expires:</p>
+
+<ul>
+  <li>You cannot send new messages or create new schedules.</li>
+  <li>Existing schedules fire until they complete or you cancel them.</li>
+  <li>You can still log in, see your data, and manage contacts.</li>
+</ul>
+
+<p>When the operator renews your plan (typically as part of a new invoice), sending resumes immediately.</p>
+
+<div class="callout warning">
+<span class="label">Plan about to expire?</span>
+<p>If you're about to reach the validity end date and want to keep sending, contact the operator a few days before the date. Renewal usually takes hours from payment, not days.</p>
+</div>
+
+<h2>Reading your wallet</h2>
+
+<p>Open <strong>Billing → Wallet</strong> to see:</p>
+
+<ul>
+  <li><strong>Current balance</strong> — how many credits you have.</li>
+  <li><strong>Transaction history</strong> — every credit in, every debit out, going back to the beginning.</li>
+</ul>
+
+<p>Each transaction row shows:</p>
+
+<table>
+  <thead>
+    <tr><th>Column</th><th>What it means</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Date</strong></td><td>When the transaction happened.</td></tr>
+    <tr><td><strong>Description</strong></td><td>What the transaction was for. Examples: "SMS send", "Schedule reservation", "Plan grant", "Refund", "Grant from operator".</td></tr>
+    <tr><td><strong>Amount</strong></td><td>Positive for credits in, negative for credits out.</td></tr>
+    <tr><td><strong>Balance after</strong></td><td>Your wallet balance immediately after this transaction.</td></tr>
+    <tr><td><strong>Reference</strong></td><td>A traceable identifier. <code>campaign:123</code> means this debit was for campaign #123. <code>schedule:42</code> means it was for schedule #42.</td></tr>
+  </tbody>
+</table>
+
+<h3>Using the reference to trace a debit</h3>
+
+<p>If you see:</p>
+
+<pre style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;"><code>-1,500 credits | SMS send | Ref: campaign:245</code></pre>
+
+<p>You can:</p>
+
+<ol class="steps">
+  <li>Open <strong>Campaigns</strong>, find campaign #245 (it will be near the top if it was recent).</li>
+  <li>Confirm the campaign sent to 750 recipients at 2 segments each — 750 × 2 = 1,500 credits. Correct.</li>
+</ol>
+
+<p>If the debit doesn't match the campaign, that's when you contact the operator. Discrepancies are rare but worth catching quickly.</p>
+
+<h2>Reading an invoice</h2>
+
+<p>Invoices are at <strong>Billing → Invoices</strong>. You'll see all invoices for your organization, with status: pending, paid, or cancelled.</p>
+
+<p>Click any invoice to see its details:</p>
+
+<ul>
+  <li><strong>Invoice number</strong> — a reference.</li>
+  <li><strong>Issued date</strong> — when the operator created it.</li>
+  <li><strong>Amount</strong> — in Ugandan shillings.</li>
+  <li><strong>Status</strong> — pending (not paid), paid, or cancelled.</li>
+  <li><strong>What you're buying</strong> — the plan name, credit count, validity period, and rate limits.</li>
+  <li><strong>A PDF download</strong> — save a copy for your records.</li>
+</ul>
+
+<h3>The invoice is a snapshot</h3>
+
+<p>Once an invoice is issued, it never changes. If the operator changes a plan's price, or renames the plan, or changes anything about it, <strong>your existing invoices still show the old details</strong>.</p>
+
+<p>This matters for accounting. The invoice shows what you were charged and what you were promised, at the moment it was created. It's a permanent record.</p>
+
+<h3>What each status means</h3>
+
+<table>
+  <thead>
+    <tr><th>Status</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Pending</strong></td><td>The operator has created the invoice but you haven't paid yet. A pending invoice does not mean you have credits. If your wallet shows 0 and you have a pending invoice, you still can't send.</td></tr>
+    <tr><td><strong>Paid</strong></td><td>You paid, the operator marked it paid, your wallet was credited, and your plan was renewed.</td></tr>
+    <tr><td><strong>Cancelled</strong></td><td>The invoice was created but will not be paid. Cancelled invoices don't affect your wallet.</td></tr>
+  </tbody>
+</table>
+
+<h2>Buying credits: the full flow</h2>
+
+<p>If you need more credits — because your balance is low, or you want to top up before a big send:</p>
+
+<ol class="steps">
+  <li><strong>Estimate what you need.</strong> Open <strong>Dashboard</strong> and look at "Days remaining." If it's less than 14 days and you have sends coming up, you need more credits.</li>
+  <li><strong>Contact the operator.</strong> Open <strong>Chat</strong>, message the operator, and say something like: "I need to buy [X] credits for [Y] months." They'll respond with plan options and prices.</li>
+  <li><strong>Review the invoice.</strong> The operator issues an invoice. Check the details — amount, credit count, validity period. If anything looks wrong, message the operator before paying.</li>
+  <li><strong>Pay.</strong> Follow the payment details on the invoice. In Uganda, this is usually mobile money (MTN, Airtel) or a bank transfer.</li>
+  <li><strong>Wait for the operator.</strong> Once they confirm your payment, they mark the invoice paid. This is usually within hours.</li>
+  <li><strong>Confirm.</strong> Open <strong>Billing → Wallet</strong>. The credits should appear as a "Plan grant" row. Your plan's "Valid until" date should have moved forward.</li>
+  <li><strong>Send.</strong> You're ready to send messages again.</li>
+</ol>
+
+<h2>When billing doesn't add up</h2>
+
+<h3>"I paid but I don't have credits yet."</h3>
+<p>Wait a bit — the operator marks invoices paid manually, so there's usually a gap of minutes to hours between your payment and their mark. If it's been more than a day, message the operator with your payment reference.</p>
+
+<h3>"I ran out of credits mid-campaign."</h3>
+<p>If your wallet hits zero mid-campaign, the campaign may have sent some messages and failed others. Check the campaign detail page for delivery counts. The messages that sent are charged; the ones that failed are refunded. Buy more credits and send a new campaign to catch the rest — there is no automatic retry.</p>
+
+<h3>"My plan expired but I still have credits."</h3>
+<p>The credits are still there. Your plan is what's expired. Contact the operator to renew your plan, and credits resume working immediately.</p>
+
+<h3>"I don't see the invoice I expected."</h3>
+<p>Invoices are issued by the operator. If you agreed to buy credits in a conversation, ask the operator to issue the invoice — they may have forgotten. Invoices don't appear automatically.</p>
+
+<h3>"I want a refund."</h3>
+<p>Credits are non-refundable once granted. If you over-bought and don't need them, they'll stay in your wallet indefinitely — as long as your plan is active, you can use them. If you have a genuine problem (an invoice was issued for the wrong amount, a payment was duplicated), message the operator and they can adjust.</p>
+
+<div class="callout tip">
+<span class="label">A monthly accounting habit</span>
+<p>Three things every month: <strong>(1)</strong> Download your invoices and save them. Your accountant will need them. <strong>(2)</strong> Export your wallet history. It's the record of every credit spent. <strong>(3)</strong> Note your current balance and plan expiry somewhere you'll see them next month. This prevents the "why can't I send" surprise.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 9: GETTING HELP                                       -->
+<!-- ============================================================ -->
+
+<h1 id="help">9. Getting help</h1>
+
+<p>Sometimes things go wrong in ways the manual doesn't cover, or the fix is something only the operator can do. This section is about how to get help — quickly, and with the least back-and-forth.</p>
+
+<h2>The fastest way: chat</h2>
+
+<div class="callout tip">
+<span class="label">Use Chat, not email</span>
+<p>The chat inside Roman SMS is the fastest way to reach the operator. It's in the left menu, labelled <strong>Chat</strong>. Messages you send there go directly to the operator and usually get a response within a working day — sometimes within minutes.</p>
+</div>
+
+<p>Why chat is better than email or phone:</p>
+
+<ul>
+  <li><strong>It's inside the app.</strong> No need to look up contact details.</li>
+  <li><strong>It's linked to your account.</strong> The operator can see which organization you're from, which plan you're on, and what your recent activity looks like, without asking.</li>
+  <li><strong>It's recorded.</strong> Both you and the operator can refer back to what was said.</li>
+  <li><strong>It reaches the operator even when they're not online.</strong> The message stays in their queue.</li>
+</ul>
+
+<p>Use email only if you need to attach something the chat can't handle — an invoice PDF, a spreadsheet, a screenshot. Use phone only for urgent issues that can't wait.</p>
+
+<h2>What to include when you ask for help</h2>
+
+<p>The single biggest factor in how fast you get help is <strong>how specific your message is</strong>. A good help request includes:</p>
+
+<ol>
+  <li><strong>What you were trying to do.</strong> "I tried to send a fee reminder to the Form 1 Parents group."</li>
+  <li><strong>What actually happened.</strong> "Nothing happened. The button is greyed out."</li>
+  <li><strong>The specific identifiers.</strong> Campaign number, contact number, schedule number, invoice number — whatever is relevant.</li>
+  <li><strong>What you've already tried.</strong> "I refreshed the page. I logged out and back in. Still greyed out."</li>
+  <li><strong>A screenshot if it's a visual problem.</strong> Especially useful for "the page looks wrong" issues.</li>
+</ol>
+
+<p>Compare:</p>
+
+<p><strong>Not specific:</strong> "My campaign didn't send. Please help."</p>
+
+<p><strong>Specific:</strong> "Campaign #245, scheduled for today at 8 AM, is showing as 'pending' on the detail page. It's been over an hour. I have credits and my plan is active (expiry 2026-12-01). 500 recipients in the Form 1 Parents group. Can you check what's happening?"</p>
+
+<p>The specific version is answerable in one message. The vague version requires three or four back-and-forth messages just to establish the basics.</p>
+
+<h2>Before you ask: three quick checks</h2>
+
+<p>If something doesn't work, spend two minutes on these before messaging the operator.</p>
+
+<ol class="steps">
+  <li><strong>Reload the page.</strong> A surprising number of issues — a button that won't click, a count that looks wrong, a status that doesn't update — resolve with a browser reload. <kbd>Ctrl</kbd>+<kbd>R</kbd> (or <kbd>Cmd</kbd>+<kbd>R</kbd> on Mac).</li>
+  <li><strong>Check your notifications.</strong> The bell at the top of the dashboard. If there's a pending action — an import with errors, a plan expiring, a low balance — the notification usually tells you.</li>
+  <li><strong>Look at the dashboard.</strong> Wallet low? Plan expiring? Recent failed campaign? It's all there.</li>
+</ol>
+
+<p>If none of these explains it, then message.</p>
+
+<h2>What the operator can help with</h2>
+
+<ul>
+  <li><strong>Reset passwords</strong> — for you, or for any user in your organization.</li>
+  <li><strong>Grant credits</strong> — as an adjustment, refund, or bonus.</li>
+  <li><strong>Change your brand prefix</strong> — the short identifier at the start of every message. Master-only setting.</li>
+  <li><strong>Suspend or terminate your account in an emergency</strong> — for legal or compliance issues.</li>
+  <li><strong>Investigate billing discrepancies</strong> — if your wallet shows a charge that doesn't match what you did.</li>
+  <li><strong>Look at server-side logs</strong> — if something failed on the platform's side.</li>
+  <li><strong>Fix technical problems on your account</strong> — errors on pages, behavior the manual doesn't explain.</li>
+</ul>
+
+<h2>What the operator cannot do</h2>
+
+<ul>
+  <li><strong>Undo a sent message.</strong> SMS is immediate. The operator can't recall it.</li>
+  <li><strong>Restore a deleted user.</strong> Deleting a user is permanent. If the user's history matters, terminate rather than delete (see <a href="#team">Section 7</a>).</li>
+  <li><strong>Reverse an opt-out.</strong> A phone that opted out stays opted out. This is a legal requirement, not a platform policy.</li>
+  <li><strong>See what you sent to a specific contact.</strong> The operator can see that a campaign was sent and its delivery counts, but not the individual message body.</li>
+  <li><strong>Add credits without an invoice.</strong> If you bought a plan, you get credits. No free grants without a corresponding invoice or documented adjustment.</li>
+  <li><strong>Change your message content after you've sent it.</strong> Same as undoing a sent message.</li>
+</ul>
+
+<h2>Emergencies</h2>
+
+<p>An emergency is:</p>
+
+<ul>
+  <li>You cannot send messages and have a critical send due in the next few hours.</li>
+  <li>Your account has been suspended and you don't know why.</li>
+  <li>You believe you've been charged incorrectly and the amount matters.</li>
+  <li>You suspect your account has been accessed by someone who shouldn't have access.</li>
+</ul>
+
+<p>For these, message the operator through chat and put <strong>URGENT</strong> in the message. Urgent messages usually get a faster response.</p>
+
+<p>For non-urgent questions, skip the "URGENT" tag. It's rare that a flag actually saves you time, and it uses the operator's attention in a way that slows response to real emergencies.</p>
+
+<h2>A word about response times</h2>
+
+<ul>
+  <li><strong>Chat message:</strong> usually within a working day, often faster.</li>
+  <li><strong>Urgent issues:</strong> usually within an hour during business hours. Slower at night and on weekends.</li>
+  <li><strong>Payment processing:</strong> typically within hours of payment, but can take longer if the operator is away.</li>
+</ul>
+
+<p>If you don't hear back in a full working day on a non-urgent question, a gentle follow-up is fine. Do not send five messages in an hour — that doesn't speed up the response, it just adds noise.</p>
+
+<h2>If chat isn't working</h2>
+
+<p>If the chat page is broken or won't load, you can reach the operator by email or phone using the contact details on your invoices — the invoice PDF has the operator's direct contact information. This is uncommon; the chat usually works. But if it doesn't, the invoice has an escape hatch.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION 10: TROUBLESHOOTING                                   -->
+<!-- ============================================================ -->
+
+<h1 id="troubleshooting">10. Troubleshooting</h1>
+
+<p>When something isn't working, look for the problem in the list below. The problems are alphabetical. Each entry tells you the most likely cause, what to do, and when to stop and ask the operator.</p>
+
+<h2>Account suspended or terminated</h2>
+<p><strong>Symptom:</strong> You try to log in and see a message saying your account is suspended or terminated.</p>
+<p><strong>Most likely cause:</strong> An administrator (or the operator) has deliberately changed your account status. This does not happen accidentally.</p>
+<p><strong>What to do:</strong></p>
+<ul>
+  <li>If you are a staff member: contact your school or business administrator. They can reactivate you.</li>
+  <li>If you are the administrator: contact the operator. Account suspension for an admin usually indicates a payment or compliance issue that needs to be resolved.</li>
+</ul>
+<p><strong>When to stop and ask:</strong> Immediately. If you're the admin and you're suspended, you cannot fix it yourself.</p>
+
+<h2>"Insufficient credits" when you have credits</h2>
+<p><strong>Symptom:</strong> You try to send a campaign or create a schedule, and the form says "Insufficient credits" even though your wallet shows a positive balance.</p>
+<p><strong>Most likely cause:</strong> One of: your plan has expired; the campaign cost is more than your available balance; a recent schedule reservation is holding credits that haven't been released yet.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Check your plan status on <strong>Billing</strong> — is the "Valid until" date in the future?</li>
+  <li>Look at the cost counter on the campaign form. Is the total greater than your dashboard balance?</li>
+  <li>Check <strong>Campaigns → Scheduled</strong> for schedules with active reservations. Each holds credits.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If your plan is active, your balance is higher than the campaign cost, and you have no active schedules, but it still says insufficient. Something is wrong with the wallet.</p>
+
+<h2>Campaign shows failed for one number</h2>
+<p><strong>Symptom:</strong> A campaign was sent. Most recipients show "delivered" or "sent". One or two specific numbers show "failed".</p>
+<p><strong>Most likely cause:</strong> The number was invalid (typo in the contact's record), the phone was off for too long to receive, or the phone carrier rejected the message.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Open the contact's record and check the phone number. Compare it to what you know about the person.</li>
+  <li>If the number is wrong, edit it. Then send a new campaign to that group or contact to catch the failed recipient.</li>
+  <li>If the number is correct and keeps failing, the recipient's carrier may be blocking bulk SMS from the platform's sender ID.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If the number is correct and continues to fail across multiple campaigns, ask the operator to investigate.</p>
+
+<h2>Campaign stuck on "pending"</h2>
+<p><strong>Symptom:</strong> You click Send. The campaign is created. The status shows "pending". It's been more than 5 minutes and nothing has changed.</p>
+<p><strong>Most likely cause:</strong> The worker (the background process that sends messages) is either very backed up, or there's an issue with the SMS provider. Rate limits also delay large campaigns.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Wait 5 more minutes. Small campaigns complete quickly. Large campaigns (thousands of recipients) take minutes at the plan's rate limit.</li>
+  <li>Check the campaign detail page. Is there a per-recipient status showing "sent" for at least some recipients? If yes, the campaign is working — just slowly.</li>
+  <li>Reload the page. Sometimes the display lags behind the actual status.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If a small campaign (under 100 recipients) has been pending for more than 15 minutes, and the detail page shows zero sent messages, contact the operator.</p>
+
+<h2>Can't create a contact — no group in dropdown</h2>
+<p><strong>Symptom:</strong> You open the "Add contact" form. The Group dropdown is empty or only shows options you don't want.</p>
+<p><strong>Most likely cause:</strong> Your organization has no groups in your department, or the groups available aren't yours.</p>
+<p><strong>What to do:</strong> Go to <strong>Groups</strong> and create one first (<a href="#groups">Section 4</a>). If you're a staff member with a department, you only see groups from your own department plus shared groups.</p>
+<p><strong>When to stop and ask:</strong> If you're sure there are shared groups your administrator has created, but you don't see them, ask your administrator to check.</p>
+
+<h2>Can't log in</h2>
+<p><strong>Symptom:</strong> You enter your email and password, click Log in, and nothing happens, or you see an error message.</p>
+<p><strong>Most likely cause:</strong> Wrong email or password, account suspended, or browser cookie issue.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Check the email address carefully. Spelling matters.</li>
+  <li>If you're not sure of your password, use <strong>Forgot password?</strong> on the login page to reset it.</li>
+  <li>If the page doesn't respond at all, try a different browser or clear your browser cookies for <code>romansms.com</code>.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If you've reset your password and still can't log in, or if you see "account is inactive" and you don't know why, contact the operator.</p>
+
+<h2>Changes didn't save</h2>
+<p><strong>Symptom:</strong> You edited a contact, group, or template. You clicked Save. Later, you open the same record and the old values are back.</p>
+<p><strong>Most likely cause:</strong> The save didn't go through — an error message may have appeared briefly, or your internet connection dropped.</p>
+<p><strong>What to do:</strong> Try again, watching for any error message. If the edit involves a duplicate phone number or email, the save will fail with an error. Check your internet connection.</p>
+<p><strong>When to stop and ask:</strong> If you consistently cannot save a specific record, ask the operator.</p>
+
+<h2>Chat doesn't load</h2>
+<p><strong>Symptom:</strong> You open the <strong>Chat</strong> page and it's blank, shows a loading spinner forever, or shows an error.</p>
+<p><strong>Most likely cause:</strong> Network issue, or a temporary server problem.</p>
+<p><strong>What to do:</strong> Reload the page, check your internet connection, try a different browser.</p>
+<p><strong>When to stop and ask:</strong> If chat consistently doesn't load, use the contact details on your latest invoice (email or phone) to reach the operator.</p>
+
+<h2>Contact isn't showing up in the group</h2>
+<p><strong>Symptom:</strong> You added a contact to a specific group. Later you open that group and the contact isn't there.</p>
+<p><strong>Most likely cause:</strong> You're looking at a different group than the one they were added to, or the contact was moved, or there was a save error you didn't notice.</p>
+<p><strong>What to do:</strong> Go to <strong>Contacts</strong> and search for the contact by name or phone. Open the record to see which group they're actually in. If they're in a different group, edit and change the group.</p>
+<p><strong>When to stop and ask:</strong> If you've verified the contact exists and belongs to the group but doesn't show in the group's list, ask the operator.</p>
+
+<h2>Dashboard shows wrong numbers</h2>
+<p><strong>Symptom:</strong> You know you sent X messages yesterday, but the dashboard shows a different number.</p>
+<p><strong>Most likely cause:</strong> The dashboard's 30-day count includes only successfully-sent messages. A campaign that failed at the network level may not appear in the count.</p>
+<p><strong>What to do:</strong> Reload the page. Look at the specific campaign detail page to check what it actually sent. For a specific period's numbers, use <strong>Reports</strong>.</p>
+<p><strong>When to stop and ask:</strong> If the numbers are dramatically off (hundreds of messages), ask the operator.</p>
+
+<h2>Forgot password</h2>
+<p><strong>Symptom:</strong> You can't remember your password.</p>
+<p><strong>Most likely cause:</strong> Normal — this happens.</p>
+<p><strong>What to do:</strong> On the login page, click <strong>Forgot password?</strong>. Enter your email. Check your email for a password-reset link. The link expires in 24 hours.</p>
+<p><strong>When to stop and ask:</strong> If you don't receive the reset email within a few minutes and you've checked your spam folder, contact the operator.</p>
+
+<h2>Import failed — most rows skipped</h2>
+<p><strong>Symptom:</strong> You imported a CSV of contacts. The report shows most rows skipped, with various reasons.</p>
+<p><strong>Most likely cause:</strong> Phone numbers not in a recognized Ugandan format, missing <code>phone</code> column header, or most numbers already in your contact list.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Open the import report. Look at the reasons per row.</li>
+  <li>If the reason is "invalid phone", check that the CSV's phone column has numbers like <code>0771234567</code> — consistent format across all rows.</li>
+  <li>If the reason is "duplicate", the contacts are already in your list. You don't need to re-import them.</li>
+  <li>Download the error CSV and look at the specific rows that failed.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If a small file (under 50 rows) with obviously-correct phone numbers is failing across the board, ask the operator.</p>
+
+<h2>Message says delivered but wasn't received</h2>
+<p><strong>Symptom:</strong> The campaign detail page shows "delivered" for a specific recipient. They say they never got the message.</p>
+<p><strong>Most likely cause:</strong> The phone network accepted the message and the phone confirmed receipt. Possibilities: the recipient has a dual-SIM phone and checked the wrong SIM; the phone's SMS app is hiding unknown senders; the message was delivered to a number that looks like theirs but isn't (typo in their contact record).</p>
+<p><strong>What to do:</strong> Check the contact's phone number in your records against what they tell you their number is. Ask them to check their phone's SMS app again — many phones sort unknown senders separately.</p>
+<p><strong>When to stop and ask:</strong> If the number is correct, they've checked their phone thoroughly, and this happens repeatedly for the same person, ask the operator.</p>
+
+<h2>Notifications won't go away</h2>
+<p><strong>Symptom:</strong> You dismiss a notification but it keeps coming back.</p>
+<p><strong>Most likely cause:</strong> Notifications are recomputed on every page load from live conditions. If the condition still applies, the notification keeps appearing.</p>
+<p><strong>What to do:</strong> <strong>Fix the condition.</strong> Buy credits, renew the plan, review the import. Once the condition no longer applies, the notification disappears. There is no way to permanently dismiss a notification without fixing the condition — this is deliberate.</p>
+<p><strong>When to stop and ask:</strong> If a notification describes a problem you cannot fix, contact the operator.</p>
+
+<h2>Opt-out couldn't be reversed</h2>
+<p><strong>Symptom:</strong> A contact asked to receive messages again. You can't un-opt-out them.</p>
+<p><strong>Most likely cause:</strong> Opt-outs are permanent by design, at the platform level. No user role can reverse an opt-out.</p>
+<p><strong>What to do:</strong> The phone number stays opted out. If the contact needs to receive messages urgently, use a different phone number or a direct phone call. Do not try to add the same number with different formatting — the system normalizes phone numbers and will still respect the opt-out.</p>
+<p><strong>When to stop and ask:</strong> If a contact insists they never opted out, ask the operator to investigate.</p>
+
+<h2>Schedule didn't fire</h2>
+<p><strong>Symptom:</strong> You scheduled a campaign. The scheduled time has passed. No messages were sent.</p>
+<p><strong>Most likely cause:</strong> The schedule is paused; the plan expired; the contact list grew beyond the reservation (overage guard paused the schedule); or wallet balance is negative.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Open the schedule detail page. What's the status? Active? Paused? Completed?</li>
+  <li>If paused — check why. If the reason mentions "overage," the contact count grew. Cancel and re-create with the current count.</li>
+  <li>Check your plan on <strong>Billing</strong> — is it active?</li>
+  <li>Check your wallet balance on the dashboard.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If the schedule shows "active," the plan is active, the wallet is positive, and the scheduled time passed without a fire, contact the operator.</p>
+
+<h2>Schedule fired twice</h2>
+<p><strong>Symptom:</strong> A scheduled message sent to your recipients twice in close succession.</p>
+<p><strong>Most likely cause:</strong> Two separate schedules exist that happen to fire at similar times. Or, a scheduled fire and a manual send were triggered near each other.</p>
+<p><strong>What to do:</strong> Open <strong>Campaigns → Scheduled</strong> and look for duplicate schedules with the same or similar settings. Check <strong>Campaigns</strong> for duplicate campaigns from the same period. If you find two schedules that duplicate each other, cancel one.</p>
+<p><strong>When to stop and ask:</strong> If you can only find one schedule and it fired twice, ask the operator. There may be a duplicate event in the worker's log that indicates a real bug.</p>
+
+<h2>Wallet balance is 0 but I know I have credits</h2>
+<p><strong>Symptom:</strong> Dashboard shows 0 credits. You know you bought credits recently.</p>
+<p><strong>Most likely cause:</strong> The credits were consumed by recent sends; a schedule reservation is holding them; or the invoice you paid hasn't been marked paid yet.</p>
+<p><strong>What to do:</strong></p>
+<ol class="steps">
+  <li>Open <strong>Billing → Wallet</strong>. Look at the recent transactions. Are there debits you didn't expect?</li>
+  <li>Check <strong>Campaigns → Scheduled</strong>. Any schedules with active reservations? Each holds credits.</li>
+  <li>Check <strong>Billing → Invoices</strong>. Is there a pending invoice? If yes, the operator may not have marked it paid yet.</li>
+</ol>
+<p><strong>When to stop and ask:</strong> If you've checked all three and everything looks correct, but your balance is still 0, contact the operator.</p>
+
+<div style="margin-top:64px;padding:24px;background:#f0fdf4;border-radius:8px;border-left:4px solid #16a34a;">
+<p style="margin:0;font-size:14px;color:#166534;"><strong>End of manual.</strong> If you've read all ten sections, you know how to use every part of Roman SMS that a typical administrator needs. If you find something missing or confusing, let the operator know — this manual improves based on feedback.</p>
+</div>
+
+</body>
+</html>
