@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Users — {{ org.name }}{% endblock %}
+{% block page_header %}Users{% endblock %}
+{% block content %}
+
+<div class="mb-6 flex items-start justify-between gap-4">
+  <div>
+    <p class="text-sm text-slate-500">
+      Manage people who can send SMS from {{ org.name }}.
+    </p>
+  </div>
+  <a href="{{ url_for('school.user_new') }}"
+     class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400
+            text-white font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    Add user
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-left">
+      <tr>
+        <th class="px-5 py-3 font-semibold text-slate-700">Email</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Name</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Role</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Department</th>
+        <th class="px-5 py-3 font-semibold text-slate-700">Last login</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for u in users %}
+      <tr class="hover:bg-slate-50/50 transition">
+        <td class="px-5 py-3 font-mono text-xs text-slate-700">{{ u.email }}</td>
+        <td class="px-5 py-3 text-slate-700">{{ u.full_name or '—' }}</td>
+        <td class="px-5 py-3">
+          {% if u.role == 'associate_admin' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">admin</span>
+          {% else %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">user</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3 text-xs text-slate-700">
+          {% if u.department == 'bursar' %}Bursar
+          {% elif u.department == 'dos' %}Director of Studies
+          {% elif u.department == 'dean' %}Dean
+          {% elif u.department == 'ht' %}Head Teacher
+          {% else %}<span class="text-slate-400">Shared</span>{% endif %}
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs">
+          {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else '—' }}
+        </td>
+        <td class="px-5 py-3 text-right whitespace-nowrap">
+          <a href="{{ url_for('school.user_edit', uid=u.id) }}"
+             class="text-emerald-700 hover:underline text-xs mr-3">Edit</a>
+          <form method="post"
+                action="{{ url_for('school.user_reset_password', uid=u.id) }}"
+                class="inline-flex gap-2 items-center mr-3"
+                onsubmit="return confirm('Reset password for {{ u.email }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input name="new_password" required minlength="8"
+                   placeholder="new password"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs font-mono w-32">
+            <button class="text-amber-700 hover:underline text-xs">Reset</button>
+          </form>
+          <form method="post"
+                action="{{ url_for('school.user_delete', uid=u.id) }}"
+                class="inline"
+                onsubmit="return confirm('Delete {{ u.email }}? This cannot be undone.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="text-red-600 hover:underline text-xs">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="p-6 text-center text-slate-500">
+          No users yet. Add one to get started.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

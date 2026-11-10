@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit user' if user else 'New user' }} — Roman SMS{% endblock %}
+{% block page_header %}{{ 'Edit user' if user else 'New user' }}{% endblock %}
+{% block content %}
+
+<div class="max-w-lg">
+  <div class="mb-6">
+    <a href="{{ url_for('school.users') }}"
+       class="text-sm text-slate-500 hover:text-slate-900 transition">← Users</a>
+  </div>
+
+  <form method="post"
+        class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+      <input name="email" type="email" required
+             value="{{ user.email if user else form.get('email','') }}"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Full name</label>
+      <input name="full_name" required
+             value="{{ user.full_name if user else form.get('full_name','') }}"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+    </div>
+
+    {% if not user %}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+      <input name="password" type="password" required minlength="8"
+             placeholder="At least 8 characters"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+      <select name="role" required
+              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+        <option value="associate_admin" {% if form.get('role') == 'associate_admin' %}selected{% endif %}>
+          School admin (sees everything in this school)
+        </option>
+        <option value="user" {% if form.get('role') == 'user' %}selected{% endif %}>
+          User (scoped to a department)
+        </option>
+      </select>
+    </div>
+    {% endif %}
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">
+        Department
+        <span class="text-slate-400 font-normal">(for role=User; ignored for admin)</span>
+      </label>
+      <select name="department"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+        {% for dept in departments %}
+        <option value="{{ dept or '' }}"
+                {% if (user.department if user else form.get('department')) == dept %}selected{% endif %}>
+          {% if dept == 'bursar' %}Bursar
+          {% elif dept == 'dos' %}Director of Studies
+          {% elif dept == 'dean' %}Dean
+          {% elif dept == 'ht' %}Head Teacher
+          {% else %}Shared (visible to all departments){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      <p class="text-xs text-slate-500 mt-1.5">
+        A user with a department only sees groups, templates, and campaigns
+        tagged to their department or shared. School admins always see everything.
+      </p>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
+      <button class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+                     text-white font-semibold px-5 py-2.5 rounded-lg transition shadow-sm">
+        {{ 'Save changes' if user else 'Create user' }}
+      </button>
+      <a href="{{ url_for('school.users') }}"
+         class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

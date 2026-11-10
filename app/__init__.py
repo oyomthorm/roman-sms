@@ -167,6 +167,7 @@ def create_app(config_object=Config):
     from .routes.settings import settings_bp
     from .routes.webhooks import webhooks_bp
     from .routes.signup import signup_bp
+    from .routes.school import school_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(public_bp)
@@ -185,6 +186,7 @@ def create_app(config_object=Config):
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.register_blueprint(webhooks_bp, url_prefix='/api/webhooks')
     app.register_blueprint(signup_bp, url_prefix='/signup')
+    app.register_blueprint(school_bp, url_prefix='/school')
 
     from .cli import register_cli
     register_cli(app)
