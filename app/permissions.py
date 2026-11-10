@@ -26,6 +26,24 @@ def org_admin_required(f):
     return role_required('master_admin', 'associate_admin')(f)
 
 
+
+def school_admin_required(f):
+    """Requires current_user to be an org-level school admin.
+
+    That is: role='associate_admin' AND department IS NULL.
+    Master is explicitly rejected. Dept-scoped users are rejected.
+    Per docs/DEPARTMENTS.md §1 -- user management is org-admin-only.
+    """
+    @wraps(f)
+    def wrapper(*a, **kw):
+        if not current_user.is_authenticated:
+            abort(401)
+        if current_user.role != 'associate_admin':
+            abort(403)
+        if getattr(current_user, 'department', None) is not None:
+            abort(403)
+        return f(*a, **kw)
+    return wrapper
 def org_scoped(model):
     """Every read of tenant data must go through this."""
     if current_user.is_authenticated and current_user.role == 'master_admin':

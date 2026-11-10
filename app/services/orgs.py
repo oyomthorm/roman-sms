@@ -224,3 +224,240 @@ def reset_admin_password(org, user_id, new_password, *, actor_id=None):
     audit('user_password_reset', f'org={org.slug} user={user.email}',
           org_id=org.id, actor_id=actor_id)
     return user
+
+# --------------------------------------------------------------------------
+# School user CRUD -- create/edit/delete/reset within an org (A5)
+# --------------------------------------------------------------------------
+#
+# Permission model (see docs/DEPARTMENTS.md §1):
+#   - These functions are for a school's own admin (role='associate_admin',
+#     department=None) to manage users in their own org.
+#   - Master does not create school users via these functions. Master's only
+#     user-level action on an org is reset_admin_password (existing).
+#   - The route layer enforces WHO can call these (school_admin_required);
+#     these functions enforce WHAT is valid.
+
+DEPARTMENTS = (None, 'bursar', 'dos', 'dean', 'ht')
+USER_ROLES = ('associate_admin', 'user')
+
+
+def list_users(org):
+    """All users in this org, alphabetical by email."""
+    return (User.query
+            .filter_by(org_id=org.id)
+            .order_by(User.email)
+            .all())
+
+
+def _validate_department(department):
+    if department not in DEPARTMENTS:
+        raise OrgError(
+            'Invalid department. Choose one of: '
+            'shared (none), bursar, dos, dean, ht.')
+    return department
+
+
+def _validate_user_role(role):
+    if role not in USER_ROLES:
+        raise OrgError(
+            "Invalid role. Must be 'associate_admin' or 'user'.")
+    return role
+
+
+def _validate_role_department_combo(role, department):
+    """Dept-scoped admins are not allowed.
+
+    associate_admin is always dept=None (sees everything in the org).
+    To create a dept-scoped user, use role='user'.
+    """
+    if role == 'associate_admin' and department is not None:
+        raise OrgError(
+            'A school admin cannot be scoped to a department. '
+            'Create a regular user (role="user") with that department instead.')
+    return role, department
+
+
+def _validate_email_unique(email, exclude_id=None):
+    email = (email or '').strip().lower()
+    if not email:
+        raise OrgError('Email is required.')
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        raise OrgError('Enter a valid email address.')
+    q = User.query.filter(User.email == email)
+    if exclude_id:
+        q = q.filter(User.id != exclude_id)
+    if q.first():
+        raise OrgError(f'Email "{email}" is already registered.')
+    return email
+
+
+def create_user(org, *, email, full_name, password,
+                role='associate_admin', department=None, actor_id=None):
+    """Create a new user in this org.
+
+    role: 'associate_admin' (school admin, dept=None) or 'user' (dept-scoped).
+    department: None or one of DEPARTMENTS. Ignored-as-None for admin role.
+    """
+    _refuse_if_protected(org)
+
+    email = _validate_email_unique(email)
+    role = _validate_user_role(role)
+    department = _validate_department(department)
+    _validate_role_department_combo(role, department)
+    password = _validate_password(password)
+
+    full_name = (full_name or '').strip()
+    if not full_name:
+        raise OrgError('Full name is required.')
+
+    user = User(
+        email=email,
+        full_name=full_name,
+        role=role,
+        org_id=org.id,
+        department=department,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    audit('user_create',
+          f'org={org.slug} email={email} role={role} dept={department or "shared"}',
+          org_id=org.id, actor_id=actor_id)
+    return user
+
+
+def update_user(org, user_id, *, full_name=None, email=None,
+                department=None, actor_id=None):
+    """Update a user's name, email, or department. Never changes role.
+
+    Role changes are a separate feature (not built yet).
+    """
+    _refuse_if_protected(org)
+
+    user = User.query.filter_by(id=user_id, org_id=org.id).first()
+    if not user:
+        raise OrgError('User not found in that organization.')
+
+    if full_name is not None:
+        full_name = full_name.strip()
+        if not full_name:
+            raise OrgError('Full name cannot be empty.')
+        user.full_name = full_name
+
+    if email is not None:
+        new_email = _validate_email_unique(email, exclude_id=user.id)
+        if new_email != user.email:
+            user.email = new_email
+
+    if department is not None or department == None:  # always applied when kwarg present
+        # Note: caller must pass department= explicitly to change it; omitting
+        # the kwarg leaves it unchanged. We can't distinguish "not provided"
+        # from "set to None" in this signature, so callers who want to clear
+        # department must pass department=None explicitly.
+        if department != '':
+            new_dept = None if department is None else department
+            _validate_department(new_dept)
+            _validate_role_department_combo(user.role, new_dept)
+            user.department = new_dept
+
+    db.session.commit()
+    audit('user_update',
+          f'org={org.slug} email={user.email}',
+          org_id=org.id, actor_id=actor_id)
+    return user
+
+
+def _discover_user_fks():
+    """Return [(schema, table, column, is_nullable), ...] for FKs to user.id.
+
+    Dialect-aware:
+      - Postgres: information_schema.table_constraints (global, one query)
+      - SQLite:   PRAGMA foreign_key_list per table (per-table, metadata for nullable)
+    """
+    from sqlalchemy import text
+    dialect = db.engine.name
+    if dialect == 'postgresql':
+        rows = db.session.execute(text("""
+            SELECT kcu.table_schema, kcu.table_name, kcu.column_name,
+                   CASE WHEN cols.is_nullable = 'NO' THEN false ELSE true END
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+              ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage ccu
+              ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+            JOIN information_schema.columns cols
+              ON cols.table_schema = kcu.table_schema
+             AND cols.table_name = kcu.table_name
+             AND cols.column_name = kcu.column_name
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND ccu.table_schema = 'public'
+              AND ccu.table_name = 'user'
+              AND ccu.column_name = 'id'
+        """)).fetchall()
+        return [(r[0], r[1], r[2], r[3]) for r in rows]
+    elif dialect == 'sqlite':
+        out = []
+        for tbl_name, tbl in db.metadata.tables.items():
+            pragma = db.session.execute(
+                text(f'PRAGMA foreign_key_list("{tbl_name}")')).fetchall()
+            for row in pragma:
+                # PRAGMA foreign_key_list columns:
+                #   id, seq, table, from, to, on_update, on_delete, match
+                if row[2] == 'user' and row[4] == 'id':
+                    col_name = row[3]
+                    col_obj = tbl.columns.get(col_name)
+                    nullable = True
+                    if col_obj is not None:
+                        nullable = col_obj.nullable if col_obj.nullable is not None else True
+                    out.append((None, tbl_name, col_name, nullable))
+        return out
+    else:
+        raise RuntimeError(f'Unsupported dialect for FK enumeration: {dialect}')
+
+
+def _delete_user_fk_aware(uid):
+    """Remove all FK references to uid, then let caller delete the User row.
+
+    NOT NULL FKs are DELETEd (personal rows: chat_read_state, etc.)
+    Nullable FKs are SET NULL (financial/audit attribution: wallet_transaction, etc.)
+    Works on Postgres and SQLite via _discover_user_fks().
+    """
+    from sqlalchemy import text
+    for tbl_schema, tbl_name, col_name, nullable in _discover_user_fks():
+        if tbl_schema:
+            tbl = f'"{tbl_schema}"."{tbl_name}"'
+        else:
+            tbl = f'"{tbl_name}"'
+        col = f'"{col_name}"'
+        if nullable:
+            db.session.execute(
+                text(f'UPDATE {tbl} SET {col} = NULL WHERE {col} = :uid'),
+                {'uid': uid})
+        else:
+            db.session.execute(
+                text(f'DELETE FROM {tbl} WHERE {col} = :uid'),
+                {'uid': uid})
+
+def delete_user(org, user_id, *, actor_id=None):
+    """FK-aware delete of a user. Refuses to remove the last school admin."""
+    _refuse_if_protected(org)
+
+    user = User.query.filter_by(id=user_id, org_id=org.id).first()
+    if not user:
+        raise OrgError('User not found in that organization.')
+
+    if user.role == 'associate_admin':
+        admin_count = User.query.filter_by(
+            org_id=org.id, role='associate_admin').count()
+        if admin_count <= 1:
+            raise OrgError(
+                'Cannot delete the last school admin. '
+                'Create another admin first.')
+
+    email = user.email
+    _delete_user_fk_aware(user.id)
+    db.session.delete(user)
+    db.session.commit()
+    audit('user_delete',
+          f'org={org.slug} email={email}',
+          org_id=org.id, actor_id=actor_id)
