@@ -537,88 +537,7 @@
 
 <p>If you need help — you can't log in, you think a message didn't send, you need to buy credits — contact the operator. The fastest way is the <strong>Chat</strong> page inside Roman SMS. It goes straight to us.</p>
 
-</main>
-</div>
 
-<footer style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;border-top:1px solid #e5e7eb;background:#fff;">
-  Roman SMS Administrator Manual · Version 2026-11-13 · Built for <a href="https://romansms.com">romansms.com</a>
-</footer>
-
-<script>
-(function() {
-  'use strict';
-
-  // ============ SCROLL SPY ============
-  const navLinks = document.querySelectorAll('aside.sidebar a[href^="#"]');
-  const sections = Array.from(navLinks).map(a => document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
-
-  function updateActive() {
-    const scrollPos = window.scrollY + 100;
-    let active = sections[0];
-    for (const s of sections) {
-      if (s.offsetTop <= scrollPos) active = s;
-    }
-    if (!active) return;
-    navLinks.forEach(a => {
-      a.classList.toggle('active', a.getAttribute('href') === '#' + active.id);
-    });
-  }
-  window.addEventListener('scroll', updateActive, { passive: true });
-  updateActive();
-
-  // ============ SEARCH ============
-  const searchInput = document.getElementById('manual-search');
-  const resultCount = document.getElementById('search-result-count');
-  const originalHTML = new Map();
-  document.querySelectorAll('main.content p, main.content li, main.content td').forEach((el, i) => {
-    originalHTML.set(el, el.innerHTML);
-  });
-
-  function clearHighlights() {
-    originalHTML.forEach((html, el) => { el.innerHTML = html; });
-  }
-
-  function escapeRegExp(s) {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  let searchTimer = null;
-  searchInput.addEventListener('input', function() {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(runSearch, 120);
-  });
-
-  function runSearch() {
-    const q = searchInput.value.trim();
-    if (q.length < 2) {
-      clearHighlights();
-      resultCount.textContent = '';
-      return;
-    }
-    const re = new RegExp('(' + escapeRegExp(q) + ')', 'gi');
-    let hits = 0;
-    originalHTML.forEach((html, el) => {
-      if (re.test(html)) {
-        hits += (html.match(re) || []).length;
-        el.innerHTML = html.replace(re, '<mark class="search-hit">$1</mark>');
-      } else {
-        el.innerHTML = html;
-      }
-      re.lastIndex = 0;
-    });
-    resultCount.textContent = hits ? hits + ' match' + (hits === 1 ? '' : 'es') : 'no matches';
-  }
-
-  // Ctrl/Cmd+F focus on search
-  document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-      e.preventDefault();
-      searchInput.focus();
-      searchInput.select();
-    }
-  });
-})();
-</script>
 
 
 <!-- ============================================================ -->
@@ -2482,6 +2401,89 @@ Sarah Achieng,0773456789,0,-</code></pre>
 <div style="margin-top:64px;padding:24px;background:#f0fdf4;border-radius:8px;border-left:4px solid #16a34a;">
 <p style="margin:0;font-size:14px;color:#166534;"><strong>End of manual.</strong> If you've read all ten sections, you know how to use every part of Roman SMS that a typical administrator needs. If you find something missing or confusing, let the operator know — this manual improves based on feedback.</p>
 </div>
+
+</main>
+</div>
+
+<footer style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;border-top:1px solid #e5e7eb;background:#fff;">
+  Roman SMS Administrator Manual · Version 2026-11-13 · Built for <a href="https://romansms.com">romansms.com</a>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============ SCROLL SPY ============
+  const navLinks = document.querySelectorAll('aside.sidebar a[href^="#"]');
+  const sections = Array.from(navLinks).map(a => document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+
+  function updateActive() {
+    const scrollPos = window.scrollY + 100;
+    let active = sections[0];
+    for (const s of sections) {
+      if (s.offsetTop <= scrollPos) active = s;
+    }
+    if (!active) return;
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + active.id);
+    });
+  }
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+
+  // ============ SEARCH ============
+  const searchInput = document.getElementById('manual-search');
+  const resultCount = document.getElementById('search-result-count');
+  const originalHTML = new Map();
+  document.querySelectorAll('main.content p, main.content li, main.content td').forEach((el, i) => {
+    originalHTML.set(el, el.innerHTML);
+  });
+
+  function clearHighlights() {
+    originalHTML.forEach((html, el) => { el.innerHTML = html; });
+  }
+
+  function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  let searchTimer = null;
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 120);
+  });
+
+  function runSearch() {
+    const q = searchInput.value.trim();
+    if (q.length < 2) {
+      clearHighlights();
+      resultCount.textContent = '';
+      return;
+    }
+    const re = new RegExp('(' + escapeRegExp(q) + ')', 'gi');
+    let hits = 0;
+    originalHTML.forEach((html, el) => {
+      if (re.test(html)) {
+        hits += (html.match(re) || []).length;
+        el.innerHTML = html.replace(re, '<mark class="search-hit">$1</mark>');
+      } else {
+        el.innerHTML = html;
+      }
+      re.lastIndex = 0;
+    });
+    resultCount.textContent = hits ? hits + ' match' + (hits === 1 ? '' : 'es') : 'no matches';
+  }
+
+  // Ctrl/Cmd+F focus on search
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    }
+  });
+})();
+</script>
 
 </body>
 </html>
